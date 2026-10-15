@@ -3,439 +3,624 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>让流转轻一点，再轻一点 · 业余小玩具分享</title>
+<title>空间规划分院 · 项目流转小工具</title>
 <style>
   :root {
-    --bg: #fbfbfa;
+    --bg: #f1f5f9;
     --card: #ffffff;
-    --text: #2c3138;
-    --muted: #79828d;
-    --border: #e9ecef;
-    --accent: #2e69ff;
-    --accent-soft: #f0f4ff;
-    --green: #2da44e;
-    --green-soft: #f2fbf4;
-    --amber: #b07200;
-    --amber-soft: #fef9ec;
-    --purple: #8250df;
-    --purple-soft: #fbf7ff;
+    --text-main: #0f172a;
+    --text-sub: #475569;
+    --text-muted: #64748b;
+    --border: #cbd5e1;
+    --border-dark: #94a3b8;
+    --blue: #2563eb;
+    --blue-bg: #eff6ff;
+    --green: #059669;
+    --green-bg: #ecfdf5;
+    --purple: #7c3aed;
+    --purple-bg: #f5f3ff;
+    --amber: #d97706;
+    --amber-bg: #fffbeb;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: var(--bg);
-    color: var(--text);
+    color: var(--text-main);
     font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, sans-serif;
-    line-height: 1.65;
-    padding-bottom: 80px;
+    line-height: 1.6;
+    padding-bottom: 90px;
     -webkit-font-smoothing: antialiased;
   }
 
-  /* 顶部文艺留白区 */
+  /* 顶部 Header */
   .hero {
-    max-width: 740px;
+    max-width: 820px;
     margin: 0 auto;
-    padding: 60px 24px 36px;
+    padding: 44px 20px 24px;
     text-align: center;
   }
-  .pill {
+  .tag-badge {
     display: inline-block;
-    padding: 4px 14px;
+    padding: 5px 14px;
     border-radius: 20px;
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: #e2e8f0;
+    color: #334155;
     font-size: 13px;
-    font-weight: 500;
-    margin-bottom: 18px;
-    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    border: 1px solid #cbd5e1;
   }
   h1 {
-    font-size: 30px;
-    font-weight: 700;
+    font-size: 28px;
+    font-weight: 800;
+    color: #0f172a;
     letter-spacing: -0.5px;
-    color: #1a1e24;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
-  .hero-sub {
+  .hero-desc {
     font-size: 16px;
-    color: var(--muted);
-    line-height: 1.7;
-    max-width: 580px;
-    margin: 0 auto;
-  }
-
-  .main {
-    max-width: 740px;
-    margin: 0 auto;
-    padding: 0 20px;
-  }
-
-  /* 卡片设计 */
-  .section-card {
-    background: var(--card);
-    border-radius: 18px;
+    color: #334155;
+    font-weight: 500;
+    background: #ffffff;
+    display: inline-block;
+    padding: 8px 18px;
+    border-radius: 30px;
     border: 1px solid var(--border);
-    padding: 30px 32px;
-    margin-bottom: 24px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-  }
-  @media (max-width: 600px) {
-    .section-card { padding: 22px 18px; }
-    h1 { font-size: 24px; }
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
   }
 
-  .sec-title {
-    font-size: 19px;
-    font-weight: 700;
-    margin-bottom: 16px;
-    color: #1a1e24;
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+
+  /* 主卡片：强对比度 */
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    border: 1.5px solid var(--border);
+    padding: 24px 24px;
+    margin-bottom: 22px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  }
+  .card-header {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
   }
-  .sec-desc {
-    color: var(--muted);
-    font-size: 14.5px;
-    margin-bottom: 20px;
-    line-height: 1.7;
+  .card-subtitle {
+    font-size: 14px;
+    color: var(--text-sub);
+    margin-top: -10px;
+    margin-bottom: 18px;
   }
 
-  /* 三个不累人的核心交互（图解卡片） */
-  .trio-grid {
+  /* ===== 1. 全流程一张图（视觉化流程路线） ===== */
+  .flow-track {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .flow-step {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 36px 1fr auto;
+    align-items: center;
     gap: 14px;
-    margin: 20px 0;
-  }
-  @media (max-width: 680px) {
-    .trio-grid { grid-template-columns: 1fr; }
-  }
-  .trio-item {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1.5px solid #e2e8f0;
     background: #f8fafc;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px 16px;
-    text-align: center;
+    transition: all .15s;
   }
-  .trio-icon { font-size: 28px; margin-bottom: 10px; }
-  .trio-item h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
-  .trio-item p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .flow-step.blue { border-color: #93c5fd; background: var(--blue-bg); }
+  .flow-step.purple { border-color: #d8b4fe; background: var(--purple-bg); }
+  .flow-step.green { border-color: #86efac; background: var(--green-bg); }
 
-  /* 优雅的6个小心思网格 */
+  .step-num {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #0f172a;
+    color: #fff;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .flow-step.blue .step-num { background: var(--blue); }
+  .flow-step.purple .step-num { background: var(--purple); }
+  .flow-step.green .step-num { background: var(--green); }
+
+  .step-main { display: flex; flex-direction: column; }
+  .step-title { font-size: 15px; font-weight: 700; color: #0f172a; }
+  .step-meta { font-size: 13px; color: #475569; margin-top: 2px; }
+
+  .step-tag {
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+  .step-tag.review { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+  .step-tag.meeting { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }
+  .step-tag.final { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+
+  .flow-connector {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 18px;
+    line-height: 1;
+    margin: -6px 0;
+  }
+
+  /* ===== 2. 真实界面模拟（UI Mockup 卡片，零废话图解） ===== */
+  .mock-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+  }
+  @media (max-width: 720px) {
+    .mock-grid { grid-template-columns: 1fr; }
+  }
+  .mock-card {
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    background: #ffffff;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  }
+  .mock-head {
+    background: #0f172a;
+    color: #fff;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+  }
+  .mock-body {
+    padding: 12px;
+    font-size: 13px;
+  }
+  .mock-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed #e2e8f0;
+  }
+  .btn-sample {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    margin: 2px 2px 2px 0;
+  }
+  .btn-sample.blue { background: #2563eb; color: #fff; }
+  .btn-sample.green { background: #059669; color: #fff; }
+  .btn-sample.outline { border: 1px solid #94a3b8; color: #0f172a; background: #fff; }
+
+  .counter-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 8px;
+    margin-top: 6px;
+  }
+
+  /* ===== 3. 六个特色小心思网格 ===== */
   .features-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-top: 16px;
+    gap: 12px;
   }
   @media (max-width: 600px) {
     .features-grid { grid-template-columns: 1fr; }
   }
-  .feat-card {
-    background: #fbfcfd;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px 18px;
+  .feat-tile {
+    padding: 14px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: #f8fafc;
   }
-  .feat-card.light-modest {
-    border-style: dashed;
-    background: #fafafa;
-  }
-  .feat-title {
-    font-size: 15px;
-    font-weight: 600;
+  .feat-tile h4 {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #0f172a;
     margin-bottom: 4px;
     display: flex;
     align-items: center;
     gap: 6px;
   }
-  .feat-desc {
+  .feat-tile p {
     font-size: 13px;
-    color: var(--muted);
-    line-height: 1.55;
+    color: #475569;
+    line-height: 1.5;
+  }
+  .feat-tile.understated {
+    border-style: dashed;
+    border-color: #cbd5e1;
+    background: #ffffff;
   }
 
-  /* 极简角色指引 */
-  .role-row {
-    display: flex;
-    gap: 14px;
-    padding: 14px 0;
-    border-bottom: 1px solid #f0f2f5;
-  }
-  .role-row:last-child { border-bottom: none; }
-  .role-tag {
-    flex-shrink: 0;
-    width: 90px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #495057;
-    background: #eef2f6;
-    padding: 4px 8px;
-    border-radius: 6px;
-    text-align: center;
-    height: fit-content;
-  }
-  .role-text { font-size: 13.5px; color: #495057; }
-
-  /* 建议与愿望清单 (Issue Wall) */
-  .issue-wall { margin-top: 16px; }
-  .issue-item {
+  /* ===== 4. 试跑吐槽与愿望墙 ===== */
+  .issue-box {
     background: #f8fafc;
-    border-radius: 12px;
     border: 1px solid var(--border);
-    padding: 14px 16px;
+    border-radius: 10px;
+    padding: 12px 14px;
     margin-bottom: 10px;
   }
-  .issue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-  .issue-q { font-size: 14px; font-weight: 600; color: #24292f; }
-  .issue-reply { font-size: 13px; color: #57606a; background: #fff; border-radius: 8px; padding: 8px 12px; border: 1px dashed var(--border); margin-top: 6px; }
-
-  .status-tag { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
-  .status-done { background: var(--green-soft); color: var(--green); }
-  .status-no { background: #f1f3f5; color: #6c757d; }
-  .status-plan { background: var(--amber-soft); color: var(--amber); }
-
-  .issue-form {
-    margin-top: 18px;
-    padding: 16px;
-    background: #f5f8ff;
-    border-radius: 12px;
-    border: 1px solid #d8e5ff;
+  .issue-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
   }
-  .issue-form textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #c9d8fa;
+  .issue-tag {
+    font-size: 11px;
+    padding: 1px 7px;
     border-radius: 8px;
-    font-size: 14px;
+    font-weight: 600;
+  }
+  .issue-tag.done { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .issue-tag.no { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+  .issue-reply {
+    margin-top: 6px;
+    font-size: 12.5px;
     background: #fff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px dashed #cbd5e1;
+    color: #334155;
+  }
+
+  .input-area {
+    margin-top: 14px;
+    padding: 14px;
+    background: #eff6ff;
+    border: 1.5px solid #bfdbfe;
+    border-radius: 10px;
+  }
+  .input-area textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #93c5fd;
+    border-radius: 6px;
+    font-size: 13px;
     resize: vertical;
-    min-height: 54px;
+    min-height: 50px;
     font-family: inherit;
   }
-  .issue-form button {
+  .input-area button {
     margin-top: 8px;
-    background: var(--accent);
+    background: #2563eb;
     color: #fff;
     border: none;
-    padding: 8px 18px;
-    border-radius: 8px;
-    font-size: 13.5px;
-    font-weight: 500;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
   }
 
-  /* 折叠 FAQ 问答 */
-  details.faq-item {
-    border-bottom: 1px solid #f0f2f5;
-    padding: 14px 0;
+  /* FAQ 折叠 */
+  details.faq {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 0;
   }
-  details.faq-item:last-child { border-bottom: none; }
+  details.faq:last-child { border-bottom: none; }
   summary {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14.5px;
+    font-weight: 700;
     cursor: pointer;
-    user-select: none;
-    color: #24292f;
-    outline: none;
+    color: #0f172a;
   }
-  summary::-webkit-details-marker { color: var(--accent); }
-  .faq-ans {
-    margin-top: 10px;
-    padding: 12px 14px;
+  .faq-body {
+    margin-top: 8px;
+    padding: 10px 12px;
     background: #f8fafc;
-    border-radius: 10px;
-    font-size: 13.5px;
-    color: #555;
-    line-height: 1.65;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #334155;
+    border: 1px solid #e2e8f0;
   }
 
-  /* 底部按钮 */
-  .btn-enter {
-    display: block;
-    width: 100%;
-    max-width: 320px;
-    margin: 32px auto 0;
-    background: var(--accent);
-    color: #fff;
+  /* 底部固定体验入口 */
+  .launch-bar {
     text-align: center;
-    padding: 13px 20px;
-    border-radius: 12px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 15px;
-    box-shadow: 0 4px 14px rgba(46,105,255,0.25);
-    transition: transform .15s;
+    margin-top: 26px;
   }
-  .btn-enter:hover { transform: translateY(-1px); }
+  .btn-enter {
+    display: inline-block;
+    background: #0f172a;
+    color: #fff;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 12px 28px;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+    transition: transform .15s, background .15s;
+  }
+  .btn-enter:hover {
+    background: #1e293b;
+    transform: translateY(-1px);
+  }
 </style>
 </head>
 <body>
 
 <header class="hero">
-  <div class="pill">业余小试验 · 试跑分享</div>
-  <h1>让流转轻一点，再轻一点。</h1>
-  <p class="hero-sub">
-    平时业务画图、开会看方案已经很累了。<br>
-    这是利用业余时间折腾的一个轻量小工具——<br>
-    领导愿意试点拿去用用看，觉得多余就当看个热闹。
-  </p>
+  <div class="tag-badge">业余小试验</div>
+  <h1>空间规划分院 · 项目流转小工具</h1>
+  <div class="hero-desc">
+    初衷：想让项目推进进度人人心里有数，又尽量在每个环节都不增加啥工作量。
+  </div>
 </header>
 
-<main class="main">
+<main class="container">
 
-  <!-- 1. 初衷：想做一个怎样的东西 -->
-  <div class="section-card">
-    <div class="sec-title">🌿 一、闲聊初衷：为什么做它？</div>
-    <p class="sec-desc">
-      初衷很简单：<b>想让项目推进心里有数，又不想给大家增添一丝负担。</b><br>
-      既能随时看清全流程在谁手上、改了什么；又把日常操作压到极限——点点手机、传传图片，基本很少打字，甚至完全不用写字。
-    </p>
+  <!-- 1. 全流程图解：一张图看懂流转 -->
+  <div class="card">
+    <div class="card-header">🗺️ 一张图看懂：项目怎么往前走？</div>
+    <div class="card-subtitle">清晰划分【审查节点】与【会议节点】，谁审、交什么、怎么反馈一清二楚：</div>
 
-    <div class="trio-grid">
-      <div class="trio-item">
-        <div class="trio-icon">👆</div>
-        <h4>只点选 · 不打字</h4>
-        <p>一键“已阅无意见”、加减号纠错点按计数，三秒完事。</p>
+    <div class="flow-track">
+      <!-- 步骤 1 -->
+      <div class="flow-step blue">
+        <div class="step-num">1</div>
+        <div class="step-main">
+          <div class="step-title">前期审理与初步方案</div>
+          <div class="step-meta">提交形式：演示文件电子档（另送）｜ 审查人：组长 ➔ 所总 ➔ 所长（不扰院总）</div>
+        </div>
+        <span class="step-tag review">审查节点</span>
       </div>
-      <div class="trio-item">
-        <div class="trio-icon">📷</div>
-        <h4>拍照片 · 免抄录</h4>
-        <p>纸质批注页手机连拍；电脑端只要 <code>⌘V / Ctrl+V</code> 就能直接粘贴截图。</p>
+
+      <div class="flow-connector">↓</div>
+
+      <!-- 步骤 2 -->
+      <div class="flow-step purple">
+        <div class="step-num">2</div>
+        <div class="step-main">
+          <div class="step-title">分院技术审查会</div>
+          <div class="step-meta">参会人：仅限本项目相关人员 ｜ 负责人上传上会时间、会议纪要与落实情况拍照</div>
+        </div>
+        <span class="step-tag meeting">会议节点</span>
       </div>
-      <div class="trio-item">
-        <div class="trio-icon">📅</div>
-        <h4>约时间 · 不跑空</h4>
-        <p>领导随手点个“明天9:00”送册时间，负责人准点送达，不扑空、不催问。</p>
+
+      <div class="flow-connector">↓</div>
+
+      <!-- 步骤 3 -->
+      <div class="flow-step blue">
+        <div class="step-num">3</div>
+        <div class="step-main">
+          <div class="step-title">评审方案审查</div>
+          <div class="step-meta">纸质成果（送册一步预约）｜ 校对 ➔ 组长 ➔ 所总 ➔ 所长 ➔ 院总（支持同时审查）</div>
+        </div>
+        <span class="step-tag review">审查节点</span>
+      </div>
+
+      <div class="flow-connector">↓</div>
+
+      <!-- 步骤 4 -->
+      <div class="flow-step purple">
+        <div class="step-num">4</div>
+        <div class="step-main">
+          <div class="step-title">控规方案联审会</div>
+          <div class="step-meta">上会时间录入 ｜ 会议纪要与意见落实情况留痕（修改/优化类可前后选择公示）</div>
+        </div>
+        <span class="step-tag meeting">会议节点</span>
+      </div>
+
+      <div class="flow-connector">↓</div>
+
+      <!-- 步骤 5 -->
+      <div class="flow-step green">
+        <div class="step-num">5</div>
+        <div class="step-main">
+          <div class="step-title">成果报批审查 ➔ 归档</div>
+          <div class="step-meta">报批材料终审把关 ｜ 审完即完成全阶段，历史所有意见与批注永久留痕</div>
+        </div>
+        <span class="step-tag final">归档办结</span>
       </div>
     </div>
   </div>
 
-  <!-- 2. 六个细致的小心思（雅致化特色） -->
-  <div class="section-card">
-    <div class="sec-title">✨ 二、藏在流程里的六个小心思</div>
+  <!-- 2. 界面模拟：真人不打字，到底怎么用？ -->
+  <div class="card">
+    <div class="card-header">📱 真实操作长什么样？点点屏幕三秒完事</div>
+    <div class="card-subtitle">把打字负担压到极限：手机点按、加减号纠错、电脑直接粘贴截图：</div>
+
+    <div class="mock-grid">
+      <!-- 模拟 1 -->
+      <div class="mock-card">
+        <div class="mock-head">
+          <span>负责人 · 发起送审</span>
+          <span>步骤 1</span>
+        </div>
+        <div class="mock-body">
+          <div class="mock-row">
+            <span>审查方式</span>
+            <span style="color:#2563eb;font-weight:700">逐级审查 / 同时审查</span>
+          </div>
+          <div style="margin:4px 0">送给谁（改完再送上一级）：</div>
+          <div>
+            <span class="btn-sample blue">郑校对</span>
+            <span class="btn-sample outline">周组长</span>
+            <span class="btn-sample outline">陈所总</span>
+          </div>
+          <div style="margin-top:10px">
+            <span class="btn-sample blue" style="width:100%">📤 一键送审</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模拟 2 -->
+      <div class="mock-card">
+        <div class="mock-head">
+          <span>审查领导 · 约送册</span>
+          <span>步骤 2</span>
+        </div>
+        <div class="mock-body">
+          <div style="color:#64748b;margin-bottom:6px">收到纸质审查通知，什么时候方便？</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            <span class="btn-sample outline">随时可送</span>
+            <span class="btn-sample outline" style="border-color:#2563eb;color:#2563eb">明天 09:00</span>
+            <span class="btn-sample outline">今天 15:00</span>
+            <span class="btn-sample outline">明天 14:00</span>
+          </div>
+          <div style="font-size:11px;color:#059669;margin-top:8px">✔ 领导点一下，负责人准时送到办公室，不跑空</div>
+        </div>
+      </div>
+
+      <!-- 模拟 3 -->
+      <div class="mock-card">
+        <div class="mock-head">
+          <span>审查人 · 反馈意见</span>
+          <span>步骤 3</span>
+        </div>
+        <div class="mock-body">
+          <div style="margin-bottom:6px">
+            <span class="btn-sample green" style="width:100%">✅ 已阅，无意见</span>
+          </div>
+          <div class="counter-box">
+            <span>数据错误 (处)</span>
+            <span><b style="color:#dc2626">− 2 ＋</b></span>
+          </div>
+          <div class="counter-box">
+            <span>文字错误 (处)</span>
+            <span><b style="color:#dc2626">− 3 ＋</b></span>
+          </div>
+          <div style="font-size:11px;color:#2563eb;margin-top:6px">📷 手机拍下批注页 / 电脑 Ctrl+V 贴图</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 六个贴心细节 -->
+  <div class="card">
+    <div class="card-header">✨ 藏在里头的几个小心思</div>
     <div class="features-grid">
-      <div class="feat-card">
-        <div class="feat-title">🍃 极简审阅反馈</div>
-        <div class="feat-desc">“已阅”放最前。真有错漏，点加减号记两处数据错误，手机拍张图直接发回。</div>
+      <div class="feat-tile">
+        <h4>⚡ 逐级与同时审查弹性并存</h4>
+        <p>日常逐级改完再推上一级；明天就要上会等紧急情况，填个原因直接同时发多位领导。</p>
       </div>
-      <div class="feat-card">
-        <div class="feat-title">☕ 送册一步预约</div>
-        <div class="feat-desc">纸质册子交接不再电话反复问“在不在办公室”。领导点选空闲时段，准点交接。</div>
+
+      <div class="feat-tile">
+        <h4>📢 院总共性点拨向下广播</h4>
+        <p>院总把关时发现共性图则或指标问题，可轻按一下推送所内一线，避免重复踩坑。</p>
       </div>
-      <div class="feat-card">
-        <div class="feat-title">🕰 方案时光留痕</div>
-        <div class="feat-desc">方案有调整点“＋”传新版，写一两句原因，自带时间戳，历史版本一键展开回溯。</div>
+
+      <div class="feat-tile">
+        <h4>🔍 拼音首字母秒速找人</h4>
+        <p>全院60人不用翻。打 <code>sg</code> 找孙工/沈工，第一位自动冠以负责人，其余不分先后。</p>
       </div>
-      <div class="feat-card">
-        <div class="feat-title">📢 经验向下点拨</div>
-        <div class="feat-desc">院总审阅时发现共性图则或指标问题，可轻按一下悄悄广播给所内一线，避免重复踩坑。</div>
+
+      <div class="feat-tile">
+        <h4>🕰 方案时光机与修改理由</h4>
+        <p>方案有修改点“＋”传新版，必填一句话改动原因，自带时间戳，历史版本一键回溯对比。</p>
       </div>
-      <div class="feat-card">
-        <div class="feat-title">🔍 首字母秒选人</div>
-        <div class="feat-desc">不用翻看60人通讯录。输入 <code>sg</code> 秒出孙工，首位默认冠以负责人，其余不分先后。</div>
+
+      <div class="feat-tile">
+        <h4>↩ 阶段误触随时可撤回</h4>
+        <p>点错了“本阶段完成”不用慌，随时点【↩ 撤回上一阶段】，已录入的意见纪要全部保留。</p>
       </div>
-      <div class="feat-card light-modest">
-        <div class="feat-title">🚗 偶尔的直达小条</div>
-        <div class="feat-desc">遇重大外部阻碍或规划分歧，弱弱向院长递张条子，一键预约个办公室短会。</div>
+
+      <div class="feat-tile understated">
+        <h4>🚗 偶尔的直达小条</h4>
+        <p>遇外部阻碍或规划分歧，弱弱给院长递张条子，预约个办公室碰头会，院长指定谁参加。</p>
       </div>
     </div>
   </div>
 
-  <!-- 3. 各角色怎么用（极简速览） -->
-  <div class="section-card">
-    <div class="sec-title">👥 三、各层级极简速览</div>
-    <div class="role-row">
-      <div class="role-tag">院长</div>
-      <div class="role-text">平时不用管细节；偶有跨部门协调，点一下批复个方便的会商时间。</div>
-    </div>
-    <div class="role-row">
-      <div class="role-tag">院总</div>
-      <div class="role-text">前期阶段电子档免审；重点把关评审方案与报批，发现共性问题一键点拨所内。</div>
-    </div>
-    <div class="role-row">
-      <div class="role-tag">所长 / 所总 / 组长</div>
-      <div class="role-text">手机点一下预约送册，拍两张批注页就算审完，电脑端可直接粘贴截图。</div>
-    </div>
-    <div class="role-row">
-      <div class="role-tag">项目负责人</div>
-      <div class="role-text">立项不通知打扰领导；按预约时间去送册；随时查看各级反馈，误触可撤回。</div>
-    </div>
-  </div>
+  <!-- 4. 试跑吐槽与愿望墙 -->
+  <div class="card">
+    <div class="card-header">📮 试跑体验与挑刺吐槽墙</div>
+    <div class="card-subtitle">先接入钉钉大家试跑。有不顺手的地方直接提，不论是否改动，条条都会公开回复：</div>
 
-  <!-- 4. 落地试点与意见收集墙 (Issue & 吐槽许愿) -->
-  <div class="section-card">
-    <div class="sec-title">📮 四、试跑与大家的吐槽墙</div>
-    <p class="sec-desc">
-      先接入钉钉内部微应用，大家试用体验、随时挑刺。页面里留了这个吐槽收集口，有意见直接提，<b>不管改不改，每一个都会给公开回复</b>。
-    </p>
-
-    <div class="issue-wall" id="issueWall">
-      <div class="issue-item">
-        <div class="issue-header">
-          <span class="issue-q">💬 电脑上审查能不能直接截图粘贴？</span>
-          <span class="status-tag status-done">已优化</span>
-        </div>
-        <div class="issue-reply">回复：已实现！所有传图和名称框，鼠标点一下按 <code>⌘V / Ctrl+V</code> 即可直接贴图。</div>
+    <div class="issue-box">
+      <div class="issue-head">
+        <span>💬 电脑上审查能不能直接截图粘贴？</span>
+        <span class="issue-tag done">已优化</span>
       </div>
-
-      <div class="issue-item">
-        <div class="issue-header">
-          <span class="issue-q">💬 刚建项目别发消息通知，领导觉得太吵。</span>
-          <span class="status-tag status-done">已优化</span>
-        </div>
-        <div class="issue-reply">回复：已改为纯静默创建，只有负责人正式点击“送审”时才通知相关审查人。</div>
-      </div>
-
-      <div class="issue-item">
-        <div class="issue-header">
-          <span class="issue-q">💬 为什么不顺便把合同额、进账财务信息做进来？</span>
-          <span class="status-tag status-no">暂不采纳</span>
-        </div>
-        <div class="issue-reply">回复：本系统定位于轻量业务技术流转，财务信息较敏感且院里已有独立财务系统，暂不做重，保持简单纯粹。</div>
-      </div>
+      <div class="issue-reply">回复：已实现！鼠标点一下输入框，按 <code>⌘V / Ctrl+V</code> 即可直接贴图。</div>
     </div>
 
-    <!-- 提交吐槽表单 -->
-    <div class="issue-form">
-      <div style="font-size:13.5px;font-weight:600;margin-bottom:6px">📝 提个建议 / 吐槽 / 找个 Bug：</div>
-      <textarea id="issueInput" placeholder="有什么不顺手的？直接说，我们来看看能不能改得更轻巧..."></textarea>
+    <div class="issue-box">
+      <div class="issue-head">
+        <span>💬 刚建项目别发消息通知，领导觉得太吵。</span>
+        <span class="issue-tag done">已优化</span>
+      </div>
+      <div class="issue-reply">回复：已改为纯静默创建，只有负责人正式点“送审”时才通知相关审查人。</div>
+    </div>
+
+    <div class="issue-box">
+      <div class="issue-head">
+        <span>💬 顺便把合同额、进账财务做进来？</span>
+        <span class="issue-tag no">暂不采纳</span>
+      </div>
+      <div class="issue-reply">回复：定位于轻量技术流转，财务信息较敏感且院里已有独立财务系统，暂不做重。</div>
+    </div>
+
+    <!-- 提交框 -->
+    <div class="input-area">
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px">📝 提个建议 / 吐槽 / 找个 Bug：</div>
+      <textarea id="issueInput" placeholder="有什么用着不爽的？直接说，我们来看看能不能改得更轻巧..."></textarea>
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span class="muted" style="font-size:12px">提交后会同步至后台，无论是否采纳均会给出理由</span>
+        <span style="font-size:11px;color:#64748b">提交后同步至后台，无论是否采纳均给答复</span>
         <button onclick="postIssue()">发送建议</button>
       </div>
     </div>
   </div>
 
-  <!-- 5. 答疑闲聊（原钉钉消息沉底解答移到最后） -->
-  <div class="section-card">
-    <div class="sec-title">☕ 五、一些也许你会好奇的问答</div>
-    
-    <details class="faq-item">
-      <summary>Q：我们平时很少看钉钉，送审消息沉了被忽略怎么办？</summary>
-      <div class="faq-ans">
-        系统准备了四道防漏网：<br>
+  <!-- 5. 答疑折叠 -->
+  <div class="card">
+    <div class="card-header">☕ 一些也许你会好奇的问答</div>
+
+    <details class="faq">
+      <summary>Q：我们平时很少看钉钉，消息沉底被忽略了怎么办？</summary>
+      <div class="faq-body">
+        备了四道防漏机制：<br>
         1. <b>已读回执</b>：发信人能看到谁已读、谁未读，不再两眼一抹黑；<br>
-        2. <b>待办常驻</b>：待审事项常驻钉钉首页待办红点，开机一眼可见；<br>
-        3. <b>自动入历</b>：约定送册、会商时间自动写入钉钉日程与手机自带日历，到点响铃弹窗；<br>
-        4. <b>极急 DING</b>：明天上会等火烧眉毛节点，一键触发 DING 短信直发领导手机，甚至电话叫醒。
+        2. <b>待办常驻</b>：待审事项常驻钉钉首页红点角标，开机一眼可见；<br>
+        3. <b>自动入历</b>：约定送册、会商时间自动写入钉钉日程与手机自带日历，到点弹窗响铃；<br>
+        4. <b>极急 DING</b>：明天上会等火烧眉毛节点，一键触发 DING 短信直发领导手机。
       </div>
     </details>
 
-    <details class="faq-item">
-      <summary>Q：操作记录放在哪里了？主页怎么不见了？</summary>
-      <div class="faq-ans">
-        听取了大家建议，为了保持主页清爽透气，大段的流水账已经移到【流程进度】时间线最下方，收拢为一个低调的链接，想看审计流水时随时点开弹窗查看。
+    <details class="faq">
+      <summary>Q：操作记录放在哪里了？</summary>
+      <div class="faq-body">
+        为了让页面清爽透气，大段流水账已移至【流程进度】时间线最下方，收拢为一个低调的链接，想看审计流水时随时点开弹窗查看。
       </div>
     </details>
 
-    <details class="faq-item">
+    <details class="faq">
       <summary>Q：纸质成果怎么跟这个小工具配合？</summary>
-      <div class="faq-ans">
-        纸质仍是最终载体。这工具只负责两头：<b>前端约好送达时间</b>，<b>后端留下批注照片与错误计数</b>，纸质件改完扔掉也不怕复核扯皮。
+      <div class="faq-body">
+        纸质仍是最终载体。工具只管两头：<b>前端约好送达时间不跑空</b>，<b>后端留下批注照片与错误计数</b>，纸质件改完扔掉也不怕复核扯皮。
       </div>
     </details>
+  </div>
 
-    <a href="index.html" class="btn-enter">👉 点此直接试玩小原型</a>
+  <div class="launch-bar">
+    <a href="index.html" class="btn-enter">👉 点击进入系统原型体验</a>
   </div>
 
 </main>
@@ -444,18 +629,8 @@
   function postIssue() {
     const txt = document.getElementById('issueInput').value.trim();
     if (!txt) return alert('请写下一两句想法或吐槽～');
-    const wall = document.getElementById('issueWall');
-    const card = document.createElement('div');
-    card.className = 'issue-item';
-    card.innerHTML = `
-      <div class="issue-header">
-        <span class="issue-q">💬 ${txt.replace(/[<>&"]/g, '')}</span>
-        <span class="status-tag status-plan">已收录</span>
-      </div>
-      <div class="issue-reply">回复：已记入需求优化列表，待评估后给出采纳答复及优化计划。</div>`;
-    wall.prepend(card);
+    alert('感谢反馈！已收录至建议库，评估后将在页面回复～');
     document.getElementById('issueInput').value = '';
-    alert('感谢反馈！已收录至建议库～');
   }
 </script>
 </body>
