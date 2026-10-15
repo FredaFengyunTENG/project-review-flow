@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>空间规划分院 · 项目流转小工具</title>
+<title>规划流转小工具</title>
 <style>
   :root {
     --bg: #f1f5f9;
@@ -119,8 +119,10 @@
     background: #f8fafc;
     transition: all .15s;
   }
+  .flow-step.amber { border-color: #fcd34d; background: var(--amber-bg); }
   .flow-step.blue { border-color: #93c5fd; background: var(--blue-bg); }
   .flow-step.purple { border-color: #d8b4fe; background: var(--purple-bg); }
+  .flow-step.cyan { border-color: #7dd3fc; background: #f0f9ff; }
   .flow-step.green { border-color: #86efac; background: var(--green-bg); }
 
   .step-num {
@@ -135,8 +137,10 @@
     justify-content: center;
     font-size: 14px;
   }
+  .flow-step.amber .step-num { background: var(--amber); }
   .flow-step.blue .step-num { background: var(--blue); }
   .flow-step.purple .step-num { background: var(--purple); }
+  .flow-step.cyan .step-num { background: #0284c7; }
   .flow-step.green .step-num { background: var(--green); }
 
   .step-main { display: flex; flex-direction: column; }
@@ -149,8 +153,10 @@
     border-radius: 6px;
     font-weight: 600;
   }
+  .step-tag.init { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
   .step-tag.review { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
   .step-tag.meeting { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }
+  .step-tag.public { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
   .step-tag.final { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
 
   .flow-connector {
@@ -368,7 +374,7 @@
 
 <header class="hero">
   <div class="tag-badge">业余小试验</div>
-  <h1>空间规划分院 · 项目流转小工具</h1>
+  <h1>规划流转小工具</h1>
   <div class="hero-desc">
     初衷：想让项目推进进度人人心里有数，又尽量在每个环节都不增加啥工作量。
   </div>
@@ -379,15 +385,27 @@
   <!-- 1. 全流程图解：一张图看懂流转 -->
   <div class="card">
     <div class="card-header">🗺️ 一张图看懂：项目怎么往前走？</div>
-    <div class="card-subtitle">清晰划分【审查节点】与【会议节点】，谁审、交什么、怎么反馈一清二楚：</div>
+    <div class="card-subtitle">从一键建档到公告结项，清晰划分【建档】、【审查】、【会议】、【公示】四大节点：</div>
 
     <div class="flow-track">
+      <!-- 步骤 0：起点建档 -->
+      <div class="flow-step amber">
+        <div class="step-num">★</div>
+        <div class="step-main">
+          <div class="step-title">项目负责人一键建立项目档案（流程起点）</div>
+          <div class="step-meta">极简建档 ｜ 录入正式名称/俗称 ｜ 拼音首字母秒选成员（首位为负责人） ｜ 上传初始方案与依据条款 ｜ 静默建档，随时正式开启流转</div>
+        </div>
+        <span class="step-tag init">立项建档</span>
+      </div>
+
+      <div class="flow-connector">↓</div>
+
       <!-- 步骤 1 -->
       <div class="flow-step blue">
         <div class="step-num">1</div>
         <div class="step-main">
           <div class="step-title">前期审理与初步方案</div>
-          <div class="step-meta">提交形式：演示文件电子档（另送）｜ 审查人：组长 ➔ 所总 ➔ 所长（不扰院总）</div>
+          <div class="step-meta">提交形式：演示文件电子档（另送）｜ 审查人：组长 ➔ 所总 ➔ 所长（不扰院总，所内严把关）</div>
         </div>
         <span class="step-tag review">审查节点</span>
       </div>
@@ -410,8 +428,8 @@
       <div class="flow-step blue">
         <div class="step-num">3</div>
         <div class="step-main">
-          <div class="step-title">评审方案审查</div>
-          <div class="step-meta">纸质成果（送册一步预约）｜ 校对 ➔ 组长 ➔ 所总 ➔ 所长 ➔ 院总（支持同时审查）</div>
+          <div class="step-title">评审方案审查（送册审查）</div>
+          <div class="step-meta">纸质成果送审 ｜ 审查领导一键约送册时间不跑空 ｜ 校对 ➔ 组长 ➔ 所总 ➔ 所长 ➔ 院总（支持同时审查）</div>
         </div>
         <span class="step-tag review">审查节点</span>
       </div>
@@ -419,25 +437,49 @@
       <div class="flow-connector">↓</div>
 
       <!-- 步骤 4 -->
-      <div class="flow-step purple">
+      <div class="flow-step cyan">
         <div class="step-num">4</div>
         <div class="step-main">
+          <div class="step-title">批前公示</div>
+          <div class="step-meta">提交形式：批前公示成果审查 ｜ 依项目类别灵活排在联审会前或后，线上留痕公众公示意见</div>
+        </div>
+        <span class="step-tag public">公示节点</span>
+      </div>
+
+      <div class="flow-connector">↓</div>
+
+      <!-- 步骤 5 -->
+      <div class="flow-step purple">
+        <div class="step-num">5</div>
+        <div class="step-main">
           <div class="step-title">控规方案联审会</div>
-          <div class="step-meta">上会时间录入 ｜ 会议纪要与意见落实情况留痕（修改/优化类可前后选择公示）</div>
+          <div class="step-meta">上会时间录入 ｜ 局级联审会议纪要与各部门意见落实情况拍照留痕</div>
         </div>
         <span class="step-tag meeting">会议节点</span>
       </div>
 
       <div class="flow-connector">↓</div>
 
-      <!-- 步骤 5 -->
-      <div class="flow-step green">
-        <div class="step-num">5</div>
+      <!-- 步骤 6 -->
+      <div class="flow-step blue">
+        <div class="step-num">6</div>
         <div class="step-main">
-          <div class="step-title">成果报批审查 ➔ 归档</div>
-          <div class="step-meta">报批材料终审把关 ｜ 审完即完成全阶段，历史所有意见与批注永久留痕</div>
+          <div class="step-title">成果报批审查</div>
+          <div class="step-meta">报批材料终审把关（论证报告、成果图件）｜ 所长、院总把关后上报批复</div>
         </div>
-        <span class="step-tag final">归档办结</span>
+        <span class="step-tag review">审查节点</span>
+      </div>
+
+      <div class="flow-connector">↓</div>
+
+      <!-- 步骤 7 -->
+      <div class="flow-step green">
+        <div class="step-num">7</div>
+        <div class="step-main">
+          <div class="step-title">批后公告 ➔ 归档办结</div>
+          <div class="step-meta">政府批复与批后公告图纸归档 ｜ 全阶段所有图件、批注、意见永久留痕，办结封存</div>
+        </div>
+        <span class="step-tag final">公告结项</span>
       </div>
     </div>
   </div>
@@ -589,9 +631,57 @@
     </div>
   </div>
 
-  <!-- 5. 答疑折叠 -->
+  <!-- 5. 落地推进：需要领导与信息部门对接的事情 -->
+  <div class="card">
+    <div class="card-header">🛠️ 下一步落地：需要领导与信息技术部门协调推进的 2 件事</div>
+    <div class="card-subtitle">小工具要从“业余试验”真正变成“全院好用”，只需院里协调信息部门推进两项技术对接：</div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <!-- 事项 1 -->
+      <div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:12px;padding:16px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;color:#1e40af;margin-bottom:8px">
+          <span style="background:#2563eb;color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px">1</span>
+          接入院里钉钉系统（原生免登 ＋ 强提醒打通）
+        </div>
+        <div style="font-size:13.5px;color:#334155;line-height:1.7">
+          • <b>免登与组织架构直连</b>：直接读取院内钉钉通讯录，大家不用重新注册账号密码，打开直接识别分院职工身份，拼音首字母找人 100% 同步；<br>
+          • <b>钉钉待办与首页红点常驻</b>：待审项目直接上报钉钉个人“待办事项”，手机和电脑端常驻红点，彻底解决“平时不爱看钉钉、群消息沉底被忽略”的顾虑；<br>
+          • <b>日历日程自动写入</b>：约定送册时间、方案联审会时间，点一下自动写入钉钉个人日程与手机本地日历，提前 15 分钟弹窗响铃不跑空；<br>
+          • <b>发信人已读回执</b>：送审后发信人可实时看到哪位领导/审查人“已读/未读”，项目进展一目了然；<br>
+          • <b>极急节点加急 DING</b>：赶着上会等特急节点，支持一键发送钉钉加急 DING 消息或短信直达手机。
+        </div>
+      </div>
+
+      <!-- 事项 2 -->
+      <div style="background:#f5f3ff;border:1.5px solid #d8b4fe;border-radius:12px;padding:16px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;color:#6b21a8;margin-bottom:8px">
+          <span style="background:#7c3aed;color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px">2</span>
+          接入院里现有的 AI 大模型 / OCR 能力（手写批注拍照秒转文字）
+        </div>
+        <div style="font-size:13.5px;color:#334155;line-height:1.7">
+          • <b>图纸手写红笔批注拍照识别</b>：领导在纸质成果或图纸上画红圈、手写批注后，手机拍照上传，院内 AI 视觉模型自动识别手写体，并智能提取出修改条目（如“1. 北侧建筑退线修正为8米；2. 绿地率指标核算有误”）；<br>
+          • <b>自动生成修改核对清单</b>：系统自动将识别出的手写意见转化为项目组的“待办核对清单”，修改一条勾选一条，校对与所长复核时一秒对账，绝无遗漏；<br>
+          • <b>会议纪要与落实情况自动结构化</b>：现场审查会、联审会的纸质记录表随手一拍，AI 自动提炼核心结论与待修改要点；<br>
+          • <b>院内安全合规</b>：调用院内自建或信创环境的私有化 AI 模型，规划图纸、经济技术指标与未公开数据不出院网，安全合规放心。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. 答疑折叠 -->
   <div class="card">
     <div class="card-header">☕ 一些也许你会好奇的问答</div>
+
+    <details class="faq">
+      <summary>Q：关于名字：“规划流转”还有没有更有韵味、兼具反馈与全观的叫法？</summary>
+      <div class="faq-body">
+        “流转”偏公文传递，如果想要<b>既有流程流转、又有反馈互动、又有全盘鸟瞰</b>，几个备选名字供领导和大家选择：<br>
+        1. <b>「规道」或「规划步道」</b>：既指规划项目的推进行进轨道（流转），又指沟通之道、反馈之法（道出意见），还指规整明了（全观），简短有力；<br>
+        2. <b>「规程通」</b>：流程通达（流转）、上下沟通（反馈）、通盘掌握（全观），非常接地气；<br>
+        3. <b>「规划全景」或「规景」</b>：取意项目全景罗盘，走到哪一步、谁提了什么意见尽收眼底；<br>
+        4. <b>「规划知会」</b>：知（人人心里有数、全局通晓），会（批示反馈、会议协同、交汇流转）。
+      </div>
+    </details>
 
     <details class="faq">
       <summary>Q：我们平时很少看钉钉，消息沉底被忽略了怎么办？</summary>

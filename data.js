@@ -46,8 +46,8 @@ function stagePath(category, publicity) {
   if (category === '其他（待开发）') return [];
   if (category === '控规') return ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9'];
   return publicity === 'before'
-    ? ['s1', 's2', 's3', 's5', 's4', 's8']
-    : ['s1', 's2', 's3', 's4', 's5', 's8'];
+    ? ['s1', 's2', 's3', 's5', 's4', 's8', 's9']
+    : ['s1', 's2', 's3', 's4', 's5', 's8', 's9'];
 }
 
 const BASIS = {
