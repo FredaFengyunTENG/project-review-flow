@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>空间规划分院项目流转管理系统 · 方案汇报与使用说明</title>
+<style>
+  :root {
+    --primary: #1f6feb;
+    --primary-light: #ddf4ff;
+    --success: #1a7f37;
+    --success-light: #dafbe1;
+    --warning: #9a6700;
+    --warning-light: #fff8c5;
+    --danger: #cf222e;
+    --danger-light: #ffebe9;
+    --purple: #8250df;
+    --purple-light: #fbefff;
+    --text: #24292f;
+    --muted: #57606a;
+    --border: #d0d7de;
+    --bg: #f6f8fa;
+    --card-bg: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding-bottom: 60px;
+  }
+  header.hero {
+    background: linear-gradient(135deg, #0d419d 0%, #1f6feb 100%);
+    color: #fff;
+    padding: 48px 24px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(13,65,157,0.15);
+  }
+  header.hero h1 { font-size: 26px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 10px; }
+  header.hero p { font-size: 15px; opacity: 0.9; max-width: 680px; margin: 0 auto; line-height: 1.6; }
+  .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; background: rgba(255,255,255,0.2); margin-bottom: 12px; }
+
+  .container { max-width: 860px; margin: -24px auto 0; padding: 0 16px; }
+  .card {
+    background: var(--card-bg);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 24px 28px;
+    margin-bottom: 22px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  }
+  h2 {
+    font-size: 19px;
+    font-weight: 700;
+    color: #0969da;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 2px solid #ebf0f5;
+    padding-bottom: 8px;
+  }
+  h3 { font-size: 16px; font-weight: 600; margin: 16px 0 8px; color: var(--text); }
+  p { margin-bottom: 10px; font-size: 14.5px; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; font-size: 14.5px; }
+  li { margin-bottom: 6px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+  
+  .box { padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border); background: #fafbfc; }
+  .box.blue { border-color: #54aeff; background: #f0f7ff; }
+  .box.green { border-color: #4ac26b; background: #f2fbf4; }
+  .box.gold { border-color: #f7b731; background: #fffcf0; }
+  .box.purple { border-color: #d1b8ff; background: #fbf9ff; }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; margin-right: 6px; }
+  .tag.blue { background: var(--primary-light); color: var(--primary); }
+  .tag.green { background: var(--success-light); color: var(--success); }
+  .tag.gold { background: var(--warning-light); color: var(--warning); }
+  .tag.danger { background: var(--danger-light); color: var(--danger); }
+  .tag.purple { background: var(--purple-light); color: var(--purple); }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; }
+  th { background: #f6f8fa; font-weight: 600; }
+
+  .step-card { display: flex; gap: 14px; margin: 12px 0; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+  .step-content { flex: 1; }
+
+  .btn-launch {
+    display: block;
+    width: 100%;
+    max-width: 380px;
+    margin: 28px auto 0;
+    text-align: center;
+    background: #1f6feb;
+    color: #fff;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 13px 24px;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(31,111,235,0.3);
+    transition: transform .15s, background .15s;
+  }
+  .btn-launch:hover { background: #1a5bc7; transform: translateY(-1px); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="badge">分院数字化项目管理 · 试点方案</div>
+  <h1>空间规划分院项目流转管理系统</h1>
+  <p>建立上下沟通直通通道 · 审查意见全览闭环 · 项目全流程透明化</p>
+</header>
+
+<div class="container">
+
+  <!-- 1. 为什么做这个系统 -->
+  <div class="card">
+    <h2>🎯 一、为什么做？解决什么核心痛点？</h2>
+    <p>当前分院规划项目（控规、控规修改、优化调整等）在成果审查、上会报批流转中，普遍存在以下现实困扰：</p>
+    
+    <div class="grid-2">
+      <div class="box">
+        <h3 style="color:#cf222e;margin-top:0">⚠️ 传统工作模式痛点</h3>
+        <ul>
+          <li><b>纸质册子在谁手上不清楚</b>：负责人到处问、领导出差送册扑空；</li>
+          <li><b>审查意见碎片化流失</b>：纸质批注改完就丢，领导后续复核无据可查；</li>
+          <li><b>进度全靠口头问</b>：院长、院总难以及时掌握全院几十个项目各卡在哪个节点；</li>
+          <li><b>遇到重大阻碍协调慢</b>：跨所、跨层级沟通周期长，缺少院级紧急直通通道。</li>
+        </ul>
+      </div>
+      <div class="box green">
+        <h3 style="color:#1a7f37;margin-top:0">✅ 本系统的目标与收益</h3>
+        <ul>
+          <li><b>审查节点透明</b>：随时看清项目卡在谁手里、超期多久；</li>
+          <li><b>意见全览闭环</b>：每一轮审查拍照/计数留痕，下级能看上级意见，经验透明；</li>
+          <li><b>审查人零负担</b>：一键“已阅无意见”、批注页连拍，绝不给领导增加打字负担；</li>
+          <li><b>重大问题一键直达</b>：专设「院长直通车」，高优先级拉通排期。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 强提醒方案：解答大家不常用钉钉的问题 -->
+  <div class="card">
+    <h2>⚡ 二、解决关键疑虑：平时不用钉钉，消息忽略了怎么办？</h2>
+    <p>很多同事平时微信用得多、钉钉用得少，这是非常现实的顾虑。系统通过<b>五重强提醒与状态感知闭环</b>，彻底解决“消息被忽略”的问题：</p>
+
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>已读 / 未读状态精准感知（发信人一目了然）</h3>
+        <p>与微信“发出去不知道对方看没看”不同，钉钉原生支持消息送达回执。项目负责人送审后，系统直接显示：<span class="tag green">张所长（已读）</span> <span class="tag danger">李院总（未读）</span>。发信人实时掌控状态，不再盲猜。</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>杀手级强提醒：钉钉三级 DING 机制（短信 + 电话叫醒）</h3>
+        <p>遇到紧急审查（如明天评审、后天报批），送审人可直接触发钉钉的 <b>DING 强提醒</b>：</p>
+        <ul>
+          <li><b>一级应用弹窗</b>：打开钉钉全屏强提醒卡片；</li>
+          <li><b>二级手机短信</b>：直接向领导手机发送催办短信（带免密直达短链接）；</li>
+          <li><b>三级自动语音电话</b>：极端紧急时由系统直接拨打领导手机语音提醒，绝无遗漏可能。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>首屏待办中心常驻（红点角标，打开必见）</h3>
+        <p>待审任务自动挂载到钉钉的<b>「待办任务」</b>，不仅在手机端钉钉工作台置顶，电脑端桌面图标也会显示红色待办角标，上班打开电脑第一眼即见。</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>日历日程直通（自动写入钉钉日程与手机系统日历）</h3>
+        <p>约定的<b>“送册时间”</b>、<b>“分院技术审查会”</b>、<b>“院长直通车协调会”</b>，确定后自动同步写入参会人的<b>钉钉日历</b>，并同步至手机自带日历，提前15分钟手机自动响铃弹窗提醒。</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h3>免密短信直达短链（辅助微信/短信兜底）</h3>
+        <p>重要节点可配套短信通道，领导无需在钉钉里到处找入口，点击短信里的免密安全短链，直接在手机浏览器或钉钉中打开对应项目审批页面。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 六大核心特色功能 -->
+  <div class="card">
+    <h2>✨ 三、六大特色功能亮点</h2>
+
+    <div class="grid-2">
+      <div class="box gold">
+        <h3 style="color:#b7791f">🚗 1. 院长直通车（新增）</h3>
+        <p>遇到重大外部阻碍、指标冲突或部门分歧时，项目组直接向王院长发起直通车申请。院长一键预约协调时间，并直接指定李院总、张所长等参会，系统自动同步通知并写入日程。</p>
+      </div>
+      <div class="box blue">
+        <h3 style="color:#0969da">✍️ 2. 审查人零负担反馈</h3>
+        <p>最省事放首位：一键“已阅无意见”、纸质批注页手机连拍、数据/文字错误加减号点击计数、输入法语音快速转文字，让领导审查只需点几下屏幕。</p>
+      </div>
+      <div class="box purple">
+        <h3 style="color:#8250df">📢 3. 院总普适性问题广播</h3>
+        <p>院总把关时发现的图则、指标表等共性质量问题，一键向所内各级审查人员（所长、所总、组长、校对）统一定向推送，沉淀分院规划质量经验，防止重复犯错。</p>
+      </div>
+      <div class="box green">
+        <h3 style="color:#1a7f37">📅 4. 纸质送册预约机制</h3>
+        <p>纸质册子流转不再跑空！领导收到审查通知时，一键点选“随时可送”或“明天 9:00”，负责人准时准点送达办公室，不占用领导多余精力。</p>
+      </div>
+      <div class="box">
+        <h3>🔄 5. 方案动态版本演进</h3>
+        <p>方案有变动点击“＋ 上传新方案”，必填修改原因（改了什么、为什么改），自动打上时间戳与版本号。支持随时展开对比历史各版方案。</p>
+      </div>
+      <div class="box">
+        <h3>🔍 6. 拼音首字母智能选人</h3>
+        <p>全院60位职工无需翻找，输入 <code>sg</code> 即刻带出“孙工/沈工”，打 <code>zzz</code> 找“周组长”。统一项目组成员管理，首位自动冠以项目负责人。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 各层级角色使用指南 -->
+  <div class="card">
+    <h2>👥 四、各角色使用指南（极简速查）</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:20%">角色</th>
+          <th style="width:35%">在系统里做什么</th>
+          <th style="width:45%">操作便捷性保障</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>院长</b></td>
+          <td>全览全院项目流转进度；主持技术审查会；接收直通车申请并排期指定参会人。</td>
+          <td>不参与日常细节审查；待办置顶只看重大直通车请求，点一下即可排期。</td>
+        </tr>
+        <tr>
+          <td><b>院总</b></td>
+          <td>评审方案审查、成果报批把关；预会议审查；向所内定向推送普适性质量意见。</td>
+          <td>前期阶段电子档免审；审查意见一键勾选广播，经验直达所内一线。</td>
+        </tr>
+        <tr>
+          <td><b>所长 / 所总 / 组长</b></td>
+          <td>接收送册预约；填写纸质批注或一键已阅；参加技术审查会与联审会。</td>
+          <td>送册一步约；意见点加减号或拍照批注；电脑端可直接粘贴截图。</td>
+        </tr>
+        <tr>
+          <td><b>项目负责人 / 成员</b></td>
+          <td>立项（拼音选人）；送审（逐级或同时）；上传修改版方案；按预约送册。</td>
+          <td>创建项目不扰民；同时审查填原因即生效；支持误触撤回上一阶段。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 5. 落地推进计划 -->
+  <div class="card">
+    <h2>🚀 五、落地试点与部署建议</h2>
+    <ol>
+      <li><b>第一阶段（体验原型）</b>：院领导与部分所长在电脑/手机上试用体验，确认流程与交互细节；</li>
+      <li><b>第二阶段（钉钉应用开通）</b>：院内钉钉管理员在管理后台创建微应用链接（无需外部腾讯审核，当天配置当天可用）；</li>
+      <li><b>第三阶段（一两个项目先行试点）</b>：挑选1~2个在编控规项目全流程实际流转，收集反馈并优化；</li>
+      <li><b>第四阶段（全分院推广）</b>：逐步覆盖控规修改、优化调整及后续专项规划。</li>
+    </ol>
+    <a href="index.html" class="btn-launch">👉 点击立即进入体验系统原型</a>
+  </div>
+
+</div>
+
+</body>
+</html>

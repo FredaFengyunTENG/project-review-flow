@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>项目审查流程（原型）</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="phone">
+  <header id="topbar">
+    <span id="title">项目审查</span>
+    <a href="report.html" target="_blank" style="color:#fff;text-decoration:none;font-size:12px;background:rgba(255,255,255,0.22);padding:3px 8px;border-radius:6px;margin-left:auto;margin-right:8px">📖 方案汇报</a>
+    <label class="who">当前身份
+      <select id="userSwitch"></select>
+    </label>
+  </header>
+  <main id="view"></main>
+  <nav id="tabbar">
+    <button data-go="todo">📋 待办</button>
+    <button data-go="projects">📁 项目</button>
+    <button data-go="new">➕ 新建</button>
+    <button onclick="window.open('report.html','_blank')">📖 方案说明</button>
+  </nav>
+</div>
+<div id="modal" class="hidden"><div class="sheet" id="sheet"></div></div>
+<div id="toasts"></div>
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script src="modals.js"></script>
+<script src="views.js"></script>
+</body>
+</html>
