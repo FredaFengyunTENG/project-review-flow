@@ -58,15 +58,53 @@
     margin-bottom: 10px;
   }
   .hero-desc {
-    font-size: 16px;
-    color: #334155;
-    font-weight: 500;
     background: #ffffff;
-    display: inline-block;
-    padding: 8px 18px;
-    border-radius: 30px;
-    border: 1px solid var(--border);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+    max-width: 680px;
+    margin: 0 auto;
+    text-align: left;
+  }
+  .hero-quote-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #2563eb;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .hero-quote-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 14.5px;
+    color: #1e293b;
+    line-height: 1.6;
+    font-weight: 500;
+  }
+  .hero-quote-lines span {
+    position: relative;
+    padding-left: 14px;
+  }
+  .hero-quote-lines span::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: #3b82f6;
+    font-weight: bold;
+  }
+  .hero-quote-sub {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed #e2e8f0;
+    font-size: 13px;
+    color: #64748b;
+    text-align: right;
+    font-style: italic;
   }
 
   .container {
@@ -450,12 +488,16 @@
       margin-bottom: 8px;
     }
     .hero-desc {
-      display: block;
-      border-radius: 10px;
+      padding: 12px 14px;
+      border-radius: 12px;
+    }
+    .hero-quote-lines {
       font-size: 13px;
-      padding: 10px 14px;
-      text-align: left;
-      line-height: 1.6;
+      gap: 5px;
+      line-height: 1.5;
+    }
+    .hero-quote-sub {
+      font-size: 12px;
     }
     .container {
       padding: 0 10px;
@@ -521,7 +563,14 @@
   <div class="tag-badge">业余小试验</div>
   <h1>规划流转小工具</h1>
   <div class="hero-desc">
-    初衷：想让项目推进进度人人心里有数，又尽量在每个环节都不增加啥工作量。
+    <div class="hero-quote-title">💡 设计初衷：</div>
+    <div class="hero-quote-lines">
+      <span>想让进度人人心中有数，却不添一页繁琐台账；</span>
+      <span>想让意见上下全盘通览，却不劳领导多打一字；</span>
+      <span>想让送册上会步步准点，却不让谁跑半趟冤枉路；</span>
+      <span>想让方案改动清晰可溯，却不增平时半点工作量。</span>
+    </div>
+    <div class="hero-quote-sub">—— 把规程梳理清楚，把轻松还给指尖。</div>
   </div>
 </header>
 
