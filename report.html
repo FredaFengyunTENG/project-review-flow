@@ -3,281 +3,460 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>空间规划分院项目流转管理系统 · 方案汇报与使用说明</title>
+<title>让流转轻一点，再轻一点 · 业余小玩具分享</title>
 <style>
   :root {
-    --primary: #1f6feb;
-    --primary-light: #ddf4ff;
-    --success: #1a7f37;
-    --success-light: #dafbe1;
-    --warning: #9a6700;
-    --warning-light: #fff8c5;
-    --danger: #cf222e;
-    --danger-light: #ffebe9;
+    --bg: #fbfbfa;
+    --card: #ffffff;
+    --text: #2c3138;
+    --muted: #79828d;
+    --border: #e9ecef;
+    --accent: #2e69ff;
+    --accent-soft: #f0f4ff;
+    --green: #2da44e;
+    --green-soft: #f2fbf4;
+    --amber: #b07200;
+    --amber-soft: #fef9ec;
     --purple: #8250df;
-    --purple-light: #fbefff;
-    --text: #24292f;
-    --muted: #57606a;
-    --border: #d0d7de;
-    --bg: #f6f8fa;
-    --card-bg: #ffffff;
+    --purple-soft: #fbf7ff;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
-    line-height: 1.6;
-    padding-bottom: 60px;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, sans-serif;
+    line-height: 1.65;
+    padding-bottom: 80px;
+    -webkit-font-smoothing: antialiased;
   }
-  header.hero {
-    background: linear-gradient(135deg, #0d419d 0%, #1f6feb 100%);
-    color: #fff;
-    padding: 48px 24px;
-    text-align: center;
-    box-shadow: 0 4px 20px rgba(13,65,157,0.15);
-  }
-  header.hero h1 { font-size: 26px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 10px; }
-  header.hero p { font-size: 15px; opacity: 0.9; max-width: 680px; margin: 0 auto; line-height: 1.6; }
-  .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; background: rgba(255,255,255,0.2); margin-bottom: 12px; }
 
-  .container { max-width: 860px; margin: -24px auto 0; padding: 0 16px; }
-  .card {
-    background: var(--card-bg);
-    border-radius: 14px;
-    border: 1px solid var(--border);
-    padding: 24px 28px;
-    margin-bottom: 22px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  /* 顶部文艺留白区 */
+  .hero {
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 60px 24px 36px;
+    text-align: center;
   }
-  h2 {
+  .pill {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 18px;
+    letter-spacing: 0.5px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #1a1e24;
+    margin-bottom: 14px;
+  }
+  .hero-sub {
+    font-size: 16px;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 580px;
+    margin: 0 auto;
+  }
+
+  .main {
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  /* 卡片设计 */
+  .section-card {
+    background: var(--card);
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    padding: 30px 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  }
+  @media (max-width: 600px) {
+    .section-card { padding: 22px 18px; }
+    h1 { font-size: 24px; }
+  }
+
+  .sec-title {
     font-size: 19px;
     font-weight: 700;
-    color: #0969da;
     margin-bottom: 16px;
+    color: #1a1e24;
     display: flex;
     align-items: center;
     gap: 8px;
-    border-bottom: 2px solid #ebf0f5;
-    padding-bottom: 8px;
   }
-  h3 { font-size: 16px; font-weight: 600; margin: 16px 0 8px; color: var(--text); }
-  p { margin-bottom: 10px; font-size: 14.5px; }
-  ul, ol { padding-left: 20px; margin-bottom: 12px; font-size: 14.5px; }
-  li { margin-bottom: 6px; }
+  .sec-desc {
+    color: var(--muted);
+    font-size: 14.5px;
+    margin-bottom: 20px;
+    line-height: 1.7;
+  }
 
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
-  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
-  
-  .box { padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border); background: #fafbfc; }
-  .box.blue { border-color: #54aeff; background: #f0f7ff; }
-  .box.green { border-color: #4ac26b; background: #f2fbf4; }
-  .box.gold { border-color: #f7b731; background: #fffcf0; }
-  .box.purple { border-color: #d1b8ff; background: #fbf9ff; }
+  /* 三个不累人的核心交互（图解卡片） */
+  .trio-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 20px 0;
+  }
+  @media (max-width: 680px) {
+    .trio-grid { grid-template-columns: 1fr; }
+  }
+  .trio-item {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 16px;
+    text-align: center;
+  }
+  .trio-icon { font-size: 28px; margin-bottom: 10px; }
+  .trio-item h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .trio-item p { font-size: 13px; color: var(--muted); line-height: 1.5; }
 
-  .tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; margin-right: 6px; }
-  .tag.blue { background: var(--primary-light); color: var(--primary); }
-  .tag.green { background: var(--success-light); color: var(--success); }
-  .tag.gold { background: var(--warning-light); color: var(--warning); }
-  .tag.danger { background: var(--danger-light); color: var(--danger); }
-  .tag.purple { background: var(--purple-light); color: var(--purple); }
+  /* 优雅的6个小心思网格 */
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 16px;
+  }
+  @media (max-width: 600px) {
+    .features-grid { grid-template-columns: 1fr; }
+  }
+  .feat-card {
+    background: #fbfcfd;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .feat-card.light-modest {
+    border-style: dashed;
+    background: #fafafa;
+  }
+  .feat-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .feat-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
 
-  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
-  th, td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; }
-  th { background: #f6f8fa; font-weight: 600; }
+  /* 极简角色指引 */
+  .role-row {
+    display: flex;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid #f0f2f5;
+  }
+  .role-row:last-child { border-bottom: none; }
+  .role-tag {
+    flex-shrink: 0;
+    width: 90px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #495057;
+    background: #eef2f6;
+    padding: 4px 8px;
+    border-radius: 6px;
+    text-align: center;
+    height: fit-content;
+  }
+  .role-text { font-size: 13.5px; color: #495057; }
 
-  .step-card { display: flex; gap: 14px; margin: 12px 0; }
-  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
-  .step-content { flex: 1; }
+  /* 建议与愿望清单 (Issue Wall) */
+  .issue-wall { margin-top: 16px; }
+  .issue-item {
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .issue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .issue-q { font-size: 14px; font-weight: 600; color: #24292f; }
+  .issue-reply { font-size: 13px; color: #57606a; background: #fff; border-radius: 8px; padding: 8px 12px; border: 1px dashed var(--border); margin-top: 6px; }
 
-  .btn-launch {
+  .status-tag { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+  .status-done { background: var(--green-soft); color: var(--green); }
+  .status-no { background: #f1f3f5; color: #6c757d; }
+  .status-plan { background: var(--amber-soft); color: var(--amber); }
+
+  .issue-form {
+    margin-top: 18px;
+    padding: 16px;
+    background: #f5f8ff;
+    border-radius: 12px;
+    border: 1px solid #d8e5ff;
+  }
+  .issue-form textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #c9d8fa;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fff;
+    resize: vertical;
+    min-height: 54px;
+    font-family: inherit;
+  }
+  .issue-form button {
+    margin-top: 8px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* 折叠 FAQ 问答 */
+  details.faq-item {
+    border-bottom: 1px solid #f0f2f5;
+    padding: 14px 0;
+  }
+  details.faq-item:last-child { border-bottom: none; }
+  summary {
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    color: #24292f;
+    outline: none;
+  }
+  summary::-webkit-details-marker { color: var(--accent); }
+  .faq-ans {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: #f8fafc;
+    border-radius: 10px;
+    font-size: 13.5px;
+    color: #555;
+    line-height: 1.65;
+  }
+
+  /* 底部按钮 */
+  .btn-enter {
     display: block;
     width: 100%;
-    max-width: 380px;
-    margin: 28px auto 0;
-    text-align: center;
-    background: #1f6feb;
+    max-width: 320px;
+    margin: 32px auto 0;
+    background: var(--accent);
     color: #fff;
+    text-align: center;
+    padding: 13px 20px;
+    border-radius: 12px;
     text-decoration: none;
-    font-size: 16px;
     font-weight: 600;
-    padding: 13px 24px;
-    border-radius: 10px;
-    box-shadow: 0 4px 14px rgba(31,111,235,0.3);
-    transition: transform .15s, background .15s;
+    font-size: 15px;
+    box-shadow: 0 4px 14px rgba(46,105,255,0.25);
+    transition: transform .15s;
   }
-  .btn-launch:hover { background: #1a5bc7; transform: translateY(-1px); }
+  .btn-enter:hover { transform: translateY(-1px); }
 </style>
 </head>
 <body>
 
 <header class="hero">
-  <div class="badge">分院数字化项目管理 · 试点方案</div>
-  <h1>空间规划分院项目流转管理系统</h1>
-  <p>建立上下沟通直通通道 · 审查意见全览闭环 · 项目全流程透明化</p>
+  <div class="pill">业余小试验 · 试跑分享</div>
+  <h1>让流转轻一点，再轻一点。</h1>
+  <p class="hero-sub">
+    平时业务画图、开会看方案已经很累了。<br>
+    这是利用业余时间折腾的一个轻量小工具——<br>
+    领导愿意试点拿去用用看，觉得多余就当看个热闹。
+  </p>
 </header>
 
-<div class="container">
+<main class="main">
 
-  <!-- 1. 为什么做这个系统 -->
-  <div class="card">
-    <h2>🎯 一、为什么做？解决什么核心痛点？</h2>
-    <p>当前分院规划项目（控规、控规修改、优化调整等）在成果审查、上会报批流转中，普遍存在以下现实困扰：</p>
+  <!-- 1. 初衷：想做一个怎样的东西 -->
+  <div class="section-card">
+    <div class="sec-title">🌿 一、闲聊初衷：为什么做它？</div>
+    <p class="sec-desc">
+      初衷很简单：<b>想让项目推进心里有数，又不想给大家增添一丝负担。</b><br>
+      既能随时看清全流程在谁手上、改了什么；又把日常操作压到极限——点点手机、传传图片，基本很少打字，甚至完全不用写字。
+    </p>
+
+    <div class="trio-grid">
+      <div class="trio-item">
+        <div class="trio-icon">👆</div>
+        <h4>只点选 · 不打字</h4>
+        <p>一键“已阅无意见”、加减号纠错点按计数，三秒完事。</p>
+      </div>
+      <div class="trio-item">
+        <div class="trio-icon">📷</div>
+        <h4>拍照片 · 免抄录</h4>
+        <p>纸质批注页手机连拍；电脑端只要 <code>⌘V / Ctrl+V</code> 就能直接粘贴截图。</p>
+      </div>
+      <div class="trio-item">
+        <div class="trio-icon">📅</div>
+        <h4>约时间 · 不跑空</h4>
+        <p>领导随手点个“明天9:00”送册时间，负责人准点送达，不扑空、不催问。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 六个细致的小心思（雅致化特色） -->
+  <div class="section-card">
+    <div class="sec-title">✨ 二、藏在流程里的六个小心思</div>
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-title">🍃 极简审阅反馈</div>
+        <div class="feat-desc">“已阅”放最前。真有错漏，点加减号记两处数据错误，手机拍张图直接发回。</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-title">☕ 送册一步预约</div>
+        <div class="feat-desc">纸质册子交接不再电话反复问“在不在办公室”。领导点选空闲时段，准点交接。</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-title">🕰 方案时光留痕</div>
+        <div class="feat-desc">方案有调整点“＋”传新版，写一两句原因，自带时间戳，历史版本一键展开回溯。</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-title">📢 经验向下点拨</div>
+        <div class="feat-desc">院总审阅时发现共性图则或指标问题，可轻按一下悄悄广播给所内一线，避免重复踩坑。</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-title">🔍 首字母秒选人</div>
+        <div class="feat-desc">不用翻看60人通讯录。输入 <code>sg</code> 秒出孙工，首位默认冠以负责人，其余不分先后。</div>
+      </div>
+      <div class="feat-card light-modest">
+        <div class="feat-title">🚗 偶尔的直达小条</div>
+        <div class="feat-desc">遇重大外部阻碍或规划分歧，弱弱向院长递张条子，一键预约个办公室短会。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 各角色怎么用（极简速览） -->
+  <div class="section-card">
+    <div class="sec-title">👥 三、各层级极简速览</div>
+    <div class="role-row">
+      <div class="role-tag">院长</div>
+      <div class="role-text">平时不用管细节；偶有跨部门协调，点一下批复个方便的会商时间。</div>
+    </div>
+    <div class="role-row">
+      <div class="role-tag">院总</div>
+      <div class="role-text">前期阶段电子档免审；重点把关评审方案与报批，发现共性问题一键点拨所内。</div>
+    </div>
+    <div class="role-row">
+      <div class="role-tag">所长 / 所总 / 组长</div>
+      <div class="role-text">手机点一下预约送册，拍两张批注页就算审完，电脑端可直接粘贴截图。</div>
+    </div>
+    <div class="role-row">
+      <div class="role-tag">项目负责人</div>
+      <div class="role-text">立项不通知打扰领导；按预约时间去送册；随时查看各级反馈，误触可撤回。</div>
+    </div>
+  </div>
+
+  <!-- 4. 落地试点与意见收集墙 (Issue & 吐槽许愿) -->
+  <div class="section-card">
+    <div class="sec-title">📮 四、试跑与大家的吐槽墙</div>
+    <p class="sec-desc">
+      先接入钉钉内部微应用，大家试用体验、随时挑刺。页面里留了这个吐槽收集口，有意见直接提，<b>不管改不改，每一个都会给公开回复</b>。
+    </p>
+
+    <div class="issue-wall" id="issueWall">
+      <div class="issue-item">
+        <div class="issue-header">
+          <span class="issue-q">💬 电脑上审查能不能直接截图粘贴？</span>
+          <span class="status-tag status-done">已优化</span>
+        </div>
+        <div class="issue-reply">回复：已实现！所有传图和名称框，鼠标点一下按 <code>⌘V / Ctrl+V</code> 即可直接贴图。</div>
+      </div>
+
+      <div class="issue-item">
+        <div class="issue-header">
+          <span class="issue-q">💬 刚建项目别发消息通知，领导觉得太吵。</span>
+          <span class="status-tag status-done">已优化</span>
+        </div>
+        <div class="issue-reply">回复：已改为纯静默创建，只有负责人正式点击“送审”时才通知相关审查人。</div>
+      </div>
+
+      <div class="issue-item">
+        <div class="issue-header">
+          <span class="issue-q">💬 为什么不顺便把合同额、进账财务信息做进来？</span>
+          <span class="status-tag status-no">暂不采纳</span>
+        </div>
+        <div class="issue-reply">回复：本系统定位于轻量业务技术流转，财务信息较敏感且院里已有独立财务系统，暂不做重，保持简单纯粹。</div>
+      </div>
+    </div>
+
+    <!-- 提交吐槽表单 -->
+    <div class="issue-form">
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:6px">📝 提个建议 / 吐槽 / 找个 Bug：</div>
+      <textarea id="issueInput" placeholder="有什么不顺手的？直接说，我们来看看能不能改得更轻巧..."></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="muted" style="font-size:12px">提交后会同步至后台，无论是否采纳均会给出理由</span>
+        <button onclick="postIssue()">发送建议</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 答疑闲聊（原钉钉消息沉底解答移到最后） -->
+  <div class="section-card">
+    <div class="sec-title">☕ 五、一些也许你会好奇的问答</div>
     
-    <div class="grid-2">
-      <div class="box">
-        <h3 style="color:#cf222e;margin-top:0">⚠️ 传统工作模式痛点</h3>
-        <ul>
-          <li><b>纸质册子在谁手上不清楚</b>：负责人到处问、领导出差送册扑空；</li>
-          <li><b>审查意见碎片化流失</b>：纸质批注改完就丢，领导后续复核无据可查；</li>
-          <li><b>进度全靠口头问</b>：院长、院总难以及时掌握全院几十个项目各卡在哪个节点；</li>
-          <li><b>遇到重大阻碍协调慢</b>：跨所、跨层级沟通周期长，缺少院级紧急直通通道。</li>
-        </ul>
+    <details class="faq-item">
+      <summary>Q：我们平时很少看钉钉，送审消息沉了被忽略怎么办？</summary>
+      <div class="faq-ans">
+        系统准备了四道防漏网：<br>
+        1. <b>已读回执</b>：发信人能看到谁已读、谁未读，不再两眼一抹黑；<br>
+        2. <b>待办常驻</b>：待审事项常驻钉钉首页待办红点，开机一眼可见；<br>
+        3. <b>自动入历</b>：约定送册、会商时间自动写入钉钉日程与手机自带日历，到点响铃弹窗；<br>
+        4. <b>极急 DING</b>：明天上会等火烧眉毛节点，一键触发 DING 短信直发领导手机，甚至电话叫醒。
       </div>
-      <div class="box green">
-        <h3 style="color:#1a7f37;margin-top:0">✅ 本系统的目标与收益</h3>
-        <ul>
-          <li><b>审查节点透明</b>：随时看清项目卡在谁手里、超期多久；</li>
-          <li><b>意见全览闭环</b>：每一轮审查拍照/计数留痕，下级能看上级意见，经验透明；</li>
-          <li><b>审查人零负担</b>：一键“已阅无意见”、批注页连拍，绝不给领导增加打字负担；</li>
-          <li><b>重大问题一键直达</b>：专设「院长直通车」，高优先级拉通排期。</li>
-        </ul>
+    </details>
+
+    <details class="faq-item">
+      <summary>Q：操作记录放在哪里了？主页怎么不见了？</summary>
+      <div class="faq-ans">
+        听取了大家建议，为了保持主页清爽透气，大段的流水账已经移到【流程进度】时间线最下方，收拢为一个低调的链接，想看审计流水时随时点开弹窗查看。
       </div>
-    </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>Q：纸质成果怎么跟这个小工具配合？</summary>
+      <div class="faq-ans">
+        纸质仍是最终载体。这工具只负责两头：<b>前端约好送达时间</b>，<b>后端留下批注照片与错误计数</b>，纸质件改完扔掉也不怕复核扯皮。
+      </div>
+    </details>
+
+    <a href="index.html" class="btn-enter">👉 点此直接试玩小原型</a>
   </div>
 
-  <!-- 2. 强提醒方案：解答大家不常用钉钉的问题 -->
-  <div class="card">
-    <h2>⚡ 二、解决关键疑虑：平时不用钉钉，消息忽略了怎么办？</h2>
-    <p>很多同事平时微信用得多、钉钉用得少，这是非常现实的顾虑。系统通过<b>五重强提醒与状态感知闭环</b>，彻底解决“消息被忽略”的问题：</p>
+</main>
 
-    <div class="step-card">
-      <div class="step-num">1</div>
-      <div class="step-content">
-        <h3>已读 / 未读状态精准感知（发信人一目了然）</h3>
-        <p>与微信“发出去不知道对方看没看”不同，钉钉原生支持消息送达回执。项目负责人送审后，系统直接显示：<span class="tag green">张所长（已读）</span> <span class="tag danger">李院总（未读）</span>。发信人实时掌控状态，不再盲猜。</p>
+<script>
+  function postIssue() {
+    const txt = document.getElementById('issueInput').value.trim();
+    if (!txt) return alert('请写下一两句想法或吐槽～');
+    const wall = document.getElementById('issueWall');
+    const card = document.createElement('div');
+    card.className = 'issue-item';
+    card.innerHTML = `
+      <div class="issue-header">
+        <span class="issue-q">💬 ${txt.replace(/[<>&"]/g, '')}</span>
+        <span class="status-tag status-plan">已收录</span>
       </div>
-    </div>
-
-    <div class="step-card">
-      <div class="step-num">2</div>
-      <div class="step-content">
-        <h3>杀手级强提醒：钉钉三级 DING 机制（短信 + 电话叫醒）</h3>
-        <p>遇到紧急审查（如明天评审、后天报批），送审人可直接触发钉钉的 <b>DING 强提醒</b>：</p>
-        <ul>
-          <li><b>一级应用弹窗</b>：打开钉钉全屏强提醒卡片；</li>
-          <li><b>二级手机短信</b>：直接向领导手机发送催办短信（带免密直达短链接）；</li>
-          <li><b>三级自动语音电话</b>：极端紧急时由系统直接拨打领导手机语音提醒，绝无遗漏可能。</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="step-card">
-      <div class="step-num">3</div>
-      <div class="step-content">
-        <h3>首屏待办中心常驻（红点角标，打开必见）</h3>
-        <p>待审任务自动挂载到钉钉的<b>「待办任务」</b>，不仅在手机端钉钉工作台置顶，电脑端桌面图标也会显示红色待办角标，上班打开电脑第一眼即见。</p>
-      </div>
-    </div>
-
-    <div class="step-card">
-      <div class="step-num">4</div>
-      <div class="step-content">
-        <h3>日历日程直通（自动写入钉钉日程与手机系统日历）</h3>
-        <p>约定的<b>“送册时间”</b>、<b>“分院技术审查会”</b>、<b>“院长直通车协调会”</b>，确定后自动同步写入参会人的<b>钉钉日历</b>，并同步至手机自带日历，提前15分钟手机自动响铃弹窗提醒。</p>
-      </div>
-    </div>
-
-    <div class="step-card">
-      <div class="step-num">5</div>
-      <div class="step-content">
-        <h3>免密短信直达短链（辅助微信/短信兜底）</h3>
-        <p>重要节点可配套短信通道，领导无需在钉钉里到处找入口，点击短信里的免密安全短链，直接在手机浏览器或钉钉中打开对应项目审批页面。</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- 3. 六大核心特色功能 -->
-  <div class="card">
-    <h2>✨ 三、六大特色功能亮点</h2>
-
-    <div class="grid-2">
-      <div class="box gold">
-        <h3 style="color:#b7791f">🚗 1. 院长直通车（新增）</h3>
-        <p>遇到重大外部阻碍、指标冲突或部门分歧时，项目组直接向王院长发起直通车申请。院长一键预约协调时间，并直接指定李院总、张所长等参会，系统自动同步通知并写入日程。</p>
-      </div>
-      <div class="box blue">
-        <h3 style="color:#0969da">✍️ 2. 审查人零负担反馈</h3>
-        <p>最省事放首位：一键“已阅无意见”、纸质批注页手机连拍、数据/文字错误加减号点击计数、输入法语音快速转文字，让领导审查只需点几下屏幕。</p>
-      </div>
-      <div class="box purple">
-        <h3 style="color:#8250df">📢 3. 院总普适性问题广播</h3>
-        <p>院总把关时发现的图则、指标表等共性质量问题，一键向所内各级审查人员（所长、所总、组长、校对）统一定向推送，沉淀分院规划质量经验，防止重复犯错。</p>
-      </div>
-      <div class="box green">
-        <h3 style="color:#1a7f37">📅 4. 纸质送册预约机制</h3>
-        <p>纸质册子流转不再跑空！领导收到审查通知时，一键点选“随时可送”或“明天 9:00”，负责人准时准点送达办公室，不占用领导多余精力。</p>
-      </div>
-      <div class="box">
-        <h3>🔄 5. 方案动态版本演进</h3>
-        <p>方案有变动点击“＋ 上传新方案”，必填修改原因（改了什么、为什么改），自动打上时间戳与版本号。支持随时展开对比历史各版方案。</p>
-      </div>
-      <div class="box">
-        <h3>🔍 6. 拼音首字母智能选人</h3>
-        <p>全院60位职工无需翻找，输入 <code>sg</code> 即刻带出“孙工/沈工”，打 <code>zzz</code> 找“周组长”。统一项目组成员管理，首位自动冠以项目负责人。</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- 4. 各层级角色使用指南 -->
-  <div class="card">
-    <h2>👥 四、各角色使用指南（极简速查）</h2>
-    <table>
-      <thead>
-        <tr>
-          <th style="width:20%">角色</th>
-          <th style="width:35%">在系统里做什么</th>
-          <th style="width:45%">操作便捷性保障</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><b>院长</b></td>
-          <td>全览全院项目流转进度；主持技术审查会；接收直通车申请并排期指定参会人。</td>
-          <td>不参与日常细节审查；待办置顶只看重大直通车请求，点一下即可排期。</td>
-        </tr>
-        <tr>
-          <td><b>院总</b></td>
-          <td>评审方案审查、成果报批把关；预会议审查；向所内定向推送普适性质量意见。</td>
-          <td>前期阶段电子档免审；审查意见一键勾选广播，经验直达所内一线。</td>
-        </tr>
-        <tr>
-          <td><b>所长 / 所总 / 组长</b></td>
-          <td>接收送册预约；填写纸质批注或一键已阅；参加技术审查会与联审会。</td>
-          <td>送册一步约；意见点加减号或拍照批注；电脑端可直接粘贴截图。</td>
-        </tr>
-        <tr>
-          <td><b>项目负责人 / 成员</b></td>
-          <td>立项（拼音选人）；送审（逐级或同时）；上传修改版方案；按预约送册。</td>
-          <td>创建项目不扰民；同时审查填原因即生效；支持误触撤回上一阶段。</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- 5. 落地推进计划 -->
-  <div class="card">
-    <h2>🚀 五、落地试点与部署建议</h2>
-    <ol>
-      <li><b>第一阶段（体验原型）</b>：院领导与部分所长在电脑/手机上试用体验，确认流程与交互细节；</li>
-      <li><b>第二阶段（钉钉应用开通）</b>：院内钉钉管理员在管理后台创建微应用链接（无需外部腾讯审核，当天配置当天可用）；</li>
-      <li><b>第三阶段（一两个项目先行试点）</b>：挑选1~2个在编控规项目全流程实际流转，收集反馈并优化；</li>
-      <li><b>第四阶段（全分院推广）</b>：逐步覆盖控规修改、优化调整及后续专项规划。</li>
-    </ol>
-    <a href="index.html" class="btn-launch">👉 点击立即进入体验系统原型</a>
-  </div>
-
-</div>
-
+      <div class="issue-reply">回复：已记入需求优化列表，待评估后给出采纳答复及优化计划。</div>`;
+    wall.prepend(card);
+    document.getElementById('issueInput').value = '';
+    alert('感谢反馈！已收录至建议库～');
+  }
+</script>
 </body>
 </html>
