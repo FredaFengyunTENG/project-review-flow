@@ -19,23 +19,8 @@ function statusTag(it) {
 }
 
 function viewTodo() {
-  let h = '';
-  const deanTasks = myDeanTasks();
-  if (deanTasks.length) {
-    h += `<div class="card" style="background:#fffaf0;border:1.5px solid #ffe08a;margin-bottom:14px">
-      <div class="row"><b style="color:#b7791f;font-size:15px">🚗 院长直通车协调申请（${deanTasks.length}）</b><span class="tag red">急需批示</span></div>
-      ${deanTasks.map(({ p, dc }) => `
-        <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ffd591;cursor:pointer" onclick="acceptDeanCallModal('${p.id}','${dc.id}')">
-          <div class="row"><b>${esc(p.alias || p.name)}</b><span style="color:#1f6feb;font-size:13px;font-weight:500">点此排期 👉</span></div>
-          <div class="muted" style="margin-top:4px"><b>申请人：</b>${uname(dc.requestedBy)} · ${esc(dc.preferredType)}</div>
-          <div style="margin-top:2px;color:#cf222e;font-size:13px"><b>事项：</b>${esc(dc.reason)}</div>
-        </div>
-      `).join('')}
-    </div>`;
-  }
-
   const tasks = myReviewTasks();
-  h += `<h2>待我审查（${tasks.length}）</h2>`;
+  let h = `<h2>待我审查（${tasks.length}）</h2>`;
   h += tasks.length ? tasks.map(({ p, r, it }) => `
     <div class="card click" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
       <div class="row"><b>${esc(p.alias || p.name)}</b>${statusTag(it)}</div>
@@ -297,7 +282,6 @@ function viewProject(p) {
           ${def.type === 'review' || def.preReview ? `<button class="btn" onclick="reviewModal('${p.id}')">📤 送审</button>` : ''}
           <button class="btn green" onclick="completeStage(P('${p.id}'))">✔ 本阶段完成</button>
           ${def.optional ? `<button class="btn gray" onclick="completeStage(P('${p.id}'),true)">跳过（非必选）</button>` : ''}
-          <button class="btn ghost" onclick="deanCallModal('${p.id}')" title="遇重大规划分歧或阻碍，直接向院长申请协调">🚗 申请院长直通车</button>
           ${revert}
         </div>
       </div>`;
@@ -305,31 +289,6 @@ function viewProject(p) {
 
   const vs = p.versions;
   const otherMembers = p.members.filter((m) => m !== p.leader);
-
-  // 院长直通车协调记录板块
-  const deanCallsHtml = (p.deanCalls && p.deanCalls.length) ? `
-    <h2>🚗 院长直通车协调记录</h2>
-    ${p.deanCalls.map((dc) => {
-      const isPending = dc.status === 'pending';
-      const isDean = U(me).role === '院长';
-      return `<div class="card" style="border-left: 4px solid ${isPending ? '#e36209' : '#1a7f37'}; background:${isPending ? '#fffbf5' : '#f6fbf7'}">
-        <div class="row">
-          <b>${esc(dc.preferredType)} · 由 ${uname(dc.requestedBy)} 发起</b>
-          <span class="tag ${isPending ? 'orange' : 'green'}">${isPending ? '⏳ 待院长排期' : '✅ 已安排会商'}</span>
-        </div>
-        <div style="margin-top:6px;font-size:14px;color:#24292f"><b>协调事项：</b>${esc(dc.reason)}</div>
-        ${!isPending ? `
-          <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #d0d7de;font-size:13px">
-            <div>🗓 <b>会商时间：</b><span style="color:#0969da;font-weight:600">${fmtAppt(dc.apptTime)}</span></div>
-            <div style="margin-top:3px">👥 <b>指定参会人员：</b>${dc.attendees.map(uname).join('、')}</div>
-            ${dc.deanNote ? `<div style="margin-top:4px;color:#1a7f37">💬 <b>院长批示：</b>${esc(dc.deanNote)}</div>` : ''}
-          </div>` : ''}
-        ${isPending && isDean ? `
-          <div style="margin-top:10px;text-align:right">
-            <button class="btn sm" onclick="acceptDeanCallModal('${p.id}','${dc.id}')">👉 立即排期与指定参会人</button>
-          </div>` : ''}
-      </div>`;
-    }).join('')}` : '';
 
   return `<div class="card">
     <div class="row">
@@ -348,7 +307,6 @@ function viewProject(p) {
   </div>
 
   ${act}
-  ${deanCallsHtml}
 
   <h2 class="row">
     <span>项目主要内容 ${vs.length > 1 ? `<span class="tag green">第 ${latest(p).no} 版</span>` : ''}</span>

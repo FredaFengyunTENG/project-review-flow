@@ -135,51 +135,6 @@ function createProject(d) {
   go('project', p.id);
 }
 
-// ===== 院长直通车业务逻辑 =====
-function requestDeanCall(p, d) {
-  p.deanCalls = p.deanCalls || [];
-  const dc = {
-    id: 'dc' + Date.now(),
-    requestedBy: me,
-    requestedAt: now(),
-    reason: d.reason,
-    preferredType: d.preferredType || '专题协调会',
-    status: 'pending',
-    apptTime: '',
-    attendees: [],
-    deanNote: '',
-    acceptedAt: '',
-  };
-  p.deanCalls.push(dc);
-  log(p, `${uname(me)} 提交了「院长直通车」协调申请：${d.reason}`);
-  save(); closeModal(); render();
-  notify(['u1'], `【院长直通车】${uname(me)} 就「${p.alias || p.name}」发起了院长直通车协调申请，请查阅并排期`);
-}
-
-function acceptDeanCall(p, dcId, d) {
-  const dc = (p.deanCalls || []).find((x) => x.id === dcId);
-  if (!dc) return;
-  dc.status = 'accepted';
-  dc.apptTime = d.apptTime;
-  dc.attendees = d.attendees;
-  dc.deanNote = d.deanNote;
-  dc.acceptedAt = now();
-  log(p, `${uname(me)} 确认「院长直通车」会商安排：${fmtAppt(d.apptTime)}，指定参会：${d.attendees.map(uname).join('、')}`, true);
-  save(); closeModal(); render();
-  const toNotify = uniq([dc.requestedBy, p.leader, ...d.attendees]).filter((u) => u !== me);
-  notify(toNotify, `【院长直通车排期】王院长已安排「${p.alias || p.name}」会商，定于 ${fmtAppt(d.apptTime)}，请准时参加！`);
-}
-
-function myDeanTasks() {
-  if (U(me).role !== '院长') return [];
-  const out = [];
-  DB.projects.forEach((p) => {
-    (p.deanCalls || []).forEach((dc) => {
-      if (dc.status === 'pending') out.push({ p, dc });
-    });
-  });
-  return out;
-}
 
 function addVersion(p, v) {
   const no = p.versions.length + 1;
