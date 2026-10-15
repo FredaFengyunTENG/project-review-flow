@@ -109,10 +109,9 @@
     gap: 12px;
   }
   .flow-step {
-    display: grid;
-    grid-template-columns: 36px 1fr auto;
-    align-items: center;
-    gap: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
     padding: 12px 14px;
     border-radius: 12px;
     border: 1.5px solid #e2e8f0;
@@ -126,8 +125,8 @@
   .flow-step.green { border-color: #86efac; background: var(--green-bg); }
 
   .step-num {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     background: #0f172a;
     color: #fff;
@@ -135,7 +134,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-top: 1px;
   }
   .flow-step.amber .step-num { background: var(--amber); }
   .flow-step.blue .step-num { background: var(--blue); }
@@ -143,15 +144,43 @@
   .flow-step.cyan .step-num { background: #0284c7; }
   .flow-step.green .step-num { background: var(--green); }
 
-  .step-main { display: flex; flex-direction: column; }
-  .step-title { font-size: 15px; font-weight: 700; color: #0f172a; }
-  .step-meta { font-size: 13px; color: #475569; margin-top: 2px; }
+  .step-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .step-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .step-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.4;
+    flex: 1;
+    min-width: 140px;
+  }
+  .step-meta {
+    font-size: 12.5px;
+    color: #475569;
+    line-height: 1.55;
+    word-break: break-word;
+  }
 
   .step-tag {
-    font-size: 12px;
-    padding: 3px 8px;
+    font-size: 11.5px;
+    padding: 2px 7px;
     border-radius: 6px;
     font-weight: 600;
+    flex-shrink: 0;
+    white-space: nowrap;
+    margin-top: 1px;
   }
   .step-tag.init { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
   .step-tag.review { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
@@ -162,10 +191,37 @@
   .flow-connector {
     text-align: center;
     color: #94a3b8;
-    font-size: 18px;
+    font-size: 16px;
     line-height: 1;
     margin: -6px 0;
   }
+
+  /* 整齐的悬挂缩进列表（解决手机端折行文本不对齐） */
+  .clean-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .clean-list li {
+    position: relative;
+    padding-left: 15px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #334155;
+  }
+  .clean-list li::before {
+    content: "•";
+    position: absolute;
+    left: 1px;
+    top: 0;
+    color: #2563eb;
+    font-weight: bold;
+    font-size: 14px;
+  }
+  .clean-list.purple li::before { color: #7c3aed; }
 
   /* ===== 2. 真实界面模拟（UI Mockup 卡片，零废话图解） ===== */
   .mock-grid {
@@ -368,6 +424,95 @@
     background: #1e293b;
     transform: translateY(-1px);
   }
+
+  /* 手机端深度专属适配（解决文字挤压与对齐错位） */
+  @media (max-width: 640px) {
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+    }
+    body {
+      padding-bottom: 70px;
+      word-break: break-word;
+      -webkit-text-size-adjust: 100%;
+    }
+    .hero {
+      padding: 24px 12px 14px;
+    }
+    .tag-badge {
+      font-size: 12px;
+      padding: 4px 12px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: 22px;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+    .hero-desc {
+      display: block;
+      border-radius: 10px;
+      font-size: 13px;
+      padding: 10px 14px;
+      text-align: left;
+      line-height: 1.6;
+    }
+    .container {
+      padding: 0 10px;
+    }
+    .card {
+      padding: 16px 12px;
+      margin-bottom: 14px;
+      border-radius: 12px;
+    }
+    .card-header {
+      font-size: 16px;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+    .card-subtitle {
+      font-size: 12.5px;
+      margin-top: -6px;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+    .flow-step {
+      padding: 10px 12px;
+      gap: 10px;
+    }
+    .step-num {
+      width: 26px;
+      height: 26px;
+      font-size: 12px;
+    }
+    .step-title {
+      font-size: 14px;
+      line-height: 1.35;
+    }
+    .step-meta {
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .step-tag {
+      font-size: 11px;
+      padding: 1px 6px;
+    }
+    .features-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .mock-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .btn-enter {
+      display: block;
+      width: 100%;
+      padding: 13px 20px;
+      font-size: 15px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -391,11 +536,13 @@
       <!-- 步骤 0：起点建档 -->
       <div class="flow-step amber">
         <div class="step-num">★</div>
-        <div class="step-main">
-          <div class="step-title">项目负责人一键建立项目档案（流程起点）</div>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-title">项目负责人一键建立项目档案（流程起点）</span>
+            <span class="step-tag init">立项建档</span>
+          </div>
           <div class="step-meta">极简建档 ｜ 录入正式名称/俗称 ｜ 拼音首字母秒选成员（首位为负责人） ｜ 上传初始方案与依据条款 ｜ 静默建档，随时正式开启流转</div>
         </div>
-        <span class="step-tag init">立项建档</span>
       </div>
 
       <div class="flow-connector">↓</div>
@@ -403,11 +550,13 @@
       <!-- 步骤 1 -->
       <div class="flow-step blue">
         <div class="step-num">1</div>
-        <div class="step-main">
-          <div class="step-title">前期审理与初步方案</div>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-title">前期审理与初步方案</span>
+            <span class="step-tag review">审查节点</span>
+          </div>
           <div class="step-meta">提交形式：演示文件电子档（另送）｜ 审查人：组长 ➔ 所总 ➔ 所长（不扰院总，所内严把关）</div>
         </div>
-        <span class="step-tag review">审查节点</span>
       </div>
 
       <div class="flow-connector">↓</div>
@@ -415,11 +564,13 @@
       <!-- 步骤 2 -->
       <div class="flow-step purple">
         <div class="step-num">2</div>
-        <div class="step-main">
-          <div class="step-title">分院技术审查会</div>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-title">分院技术审查会</span>
+            <span class="step-tag meeting">会议节点</span>
+          </div>
           <div class="step-meta">参会人：仅限本项目相关人员 ｜ 负责人上传上会时间、会议纪要与落实情况拍照</div>
         </div>
-        <span class="step-tag meeting">会议节点</span>
       </div>
 
       <div class="flow-connector">↓</div>
@@ -427,11 +578,13 @@
       <!-- 步骤 3 -->
       <div class="flow-step blue">
         <div class="step-num">3</div>
-        <div class="step-main">
-          <div class="step-title">评审方案审查（送册审查）</div>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-title">评审方案审查（送册审查）</span>
+            <span class="step-tag review">审查节点</span>
+          </div>
           <div class="step-meta">纸质成果送审 ｜ 审查领导一键约送册时间不跑空 ｜ 校对 ➔ 组长 ➔ 所总 ➔ 所长 ➔ 院总（支持同时审查）</div>
         </div>
-        <span class="step-tag review">审查节点</span>
       </div>
 
       <div class="flow-connector">↓</div>
@@ -439,11 +592,13 @@
       <!-- 步骤 4 -->
       <div class="flow-step cyan">
         <div class="step-num">4</div>
-        <div class="step-main">
-          <div class="step-title">批前公示</div>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-title">批前公示</span>
+            <span class="step-tag public">公示节点</span>
+          </div>
           <div class="step-meta">提交形式：批前公示成果审查 ｜ 依项目类别灵活排在联审会前或后，线上留痕公众公示意见</div>
         </div>
-        <span class="step-tag public">公示节点</span>
       </div>
 
       <div class="flow-connector">↓</div>
@@ -451,11 +606,13 @@
       <!-- 步骤 5 -->
       <div class="flow-step purple">
         <div class="step-num">5</div>
-        <div class="step-main">
-          <div class="step-title">控规方案联审会</div>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-title">控规方案联审会</span>
+            <span class="step-tag meeting">会议节点</span>
+          </div>
           <div class="step-meta">上会时间录入 ｜ 局级联审会议纪要与各部门意见落实情况拍照留痕</div>
         </div>
-        <span class="step-tag meeting">会议节点</span>
       </div>
 
       <div class="flow-connector">↓</div>
@@ -463,11 +620,13 @@
       <!-- 步骤 6 -->
       <div class="flow-step blue">
         <div class="step-num">6</div>
-        <div class="step-main">
-          <div class="step-title">成果报批审查</div>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-title">成果报批审查</span>
+            <span class="step-tag review">审查节点</span>
+          </div>
           <div class="step-meta">报批材料终审把关（论证报告、成果图件）｜ 所长、院总把关后上报批复</div>
         </div>
-        <span class="step-tag review">审查节点</span>
       </div>
 
       <div class="flow-connector">↓</div>
@@ -475,11 +634,13 @@
       <!-- 步骤 7 -->
       <div class="flow-step green">
         <div class="step-num">7</div>
-        <div class="step-main">
-          <div class="step-title">批后公告 ➔ 归档办结</div>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-title">批后公告 ➔ 归档办结</span>
+            <span class="step-tag final">公告结项</span>
+          </div>
           <div class="step-meta">政府批复与批后公告图纸归档 ｜ 全阶段所有图件、批注、意见永久留痕，办结封存</div>
         </div>
-        <span class="step-tag final">公告结项</span>
       </div>
     </div>
   </div>
@@ -502,7 +663,7 @@
             <span style="color:#2563eb;font-weight:700">逐级审查 / 同时审查</span>
           </div>
           <div style="margin:4px 0">送给谁（改完再送上一级）：</div>
-          <div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
             <span class="btn-sample blue">郑校对</span>
             <span class="btn-sample outline">周组长</span>
             <span class="btn-sample outline">陈所总</span>
@@ -521,9 +682,9 @@
         </div>
         <div class="mock-body">
           <div style="color:#64748b;margin-bottom:6px">收到纸质审查通知，什么时候方便？</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
             <span class="btn-sample outline">随时可送</span>
-            <span class="btn-sample outline" style="border-color:#2563eb;color:#2563eb">明天 09:00</span>
+            <span class="btn-sample outline" style="border-color:#2563eb;color:#2563eb;background:#eff6ff">明天 09:00</span>
             <span class="btn-sample outline">今天 15:00</span>
             <span class="btn-sample outline">明天 14:00</span>
           </div>
@@ -638,32 +799,32 @@
 
     <div style="display:flex;flex-direction:column;gap:14px">
       <!-- 事项 1 -->
-      <div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:12px;padding:16px">
-        <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;color:#1e40af;margin-bottom:8px">
-          <span style="background:#2563eb;color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px">1</span>
-          接入院里钉钉系统（原生免登 ＋ 强提醒打通）
+      <div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:12px;padding:14px">
+        <div style="display:flex;align-items:flex-start;gap:8px;font-size:15px;font-weight:700;color:#1e40af;margin-bottom:8px;line-height:1.4">
+          <span style="background:#2563eb;color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px">1</span>
+          <span>接入院里钉钉系统（原生免登 ＋ 强提醒打通）</span>
         </div>
-        <div style="font-size:13.5px;color:#334155;line-height:1.7">
-          • <b>免登与组织架构直连</b>：直接读取院内钉钉通讯录，大家不用重新注册账号密码，打开直接识别分院职工身份，拼音首字母找人 100% 同步；<br>
-          • <b>钉钉待办与首页红点常驻</b>：待审项目直接上报钉钉个人“待办事项”，手机和电脑端常驻红点，彻底解决“平时不爱看钉钉、群消息沉底被忽略”的顾虑；<br>
-          • <b>日历日程自动写入</b>：约定送册时间、方案联审会时间，点一下自动写入钉钉个人日程与手机本地日历，提前 15 分钟弹窗响铃不跑空；<br>
-          • <b>发信人已读回执</b>：送审后发信人可实时看到哪位领导/审查人“已读/未读”，项目进展一目了然；<br>
-          • <b>极急节点加急 DING</b>：赶着上会等特急节点，支持一键发送钉钉加急 DING 消息或短信直达手机。
-        </div>
+        <ul class="clean-list">
+          <li><b>免登与组织架构直连</b>：直接读取院内钉钉通讯录，大家不用重新注册账号密码，打开直接识别分院职工身份，拼音首字母找人 100% 同步；</li>
+          <li><b>钉钉待办与首页红点常驻</b>：待审项目直接上报钉钉个人“待办事项”，手机和电脑端常驻红点，彻底解决“平时不爱看钉钉、群消息沉底被忽略”的顾虑；</li>
+          <li><b>日历日程自动写入</b>：约定送册时间、方案联审会时间，点一下自动写入钉钉个人日程与手机本地日历，提前 15 分钟弹窗响铃不跑空；</li>
+          <li><b>发信人已读回执</b>：送审后发信人可实时看到哪位领导/审查人“已读/未读”，项目进展一目了然；</li>
+          <li><b>极急节点加急 DING</b>：赶着上会等特急节点，支持一键发送钉钉加急 DING 消息或短信直达手机。</li>
+        </ul>
       </div>
 
       <!-- 事项 2 -->
-      <div style="background:#f5f3ff;border:1.5px solid #d8b4fe;border-radius:12px;padding:16px">
-        <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;color:#6b21a8;margin-bottom:8px">
-          <span style="background:#7c3aed;color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px">2</span>
-          接入院里现有的 AI 大模型 / OCR 能力（手写批注拍照秒转文字）
+      <div style="background:#f5f3ff;border:1.5px solid #d8b4fe;border-radius:12px;padding:14px">
+        <div style="display:flex;align-items:flex-start;gap:8px;font-size:15px;font-weight:700;color:#6b21a8;margin-bottom:8px;line-height:1.4">
+          <span style="background:#7c3aed;color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px">2</span>
+          <span>接入院里现有的 AI 大模型 / OCR 能力（手写批注拍照秒转文字）</span>
         </div>
-        <div style="font-size:13.5px;color:#334155;line-height:1.7">
-          • <b>图纸手写红笔批注拍照识别</b>：领导在纸质成果或图纸上画红圈、手写批注后，手机拍照上传，院内 AI 视觉模型自动识别手写体，并智能提取出修改条目（如“1. 北侧建筑退线修正为8米；2. 绿地率指标核算有误”）；<br>
-          • <b>自动生成修改核对清单</b>：系统自动将识别出的手写意见转化为项目组的“待办核对清单”，修改一条勾选一条，校对与所长复核时一秒对账，绝无遗漏；<br>
-          • <b>会议纪要与落实情况自动结构化</b>：现场审查会、联审会的纸质记录表随手一拍，AI 自动提炼核心结论与待修改要点；<br>
-          • <b>院内安全合规</b>：调用院内自建或信创环境的私有化 AI 模型，规划图纸、经济技术指标与未公开数据不出院网，安全合规放心。
-        </div>
+        <ul class="clean-list purple">
+          <li><b>图纸手写红笔批注拍照识别</b>：领导在纸质成果或图纸上画红圈、手写批注后，手机拍照上传，院内 AI 视觉模型自动识别手写体，并智能提取出修改条目（如“1. 北侧建筑退线修正为8米；2. 绿地率指标核算有误”）；</li>
+          <li><b>自动生成修改核对清单</b>：系统自动将识别出的手写意见转化为项目组的“待办核对清单”，修改一条勾选一条，校对与所长复核时一秒对账，绝无遗漏；</li>
+          <li><b>会议纪要与落实情况自动结构化</b>：现场审查会、联审会的纸质记录表随手一拍，AI 自动提炼核心结论与待修改要点；</li>
+          <li><b>院内安全合规</b>：调用院内自建或信创环境的私有化 AI 模型，规划图纸、经济技术指标与未公开数据不出院网，安全合规放心。</li>
+        </ul>
       </div>
     </div>
   </div>
@@ -675,22 +836,26 @@
     <details class="faq">
       <summary>Q：关于名字：“规划流转”还有没有更有韵味、兼具反馈与全观的叫法？</summary>
       <div class="faq-body">
-        “流转”偏公文传递，如果想要<b>既有流程流转、又有反馈互动、又有全盘鸟瞰</b>，几个备选名字供领导和大家选择：<br>
-        1. <b>「规道」或「规划步道」</b>：既指规划项目的推进行进轨道（流转），又指沟通之道、反馈之法（道出意见），还指规整明了（全观），简短有力；<br>
-        2. <b>「规程通」</b>：流程通达（流转）、上下沟通（反馈）、通盘掌握（全观），非常接地气；<br>
-        3. <b>「规划全景」或「规景」</b>：取意项目全景罗盘，走到哪一步、谁提了什么意见尽收眼底；<br>
-        4. <b>「规划知会」</b>：知（人人心里有数、全局通晓），会（批示反馈、会议协同、交汇流转）。
+        “流转”偏公文传递，如果想要<b>既有流程流转、又有反馈互动、又有全盘鸟瞰</b>，几个备选名字供领导和大家选择：
+        <ul class="clean-list" style="margin-top:8px">
+          <li><b>「规道」或「规划步道」</b>：既指规划项目的推进行进轨道（流转），又指沟通之道、反馈之法（道出意见），还指规整明了（全观），简短有力；</li>
+          <li><b>「规程通」</b>：流程通达（流转）、上下沟通（反馈）、通盘掌握（全观），非常接地气；</li>
+          <li><b>「规划全景」或「规景」</b>：取意项目全景罗盘，走到哪一步、谁提了什么意见尽收眼底；</li>
+          <li><b>「规划知会」</b>：知（人人心里有数、全局通晓），会（批示反馈、会议协同、交汇流转）。</li>
+        </ul>
       </div>
     </details>
 
     <details class="faq">
       <summary>Q：我们平时很少看钉钉，消息沉底被忽略了怎么办？</summary>
       <div class="faq-body">
-        备了四道防漏机制：<br>
-        1. <b>已读回执</b>：发信人能看到谁已读、谁未读，不再两眼一抹黑；<br>
-        2. <b>待办常驻</b>：待审事项常驻钉钉首页红点角标，开机一眼可见；<br>
-        3. <b>自动入历</b>：约定送册、会商时间自动写入钉钉日程与手机自带日历，到点弹窗响铃；<br>
-        4. <b>极急 DING</b>：明天上会等火烧眉毛节点，一键触发 DING 短信直发领导手机。
+        备了四道防漏机制：
+        <ul class="clean-list" style="margin-top:8px">
+          <li><b>已读回执</b>：发信人能看到谁已读、谁未读，不再两眼一抹黑；</li>
+          <li><b>待办常驻</b>：待审事项常驻钉钉首页红点角标，开机一眼可见；</li>
+          <li><b>自动入历</b>：约定送册、会商时间自动写入钉钉日程与手机自带日历，到点弹窗响铃；</li>
+          <li><b>极急 DING</b>：明天上会等火烧眉毛节点，一键触发 DING 短信直发领导手机。</li>
+        </ul>
       </div>
     </details>
 
