@@ -32,88 +32,51 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* 顶部 Header */
+  /* 顶部 Header：增加留白与呼吸感 */
   .hero {
     max-width: 820px;
     margin: 0 auto;
-    padding: 44px 20px 24px;
+    padding: 48px 20px 36px;
     text-align: center;
   }
   .tag-badge {
     display: inline-block;
-    padding: 5px 14px;
+    padding: 4px 12px;
     border-radius: 20px;
-    background: #e2e8f0;
-    color: #334155;
-    font-size: 13px;
-    font-weight: 600;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 500;
     margin-bottom: 12px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid #e2e8f0;
   }
   .hero-pretitle {
-    font-size: 14.5px;
-    color: #64748b;
-    font-weight: 500;
+    font-size: 14px;
+    color: #94a3b8;
+    font-weight: 400;
     font-style: italic;
     letter-spacing: 0.5px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
   }
   h1 {
     font-size: 28px;
     font-weight: 800;
     color: #0f172a;
     letter-spacing: -0.5px;
-    margin-bottom: 14px;
+    margin-bottom: 8px;
   }
   .hero-desc {
-    font-size: 15.5px;
-    color: #334155;
-    font-weight: 600;
-    background: #ffffff;
-    display: inline-block;
-    padding: 8px 22px;
-    border-radius: 30px;
-    border: 1.5px solid var(--border);
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-  }
-  .hero-quote-title {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: #2563eb;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .hero-quote-lines {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 14px;
-    color: #1e293b;
-    line-height: 1.6;
-    font-weight: 500;
-  }
-  .hero-quote-lines span {
-    position: relative;
-    padding-left: 14px;
-  }
-  .hero-quote-lines span::before {
-    content: "•";
-    position: absolute;
-    left: 0;
-    top: 0;
-    color: #3b82f6;
-    font-weight: bold;
-  }
-  .hero-quote-sub {
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px dashed #e2e8f0;
-    font-size: 12.5px;
+    font-size: 14.5px;
     color: #64748b;
-    text-align: right;
-    font-style: italic;
+    font-weight: 400;
+    font-style: normal;
+    background: transparent;
+    display: block;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    letter-spacing: 0.5px;
+    line-height: 1.5;
   }
 
   .container {
@@ -492,33 +455,37 @@
       -webkit-text-size-adjust: 100%;
     }
     .hero {
-      padding: 24px 12px 14px;
+      padding: 34px 16px 28px;
     }
     .tag-badge {
-      font-size: 12px;
-      padding: 4px 12px;
+      font-size: 11.5px;
+      padding: 3px 10px;
       margin-bottom: 8px;
     }
     .hero-pretitle {
       font-size: 13px;
+      margin-bottom: 4px;
     }
     h1 {
-      font-size: 22px;
+      font-size: 23px;
       line-height: 1.35;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .hero-desc {
       font-size: 13.5px;
-      padding: 7px 16px;
-      border-radius: 20px;
+      line-height: 1.5;
+      padding: 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
     }
     .container {
-      padding: 0 10px;
+      padding: 0 12px;
     }
     .card {
-      padding: 16px 12px;
-      margin-bottom: 14px;
-      border-radius: 12px;
+      padding: 18px 14px;
+      margin-bottom: 18px;
+      border-radius: 14px;
     }
     .card-header {
       font-size: 16px;
@@ -527,8 +494,9 @@
       line-height: 1.4;
     }
     .card-subtitle {
-      font-size: 13px;
-      margin-top: -6px;
+      font-size: 12.5px;
+      color: #64748b;
+      margin-top: -4px;
       margin-bottom: 14px;
       line-height: 1.55;
     }
@@ -536,26 +504,53 @@
       grid-template-columns: 1fr;
       gap: 10px;
     }
+    .flow-track {
+      gap: 10px;
+    }
     .flow-step {
       padding: 10px 12px;
       gap: 10px;
+      border-radius: 10px;
     }
     .step-num {
-      width: 26px;
-      height: 26px;
-      font-size: 12px;
+      width: 24px;
+      height: 24px;
+      font-size: 11px;
     }
     .step-title {
       font-size: 14px;
       line-height: 1.35;
+      font-weight: 600;
     }
     .step-meta {
       font-size: 12px;
-      line-height: 1.5;
+      color: #64748b;
+      line-height: 1.45;
     }
     .step-tag {
       font-size: 11px;
       padding: 1px 6px;
+    }
+    .flow-connector {
+      font-size: 12px;
+      margin: -6px 0;
+      color: #cbd5e1;
+    }
+    .clean-list li {
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: #475569;
+    }
+    .feat-tile {
+      padding: 12px;
+    }
+    .feat-tile h4 {
+      font-size: 13.5px;
+    }
+    .feat-tile p {
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.45;
     }
     .features-grid {
       grid-template-columns: 1fr;
@@ -564,6 +559,16 @@
     .mock-grid {
       grid-template-columns: 1fr;
       gap: 12px;
+    }
+    .issue-box {
+      padding: 10px 12px;
+    }
+    .issue-head {
+      font-size: 13px;
+    }
+    .issue-reply {
+      font-size: 12px;
+      padding: 5px 8px;
     }
     .btn-enter {
       display: block;
@@ -592,11 +597,10 @@
     <div class="card-header">🗺️ 一张图看懂：项目怎么往前走？</div>
     <div class="card-subtitle">
       从一键建档到公告结项，清晰划分
-      <b style="color:#d97706;background:#fef3c7;padding:1px 6px;border-radius:4px">【建档】</b>、
-      <b style="color:#2563eb;background:#eff6ff;padding:1px 6px;border-radius:4px">【审查】</b>、
-      <b style="color:#7c3aed;background:#f5f3ff;padding:1px 6px;border-radius:4px">【会议】</b>、
-      <b style="color:#0284c7;background:#e0f2fe;padding:1px 6px;border-radius:4px">【公示】</b>
-      四大节点：
+      <span style="color:#b45309;font-weight:700">【建档】</span>、
+      <span style="color:#1d4ed8;font-weight:700">【审查】</span>、
+      <span style="color:#6d28d9;font-weight:700">【会议】</span>、
+      <span style="color:#0369a1;font-weight:700">【公示】</span>四大节点：
     </div>
 
     <div class="flow-track">
@@ -608,7 +612,7 @@
             <span class="step-title">项目负责人一键建立项目档案（流程起点）</span>
             <span class="step-tag init">立项建档</span>
           </div>
-          <div class="step-meta">极简建档 ｜ 录入正式名称/俗称 ｜ 拼音首字母秒选成员（首位为负责人） ｜ 上传初始方案与依据条款 ｜ 静默建档，随时正式开启流转</div>
+          <div class="step-meta">极简建档 · 录入名称 · 拼音秒选成员（首位为负责人） · 静默创建随时送审</div>
         </div>
       </div>
 
@@ -622,7 +626,7 @@
             <span class="step-title">前期审理与初步方案</span>
             <span class="step-tag review">审查节点</span>
           </div>
-          <div class="step-meta">提交形式：演示文件电子档（另送）｜ 审查人：组长 ➔ 所总 ➔ 所长（不扰院总，所内严把关）</div>
+          <div class="step-meta">演示电子档送审 · 组长 ➔ 所总 ➔ 所长逐级把关（不扰院总，所内严把关）</div>
         </div>
       </div>
 
@@ -636,7 +640,7 @@
             <span class="step-title">分院技术审查会</span>
             <span class="step-tag meeting">会议节点</span>
           </div>
-          <div class="step-meta">参会人：仅限本项目相关人员 ｜ 负责人上传上会时间、会议纪要与落实情况拍照</div>
+          <div class="step-meta">仅限项目相关人员 · 手机上传上会时间、纪要与落实情况</div>
         </div>
       </div>
 
@@ -650,7 +654,7 @@
             <span class="step-title">评审方案审查（送册审查）</span>
             <span class="step-tag review">审查节点</span>
           </div>
-          <div class="step-meta">纸质成果送审 ｜ 审查领导一键约送册时间不跑空 ｜ 校对 ➔ 组长 ➔ 所总 ➔ 所长 ➔ 院总（支持同时审查）</div>
+          <div class="step-meta">纸质成果送审 · 领导一键约送册时间不跑空 · 组长/所总/所长/院总（支持同时审查）</div>
         </div>
       </div>
 
@@ -664,7 +668,7 @@
             <span class="step-title">批前公示</span>
             <span class="step-tag public">公示节点</span>
           </div>
-          <div class="step-meta">提交形式：批前公示成果审查 ｜ 依项目类别灵活排在联审会前或后，线上留痕公众公示意见</div>
+          <div class="step-meta">批前公示成果留痕 · 依项目类别灵活排在联审会前或后</div>
         </div>
       </div>
 
@@ -678,7 +682,7 @@
             <span class="step-title">控规方案联审会</span>
             <span class="step-tag meeting">会议节点</span>
           </div>
-          <div class="step-meta">上会时间录入 ｜ 局级联审会议纪要与各部门意见落实情况拍照留痕</div>
+          <div class="step-meta">局级联审会议纪要与各部门意见落实拍照留痕</div>
         </div>
       </div>
 
@@ -692,7 +696,7 @@
             <span class="step-title">成果报批审查</span>
             <span class="step-tag review">审查节点</span>
           </div>
-          <div class="step-meta">报批材料终审把关（论证报告、成果图件）｜ 所长、院总把关后上报批复</div>
+          <div class="step-meta">论证报告与成果图件把关 · 所长、院总审核后上报批复</div>
         </div>
       </div>
 
@@ -706,7 +710,7 @@
             <span class="step-title">批后公告 ➔ 归档办结</span>
             <span class="step-tag final">公告结项</span>
           </div>
-          <div class="step-meta">政府批复与批后公告图纸归档 ｜ 全阶段所有图件、批注、意见永久留痕，办结封存</div>
+          <div class="step-meta">批复文件与公告图纸归档 · 成果、批注与意见永久留痕办结</div>
         </div>
       </div>
     </div>
@@ -935,10 +939,10 @@
           <span>接入院里钉钉系统（原生免登 ＋ 强提醒打通）</span>
         </div>
         <ul class="clean-list">
-          <li><b>免登与组织架构直连</b>：直接读取院内钉钉通讯录，大家不用重新注册账号密码，打开直接识别分院职工身份，拼音首字母找人 100% 同步；</li>
-          <li><b>钉钉待办与首页红点常驻</b>：待审项目直接上报钉钉个人“待办事项”，手机和电脑端常驻红点，彻底解决“平时不爱看钉钉、群消息沉底被忽略”的顾虑；</li>
-          <li><b>日历日程自动写入</b>：约定送册时间、方案联审会时间，点一下自动写入钉钉个人日程与手机本地日历，提前 15 分钟弹窗响铃不跑空；</li>
-          <li><b>发信人已读回执</b>：送审后发信人可实时看到哪位领导/审查人“已读/未读”，项目进展一目了然；</li>
+          <li><b>免登与组织架构直连</b>：读取院内钉钉通讯录，免密登录，拼音找人 100% 自动同步；</li>
+          <li><b>待办与首页红点常驻</b>：待审项目直接上报钉钉个人“待办事项”，手机/电脑红点常驻，不怕消息沉底；</li>
+          <li><b>日历日程自动写入</b>：约定送册、联审会时间一键写入钉钉日程与手机日历，提前 15 分钟弹窗响铃不跑空；</li>
+          <li><b>发信人已读未读回执</b>：送审后实时看到哪位领导/审查人“已读/未读”，心里有数；</li>
           <li><b>极急节点加急 DING</b>：赶着上会等特急节点，支持一键发送钉钉加急 DING 消息或短信直达手机。</li>
         </ul>
       </div>
@@ -950,10 +954,10 @@
           <span>接入院里现有的 AI 大模型 / OCR 能力（手写批注拍照秒转文字）</span>
         </div>
         <ul class="clean-list purple">
-          <li><b>图纸手写红笔批注拍照识别</b>：领导在纸质成果或图纸上画红圈、手写批注后，手机拍照上传，院内 AI 视觉模型自动识别手写体，并智能提取出修改条目（如“1. 北侧建筑退线修正为8米；2. 绿地率指标核算有误”）；</li>
-          <li><b>自动生成修改核对清单</b>：系统自动将识别出的手写意见转化为项目组的“待办核对清单”，修改一条勾选一条，校对与所长复核时一秒对账，绝无遗漏；</li>
-          <li><b>会议纪要与落实情况自动结构化</b>：现场审查会、联审会的纸质记录表随手一拍，AI 自动提炼核心结论与待修改要点；</li>
-          <li><b>院内安全合规</b>：调用院内自建或信创环境的私有化 AI 模型，规划图纸、经济技术指标与未公开数据不出院网，安全合规放心。</li>
+          <li><b>手写红笔批注拍照识别</b>：图纸手写圈注手机随手一拍，AI 自动提炼提取修改条目；</li>
+          <li><b>自动生成修改核对清单</b>：系统自动转化修改清单，改好一条勾选一条，校对与所长复核一目了然；</li>
+          <li><b>会议纪要自动结构化</b>：现场审查会、联审会纸质记录随手一拍，AI 自动提炼核心结论与修改要点；</li>
+          <li><b>院内私有化安全合规</b>：调用院内私有 AI 模型，规划图纸、经济技术指标与未公开数据不出院网，安全放心。</li>
         </ul>
       </div>
     </div>
