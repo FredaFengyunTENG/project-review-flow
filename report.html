@@ -505,6 +505,13 @@
   .mode-all .dock-pill {
     display: none !important;
   }
+  .mode-all .cover-swipe-guide {
+    display: none !important;
+  }
+  .mode-all .cover-hero-box {
+    min-height: auto;
+    padding: 10px 0 0;
+  }
 
   /* 封面极简垂直居中排版 */
   .cover-hero-box {
@@ -820,17 +827,17 @@
   }
 </style>
 </head>
-<body class="mode-slides">
+<body class="mode-all">
 
 <main class="container">
 
   <!-- 顶栏：浏览模式切换与当前章节 -->
   <div class="mode-bar">
     <div class="mode-switch">
-      <button class="mode-btn active" id="btnModeSlides" onclick="setMode('slides')">📑 分页演示</button>
-      <button class="mode-btn" id="btnModeAll" onclick="setMode('all')">📜 全文长图</button>
+      <button class="mode-btn active" id="btnModeAll" onclick="setMode('all')">📜 全文长图</button>
+      <button class="mode-btn" id="btnModeSlides" onclick="setMode('slides')">📑 分页演示</button>
     </div>
-    <div class="slide-indicator-top" id="topSlideIndicator">1 / 8 · 封面导览</div>
+    <div class="slide-indicator-top" id="topSlideIndicator">全文长图</div>
   </div>
 
   <!-- 第 1 页：封面导览（纯净极简、留白、无繁杂总览） -->
@@ -1330,7 +1337,7 @@
 <script>
   let currentSlide = 1;
   const totalSlides = 8;
-  let currentMode = 'slides'; // 'slides' or 'all'
+  let currentMode = 'all'; // 默认：第一选项全文长图，第二选项分页演示
 
   const slideTitles = [
     '封面',
@@ -1500,8 +1507,8 @@
     document.getElementById('issueInput').value = '';
   }
 
-  // 初始化
-  updateSlideUI();
+  // 初始化：默认进入全文长图模式
+  setMode('all');
 </script>
 </body>
 </html>
