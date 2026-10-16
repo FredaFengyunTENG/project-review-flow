@@ -3,6 +3,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI"
 #phone { max-width: 440px; width: 100%; margin: 0 auto; min-height: 100vh; background: #f6f8fa; display: flex; flex-direction: column; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
 #topbar { background: #1f6feb; color: #fff; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 5; gap: 6px; }
 #title { font-weight: 600; font-size: 16px; letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0; }
+.topbar-doc { color: #fff; text-decoration: none; font-size: 12px; background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.38); padding: 3px 9px; border-radius: 12px; margin-left: auto; margin-right: 6px; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 500; transition: background .15s; }
+.topbar-doc:hover, .topbar-doc:active { background: rgba(255,255,255,0.35); }
 .who { font-size: 12px; display: flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0; }
 .who select { padding: 4px 6px; border-radius: 6px; border: none; font-size: 12px; background: rgba(255,255,255,0.9); font-weight: 500; max-width: 130px; }
 #view { flex: 1; padding: 14px 12px 90px; }

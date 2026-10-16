@@ -337,5 +337,5 @@ function viewProject(p) {
 // ===== 启动 =====
 $('#userSwitch').innerHTML = USERS.map((u) => `<option value="${u.id}" ${u.id === me ? 'selected' : ''}>${u.name}（${u.role}）</option>`).join('');
 $('#userSwitch').onchange = (e) => { me = e.target.value; localStorage.setItem(KEY + '-me', me); render(); };
-$$('#tabbar button').forEach((b) => (b.onclick = () => go(b.dataset.go)));
+$$('#tabbar button[data-go]').forEach((b) => (b.onclick = () => go(b.dataset.go)));
 render();
