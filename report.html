@@ -502,140 +502,92 @@
     display: block !important;
     margin-bottom: 20px;
   }
-  .mode-all .bottom-dock {
+  .mode-all .dock-pill {
     display: none !important;
   }
-  .mode-all .cover-nav-card {
-    display: none;
-  }
 
-  /* 封面目录网格卡片 */
-  .cover-nav-card {
-    background: #ffffff;
-    border: 1.5px solid var(--border);
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
-  }
-  .cover-nav-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-  .cover-nav-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #f8fafc;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 9px 10px;
-    text-align: left;
-    font-size: 12.5px;
-    color: #1e293b;
-    cursor: pointer;
-    transition: all .15s;
-  }
-  .cover-nav-item:hover, .cover-nav-item:active {
-    background: #eff6ff;
-    border-color: #93c5fd;
-    color: #2563eb;
-  }
-  .c-num {
-    font-size: 11px;
-    font-weight: 700;
-    color: #64748b;
-    background: #e2e8f0;
-    border-radius: 4px;
-    padding: 1px 4px;
-  }
-  .c-txt {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .btn-start-flow {
-    width: 100%;
-    padding: 12px;
-    background: #2563eb;
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    font-size: 14.5px;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    box-shadow: 0 4px 12px rgba(37,99,235,0.25);
-    transition: background .15s;
-  }
-  .btn-start-flow:hover {
-    background: #1d4ed8;
-  }
-
-  /* 底部悬浮控制条 (分页模式) */
-  .bottom-dock {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-top: 1px solid #e2e8f0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    z-index: 999;
-    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06);
-  }
-  .dock-btn {
-    padding: 8px 15px;
-    border-radius: 8px;
-    border: 1.5px solid #cbd5e1;
-    background: #ffffff;
-    color: #1e293b;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .15s;
-  }
-  .dock-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
-  .dock-btn.primary {
-    background: #2563eb;
-    color: #ffffff;
-    border-color: #2563eb;
-  }
-  .dock-indicator {
+  /* 封面极简垂直居中排版 */
+  .cover-hero-box {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    min-height: 65vh;
+    padding: 30px 10px 10px;
+    text-align: center;
+  }
+  .cover-swipe-guide {
+    margin-top: 40px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
     cursor: pointer;
     user-select: none;
-    padding: 4px 10px;
-    border-radius: 8px;
+    animation: gentleBounce 2.2s infinite ease-in-out;
   }
-  .dock-indicator:active {
-    background: #f1f5f9;
-  }
-  #dockPageText {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: #0f172a;
-  }
-  .dock-sub {
-    font-size: 10px;
+  .guide-txt {
+    font-size: 13px;
     color: #94a3b8;
-    margin-top: 1px;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+  }
+  .guide-arrow-icon {
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  @keyframes gentleBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(7px); }
+  }
+
+  /* 底部极简悬浮胶囊指示器（不遮挡视线、无大按钮） */
+  .dock-pill {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: #ffffff;
+    border-radius: 30px;
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+    font-weight: 500;
+    z-index: 999;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform .15s, opacity .15s;
+    user-select: none;
+  }
+  .dock-pill:active {
+    transform: translateX(-50%) scale(0.96);
+  }
+  .pill-arrow {
+    font-size: 15px;
+    font-weight: 700;
+    color: #94a3b8;
+    padding: 0 4px;
+    cursor: pointer;
+    transition: color .15s;
+  }
+  .pill-arrow:hover, .pill-arrow:active {
+    color: #ffffff;
+  }
+  .pill-arrow.disabled {
+    opacity: 0.2;
+    cursor: default;
+    pointer-events: none;
+  }
+  .pill-text {
+    letter-spacing: 0.4px;
+    white-space: nowrap;
   }
 
   /* 快速跳页浮层 */
@@ -858,10 +810,7 @@
       font-size: 15px;
     }
     body.mode-slides {
-      padding-bottom: 85px;
-    }
-    .cover-nav-grid {
-      grid-template-columns: 1fr;
+      padding-bottom: 60px;
     }
     .mode-bar {
       margin-top: 10px;
@@ -884,57 +833,26 @@
     <div class="slide-indicator-top" id="topSlideIndicator">1 / 8 · 封面导览</div>
   </div>
 
-  <!-- 第 1 页：封面导览 -->
-  <section class="slide-page active" id="slide-1" data-title="封面导览">
-    <header class="hero">
-      <div class="tag-badge">业余小试验</div>
-      <div class="hero-pretitle">可搭载在钉钉上的</div>
-      <h1>规划流转小工具</h1>
-      <div class="hero-desc">
-        把流程梳理清楚，把轻松还给指尖。
-      </div>
-    </header>
+  <!-- 第 1 页：封面导览（纯净极简、留白、无繁杂总览） -->
+  <section class="slide-page active" id="slide-1" data-title="封面">
+    <div class="cover-hero-box">
+      <header class="hero">
+        <div class="tag-badge">业余小试验</div>
+        <div class="hero-pretitle">可搭载在钉钉上的</div>
+        <h1>规划流转小工具</h1>
+        <div class="hero-desc">
+          把流程梳理清楚，把轻松还给指尖。
+        </div>
+      </header>
 
-    <div class="card cover-nav-card">
-      <div class="card-header" style="font-size:15px;border-bottom:none;margin-bottom:6px;padding-bottom:0">
-        <span>📖 手机极简导览 · 一页一模块</span>
+      <div class="cover-swipe-guide" onclick="nextSlide()">
+        <span class="guide-txt">上下或左右滑动翻阅</span>
+        <div class="guide-arrow-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M19 12l-7 7-7-7"/>
+          </svg>
+        </div>
       </div>
-      <div class="card-subtitle" style="margin-bottom:12px;font-size:12.5px;color:#64748b">
-        专为手机翻阅优化，可左右轻扫、点按按钮或按章节直达：
-      </div>
-      <div class="cover-nav-grid">
-        <button class="cover-nav-item" onclick="goToSlide(2)">
-          <span class="c-num">02</span>
-          <span class="c-txt">🗺️ 流程怎么往前走？</span>
-        </button>
-        <button class="cover-nav-item" onclick="goToSlide(3)">
-          <span class="c-num">03</span>
-          <span class="c-txt">📱 真机怎么点屏幕？</span>
-        </button>
-        <button class="cover-nav-item" onclick="goToSlide(4)">
-          <span class="c-num">04</span>
-          <span class="c-txt">✨ 藏着的几个小心思</span>
-        </button>
-        <button class="cover-nav-item" onclick="goToSlide(5)">
-          <span class="c-num">05</span>
-          <span class="c-txt">🚧 延伸规划业务场景</span>
-        </button>
-        <button class="cover-nav-item" onclick="goToSlide(6)">
-          <span class="c-num">06</span>
-          <span class="c-txt">📮 挑刺吐槽与愿望墙</span>
-        </button>
-        <button class="cover-nav-item" onclick="goToSlide(7)">
-          <span class="c-num">07</span>
-          <span class="c-txt">🛠️ 钉钉与AI模型对接</span>
-        </button>
-        <button class="cover-nav-item" onclick="goToSlide(8)" style="grid-column: span 2">
-          <span class="c-num">08</span>
-          <span class="c-txt">💡 初心承诺与系统体验入口 ➔</span>
-        </button>
-      </div>
-      <button class="btn-start-flow" onclick="goToSlide(2)">
-        👉 开始逐页浏览 (第 1/8 页)
-      </button>
     </div>
   </section>
 
@@ -1391,15 +1309,12 @@
 
 </main>
 
-<!-- 底部常驻悬浮控制条 (分页模式) -->
-<nav class="bottom-dock" id="bottomDock">
-  <button class="dock-btn" id="btnPrevSlide" onclick="prevSlide()">‹ 上一页</button>
-  <div class="dock-indicator" id="dockIndicator" onclick="openJumpSheet()">
-    <span id="dockPageText">1 / 8 · 封面导览</span>
-    <span class="dock-sub">点此跳页 · 可左右轻扫</span>
-  </div>
-  <button class="dock-btn primary" id="btnNextSlide" onclick="nextSlide()">下一页 ›</button>
-</nav>
+<!-- 底部极简浮动胶囊指示器（无大按钮、不挡视线） -->
+<div class="dock-pill" id="dockPill" onclick="openJumpSheet()">
+  <span class="pill-arrow pill-prev" id="pillPrev" onclick="event.stopPropagation(); prevSlide();">‹</span>
+  <span class="pill-text" id="dockPageText">1 / 8 · 封面</span>
+  <span class="pill-arrow pill-next" id="pillNext" onclick="event.stopPropagation(); nextSlide();">›</span>
+</div>
 
 <!-- 快速跳页浮层 -->
 <div class="jump-modal" id="jumpModal" onclick="closeJumpSheet(event)">
@@ -1418,14 +1333,14 @@
   let currentMode = 'slides'; // 'slides' or 'all'
 
   const slideTitles = [
-    '封面导览',
+    '封面',
     '流程全览',
     '真实操作',
     '特色细节',
     '延伸场景',
     '挑刺吐槽',
     '落地对接',
-    '初心与入口'
+    '初心与结语'
   ];
 
   function setMode(mode) {
@@ -1433,21 +1348,21 @@
     const body = document.body;
     const btnSlides = document.getElementById('btnModeSlides');
     const btnAll = document.getElementById('btnModeAll');
-    const dock = document.getElementById('bottomDock');
+    const pill = document.getElementById('dockPill');
     
     if (mode === 'all') {
       body.classList.remove('mode-slides');
       body.classList.add('mode-all');
       btnSlides.classList.remove('active');
       btnAll.classList.add('active');
-      dock.style.display = 'none';
+      if (pill) pill.style.display = 'none';
       document.getElementById('topSlideIndicator').innerText = '全文长图模式';
     } else {
       body.classList.remove('mode-all');
       body.classList.add('mode-slides');
       btnAll.classList.remove('active');
       btnSlides.classList.add('active');
-      dock.style.display = 'flex';
+      if (pill) pill.style.display = 'flex';
       goToSlide(currentSlide);
     }
   }
@@ -1469,18 +1384,11 @@
     document.getElementById('topSlideIndicator').innerText = topText;
     document.getElementById('dockPageText').innerText = `${currentSlide} / ${totalSlides} · ${title}`;
     
-    const btnPrev = document.getElementById('btnPrevSlide');
-    const btnNext = document.getElementById('btnNextSlide');
+    const pillPrev = document.getElementById('pillPrev');
+    const pillNext = document.getElementById('pillNext');
     
-    btnPrev.disabled = (currentSlide === 1);
-
-    if (currentSlide === totalSlides) {
-      btnNext.innerText = '进入体验 🚀';
-      btnNext.onclick = function() { window.location.href = 'index.html'; };
-    } else {
-      btnNext.innerText = '下一页 ›';
-      btnNext.onclick = nextSlide;
-    }
+    if (pillPrev) pillPrev.classList.toggle('disabled', currentSlide === 1);
+    if (pillNext) pillNext.classList.toggle('disabled', currentSlide === totalSlides);
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -1505,30 +1413,61 @@
     }
   }
 
-  // 手机端左右滑动切页手势
+  // 手机端手势支持：左右滑动 + 上下滑动
   let touchStartX = 0;
   let touchStartY = 0;
+  let touchStartTime = 0;
 
   document.addEventListener('touchstart', e => {
     touchStartX = e.changedTouches[0].screenX;
     touchStartY = e.changedTouches[0].screenY;
+    touchStartTime = Date.now();
   }, { passive: true });
 
   document.addEventListener('touchend', e => {
     if (currentMode !== 'slides') return;
-    const deltaX = e.changedTouches[0].screenX - touchStartX;
-    const deltaY = e.changedTouches[0].screenY - touchStartY;
-    if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+    const touchEndX = e.changedTouches[0].screenX;
+    const touchEndY = e.changedTouches[0].screenY;
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+    const duration = Date.now() - touchStartTime;
+
+    if (duration > 700) return; // 忽略长按
+
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    // 1. 水平滑动 (左滑下一页，右滑上一页)
+    if (absX > 35 && absX > absY) {
       if (deltaX < 0) nextSlide();
       else prevSlide();
+      return;
+    }
+
+    // 2. 垂直滑动 (上滑下一页，下滑上一页)
+    if (absY > 40 && absY > absX) {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+      const isAtBottom = (scrollTop + windowHeight) >= (docHeight - 30);
+      const isAtTop = scrollTop <= 20;
+
+      // 上滑 -> 下一页 (在页面底部或者单屏无滚动条时)
+      if (deltaY < 0 && (isAtBottom || docHeight <= windowHeight + 40)) {
+        nextSlide();
+      }
+      // 下滑 -> 上一页 (在页面顶部时)
+      else if (deltaY > 0 && isAtTop) {
+        prevSlide();
+      }
     }
   }, { passive: true });
 
-  // 键盘左右键支持
+  // 键盘方向键支持
   document.addEventListener('keydown', e => {
     if (currentMode !== 'slides') return;
-    if (e.key === 'ArrowRight' || e.key === 'PageDown') nextSlide();
-    if (e.key === 'ArrowLeft' || e.key === 'PageUp') prevSlide();
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === 'ArrowDown') nextSlide();
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'ArrowUp') prevSlide();
   });
 
   // 目录弹窗
