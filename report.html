@@ -443,246 +443,6 @@
     transform: translateY(-1px);
   }
 
-  /* ===== 手机逐页幻灯片浏览体系 ===== */
-  .mode-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: 16px auto 14px;
-    padding: 6px 12px;
-    background: #ffffff;
-    border: 1px solid var(--border);
-    border-radius: 30px;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
-  }
-  .mode-switch {
-    display: flex;
-    gap: 4px;
-    background: #f1f5f9;
-    padding: 3px;
-    border-radius: 20px;
-  }
-  .mode-btn {
-    border: none;
-    background: transparent;
-    padding: 4px 12px;
-    border-radius: 16px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #64748b;
-    cursor: pointer;
-    transition: all .15s;
-  }
-  .mode-btn.active {
-    background: #ffffff;
-    color: #0f172a;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  }
-  .slide-indicator-top {
-    font-size: 12px;
-    color: #64748b;
-    font-weight: 500;
-  }
-
-  /* 分页模式显隐 */
-  .mode-slides .slide-page {
-    display: none;
-  }
-  .mode-slides .slide-page.active {
-    display: block;
-    animation: slideFade .22s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  @keyframes slideFade {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* 全文长图模式 */
-  .mode-all .slide-page {
-    display: block !important;
-    margin-bottom: 20px;
-  }
-  .mode-all .dock-pill {
-    display: none !important;
-  }
-  .mode-all .cover-swipe-guide {
-    display: none !important;
-  }
-  .mode-all .cover-hero-box {
-    min-height: auto;
-    padding: 10px 0 0;
-  }
-
-  /* 封面极简垂直居中排版 */
-  .cover-hero-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 65vh;
-    padding: 30px 10px 10px;
-    text-align: center;
-  }
-  .cover-swipe-guide {
-    margin-top: 40px;
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    user-select: none;
-    animation: gentleBounce 2.2s infinite ease-in-out;
-  }
-  .guide-txt {
-    font-size: 13px;
-    color: #94a3b8;
-    letter-spacing: 0.5px;
-    font-weight: 500;
-  }
-  .guide-arrow-icon {
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  @keyframes gentleBounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(7px); }
-  }
-
-  /* 底部极简悬浮胶囊指示器（不遮挡视线、无大按钮） */
-  .dock-pill {
-    position: fixed;
-    bottom: 18px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.82);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    color: #ffffff;
-    border-radius: 30px;
-    padding: 6px 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 12.5px;
-    font-weight: 500;
-    z-index: 999;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    transition: transform .15s, opacity .15s;
-    user-select: none;
-  }
-  .dock-pill:active {
-    transform: translateX(-50%) scale(0.96);
-  }
-  .pill-arrow {
-    font-size: 15px;
-    font-weight: 700;
-    color: #94a3b8;
-    padding: 0 4px;
-    cursor: pointer;
-    transition: color .15s;
-  }
-  .pill-arrow:hover, .pill-arrow:active {
-    color: #ffffff;
-  }
-  .pill-arrow.disabled {
-    opacity: 0.2;
-    cursor: default;
-    pointer-events: none;
-  }
-  .pill-text {
-    letter-spacing: 0.4px;
-    white-space: nowrap;
-  }
-
-  /* 快速跳页浮层 */
-  .jump-modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.55);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    z-index: 1000;
-    align-items: flex-end;
-    justify-content: center;
-  }
-  .jump-sheet {
-    background: #ffffff;
-    width: 100%;
-    max-width: 500px;
-    border-radius: 20px 20px 0 0;
-    padding: 18px 16px 24px;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: 0 -8px 24px rgba(0,0,0,0.15);
-    animation: sheetUp .2s ease-out;
-  }
-  @keyframes sheetUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
-  }
-  .jump-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 15px;
-    font-weight: 700;
-    color: #0f172a;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #e2e8f0;
-    margin-bottom: 12px;
-  }
-  .btn-close-jump {
-    border: none;
-    background: #f1f5f9;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    font-size: 13px;
-    color: #64748b;
-    cursor: pointer;
-  }
-  .jump-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin-bottom: 4px;
-    transition: all .15s;
-  }
-  .jump-item:hover, .jump-item:active {
-    background: #f1f5f9;
-  }
-  .jump-item.active {
-    background: #eff6ff;
-    color: #2563eb;
-    font-weight: 700;
-  }
-  .j-num {
-    font-size: 12px;
-    font-weight: 700;
-    color: #94a3b8;
-  }
-  .jump-item.active .j-num {
-    color: #2563eb;
-  }
-  .j-title {
-    flex: 1;
-    font-size: 13.5px;
-  }
-  .j-curr {
-    font-size: 11px;
-    background: #2563eb;
-    color: #fff;
-    padding: 2px 8px;
-    border-radius: 10px;
-  }
-
   /* 手机端深度专属适配（解决文字挤压与对齐错位） */
   @media (max-width: 640px) {
     html, body {
@@ -816,55 +576,21 @@
       padding: 13px 20px;
       font-size: 15px;
     }
-    body.mode-slides {
-      padding-bottom: 60px;
-    }
-    .mode-bar {
-      margin-top: 10px;
-      margin-bottom: 12px;
-      padding: 5px 10px;
-    }
   }
 </style>
 </head>
-<body class="mode-all">
+<body>
+
+<header class="hero">
+  <div class="tag-badge">业余小试验</div>
+  <div class="hero-pretitle">可搭载在钉钉上的</div>
+  <h1>规划流转小工具</h1>
+  <div class="hero-desc">
+    把流程梳理清楚，把轻松还给指尖。
+  </div>
+</header>
 
 <main class="container">
-
-  <!-- 顶栏：浏览模式切换与当前章节 -->
-  <div class="mode-bar">
-    <div class="mode-switch">
-      <button class="mode-btn active" id="btnModeAll" onclick="setMode('all')">📜 全文长图</button>
-      <button class="mode-btn" id="btnModeSlides" onclick="setMode('slides')">📑 分页演示</button>
-    </div>
-    <div class="slide-indicator-top" id="topSlideIndicator">全文长图</div>
-  </div>
-
-  <!-- 第 1 页：封面导览（纯净极简、留白、无繁杂总览） -->
-  <section class="slide-page active" id="slide-1" data-title="封面">
-    <div class="cover-hero-box">
-      <header class="hero">
-        <div class="tag-badge">业余小试验</div>
-        <div class="hero-pretitle">可搭载在钉钉上的</div>
-        <h1>规划流转小工具</h1>
-        <div class="hero-desc">
-          把流程梳理清楚，把轻松还给指尖。
-        </div>
-      </header>
-
-      <div class="cover-swipe-guide" onclick="nextSlide()">
-        <span class="guide-txt">上下或左右滑动翻阅</span>
-        <div class="guide-arrow-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 5v14M19 12l-7 7-7-7"/>
-          </svg>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 第 2 页：全流程图解：一张图看懂流转 -->
-  <section class="slide-page" id="slide-2" data-title="流程全览">
     <div class="card">
       <div class="card-header">🗺️ 一张图看懂：项目怎么往前走？</div>
       <div class="card-subtitle">
@@ -987,10 +713,6 @@
         </div>
       </div>
     </div>
-  </section>
-
-  <!-- 第 3 页：界面模拟：真人不打字，到底怎么用？ -->
-  <section class="slide-page" id="slide-3" data-title="真实操作">
     <div class="card">
       <div class="card-header">📱 真实操作长什么样？点点屏幕三秒完事</div>
       <div class="card-subtitle">
@@ -1065,10 +787,6 @@
         </div>
       </div>
     </div>
-  </section>
-
-  <!-- 第 4 页：六个贴心细节 -->
-  <section class="slide-page" id="slide-4" data-title="特色细节">
     <div class="card">
       <div class="card-header">✨ 藏在里头的几个小心思</div>
       <div class="card-subtitle">
@@ -1107,10 +825,6 @@
         </div>
       </div>
     </div>
-  </section>
-
-  <!-- 第 5 页：延伸场景（待开发探索） -->
-  <section class="slide-page" id="slide-5" data-title="延伸场景">
     <div class="card" style="border-style:dashed;border-color:#94a3b8;background:#f8fafc">
       <div class="card-header" style="border-bottom-color:#cbd5e1">
         <span>🚧 更多延伸场景（规划待开发）</span>
@@ -1159,10 +873,6 @@
         </div>
       </div>
     </div>
-  </section>
-
-  <!-- 第 6 页：试跑吐槽与愿望墙 -->
-  <section class="slide-page" id="slide-6" data-title="挑刺吐槽">
     <div class="card">
       <div class="card-header">📮 试跑体验与挑刺吐槽墙</div>
       <div class="card-subtitle">
@@ -1203,10 +913,6 @@
         </div>
       </div>
     </div>
-  </section>
-
-  <!-- 第 7 页：落地推进：需要领导与信息技术部门协调推进的 2 件事 -->
-  <section class="slide-page" id="slide-7" data-title="落地对接">
     <div class="card">
       <div class="card-header">🛠️ 下一步落地：需要领导与信息技术部门协调推进的 2 件事</div>
       <div class="card-subtitle">
@@ -1244,10 +950,6 @@
         </div>
       </div>
     </div>
-  </section>
-
-  <!-- 第 8 页：初心结语与原型体验 -->
-  <section class="slide-page" id="slide-8" data-title="初心与入口">
     <!-- 结语卡片：初心与承诺（这四句话放在最后） -->
     <div class="card" style="background:#ffffff;border:1.5px solid var(--border);border-left:4px solid #2563eb">
       <div style="font-weight:700;font-size:15px;color:#0f172a;margin-bottom:8px;display:flex;align-items:center;gap:6px">
@@ -1312,203 +1014,16 @@
     <div class="launch-bar" style="margin-top:16px;margin-bottom:20px">
       <a href="index.html" class="btn-enter" style="box-shadow:0 6px 20px rgba(37,99,235,0.3)">👉 点击进入系统原型体验</a>
     </div>
-  </section>
 
 </main>
 
-<!-- 底部极简浮动胶囊指示器（无大按钮、不挡视线） -->
-<div class="dock-pill" id="dockPill" onclick="openJumpSheet()">
-  <span class="pill-arrow pill-prev" id="pillPrev" onclick="event.stopPropagation(); prevSlide();">‹</span>
-  <span class="pill-text" id="dockPageText">1 / 8 · 封面</span>
-  <span class="pill-arrow pill-next" id="pillNext" onclick="event.stopPropagation(); nextSlide();">›</span>
-</div>
-
-<!-- 快速跳页浮层 -->
-<div class="jump-modal" id="jumpModal" onclick="closeJumpSheet(event)">
-  <div class="jump-sheet" onclick="event.stopPropagation()">
-    <div class="jump-header">
-      <span>📑 章节目录直达</span>
-      <button class="btn-close-jump" onclick="closeJumpSheet()">✕</button>
-    </div>
-    <div class="jump-list" id="jumpList"></div>
-  </div>
-</div>
-
 <script>
-  let currentSlide = 1;
-  const totalSlides = 8;
-  let currentMode = 'all'; // 默认：第一选项全文长图，第二选项分页演示
-
-  const slideTitles = [
-    '封面',
-    '流程全览',
-    '真实操作',
-    '特色细节',
-    '延伸场景',
-    '挑刺吐槽',
-    '落地对接',
-    '初心与结语'
-  ];
-
-  function setMode(mode) {
-    currentMode = mode;
-    const body = document.body;
-    const btnSlides = document.getElementById('btnModeSlides');
-    const btnAll = document.getElementById('btnModeAll');
-    const pill = document.getElementById('dockPill');
-    
-    if (mode === 'all') {
-      body.classList.remove('mode-slides');
-      body.classList.add('mode-all');
-      btnSlides.classList.remove('active');
-      btnAll.classList.add('active');
-      if (pill) pill.style.display = 'none';
-      document.getElementById('topSlideIndicator').innerText = '全文长图模式';
-    } else {
-      body.classList.remove('mode-all');
-      body.classList.add('mode-slides');
-      btnAll.classList.remove('active');
-      btnSlides.classList.add('active');
-      if (pill) pill.style.display = 'flex';
-      goToSlide(currentSlide);
-    }
-  }
-
-  function updateSlideUI() {
-    for (let i = 1; i <= totalSlides; i++) {
-      const page = document.getElementById(`slide-${i}`);
-      if (page) {
-        if (i === currentSlide) {
-          page.classList.add('active');
-        } else {
-          page.classList.remove('active');
-        }
-      }
-    }
-
-    const title = slideTitles[currentSlide - 1];
-    const topText = `${currentSlide} / ${totalSlides} · ${title}`;
-    document.getElementById('topSlideIndicator').innerText = topText;
-    document.getElementById('dockPageText').innerText = `${currentSlide} / ${totalSlides} · ${title}`;
-    
-    const pillPrev = document.getElementById('pillPrev');
-    const pillNext = document.getElementById('pillNext');
-    
-    if (pillPrev) pillPrev.classList.toggle('disabled', currentSlide === 1);
-    if (pillNext) pillNext.classList.toggle('disabled', currentSlide === totalSlides);
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function goToSlide(n) {
-    if (n < 1) n = 1;
-    if (n > totalSlides) n = totalSlides;
-    currentSlide = n;
-    updateSlideUI();
-    closeJumpSheet();
-  }
-
-  function nextSlide() {
-    if (currentSlide < totalSlides) {
-      goToSlide(currentSlide + 1);
-    }
-  }
-
-  function prevSlide() {
-    if (currentSlide > 1) {
-      goToSlide(currentSlide - 1);
-    }
-  }
-
-  // 手机端手势支持：左右滑动 + 上下滑动
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let touchStartTime = 0;
-
-  document.addEventListener('touchstart', e => {
-    touchStartX = e.changedTouches[0].screenX;
-    touchStartY = e.changedTouches[0].screenY;
-    touchStartTime = Date.now();
-  }, { passive: true });
-
-  document.addEventListener('touchend', e => {
-    if (currentMode !== 'slides') return;
-    const touchEndX = e.changedTouches[0].screenX;
-    const touchEndY = e.changedTouches[0].screenY;
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
-    const duration = Date.now() - touchStartTime;
-
-    if (duration > 700) return; // 忽略长按
-
-    const absX = Math.abs(deltaX);
-    const absY = Math.abs(deltaY);
-
-    // 1. 水平滑动 (左滑下一页，右滑上一页)
-    if (absX > 35 && absX > absY) {
-      if (deltaX < 0) nextSlide();
-      else prevSlide();
-      return;
-    }
-
-    // 2. 垂直滑动 (上滑下一页，下滑上一页)
-    if (absY > 40 && absY > absX) {
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const windowHeight = window.innerHeight;
-      const docHeight = document.documentElement.scrollHeight;
-      const isAtBottom = (scrollTop + windowHeight) >= (docHeight - 30);
-      const isAtTop = scrollTop <= 20;
-
-      // 上滑 -> 下一页 (在页面底部或者单屏无滚动条时)
-      if (deltaY < 0 && (isAtBottom || docHeight <= windowHeight + 40)) {
-        nextSlide();
-      }
-      // 下滑 -> 上一页 (在页面顶部时)
-      else if (deltaY > 0 && isAtTop) {
-        prevSlide();
-      }
-    }
-  }, { passive: true });
-
-  // 键盘方向键支持
-  document.addEventListener('keydown', e => {
-    if (currentMode !== 'slides') return;
-    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === 'ArrowDown') nextSlide();
-    if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'ArrowUp') prevSlide();
-  });
-
-  // 目录弹窗
-  function openJumpSheet() {
-    const modal = document.getElementById('jumpModal');
-    const list = document.getElementById('jumpList');
-    list.innerHTML = slideTitles.map((t, idx) => {
-      const pageNum = idx + 1;
-      const isCur = pageNum === currentSlide;
-      return `
-        <div class="jump-item ${isCur ? 'active' : ''}" onclick="goToSlide(${pageNum})">
-          <span class="j-num">${pageNum < 10 ? '0' + pageNum : pageNum}</span>
-          <span class="j-title">${t}</span>
-          ${isCur ? '<span class="j-curr">当前</span>' : ''}
-        </div>
-      `;
-    }).join('');
-    modal.style.display = 'flex';
-  }
-
-  function closeJumpSheet(e) {
-    const modal = document.getElementById('jumpModal');
-    if (modal) modal.style.display = 'none';
-  }
-
   function postIssue() {
     const txt = document.getElementById('issueInput').value.trim();
     if (!txt) return alert('请写下一两句想法或吐槽～');
     alert('感谢反馈！已收录至建议库，评估后将在页面回复～');
     document.getElementById('issueInput').value = '';
   }
-
-  // 初始化：默认进入全文长图模式
-  setMode('all');
 </script>
 </body>
 </html>
