@@ -47,25 +47,34 @@
     color: #334155;
     font-size: 13px;
     font-weight: 600;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
     border: 1px solid #cbd5e1;
+  }
+  .hero-pretitle {
+    font-size: 14.5px;
+    color: #64748b;
+    font-weight: 500;
+    font-style: italic;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
   }
   h1 {
     font-size: 28px;
     font-weight: 800;
     color: #0f172a;
     letter-spacing: -0.5px;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
   }
   .hero-desc {
+    font-size: 15.5px;
+    color: #334155;
+    font-weight: 600;
     background: #ffffff;
+    display: inline-block;
+    padding: 8px 22px;
+    border-radius: 30px;
     border: 1.5px solid var(--border);
-    border-radius: 14px;
-    padding: 16px 20px;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
-    max-width: 680px;
-    margin: 0 auto;
-    text-align: left;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
   }
   .hero-quote-title {
     font-size: 13.5px;
@@ -80,7 +89,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 14.5px;
+    font-size: 14px;
     color: #1e293b;
     line-height: 1.6;
     font-weight: 500;
@@ -101,7 +110,7 @@
     margin-top: 10px;
     padding-top: 8px;
     border-top: 1px dashed #e2e8f0;
-    font-size: 13px;
+    font-size: 12.5px;
     color: #64748b;
     text-align: right;
     font-style: italic;
@@ -125,19 +134,27 @@
   .card-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
     font-size: 18px;
     font-weight: 700;
     color: #0f172a;
     border-bottom: 2px solid #e2e8f0;
     padding-bottom: 12px;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
   }
   .card-subtitle {
-    font-size: 14px;
-    color: var(--text-sub);
-    margin-top: -10px;
-    margin-bottom: 18px;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #334155;
+    margin-top: -8px;
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  .future-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
   }
 
   /* ===== 1. 全流程一张图（视觉化流程路线） ===== */
@@ -480,7 +497,10 @@
     .tag-badge {
       font-size: 12px;
       padding: 4px 12px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
+    }
+    .hero-pretitle {
+      font-size: 13px;
     }
     h1 {
       font-size: 22px;
@@ -488,16 +508,9 @@
       margin-bottom: 8px;
     }
     .hero-desc {
-      padding: 12px 14px;
-      border-radius: 12px;
-    }
-    .hero-quote-lines {
-      font-size: 13px;
-      gap: 5px;
-      line-height: 1.5;
-    }
-    .hero-quote-sub {
-      font-size: 12px;
+      font-size: 13.5px;
+      padding: 7px 16px;
+      border-radius: 20px;
     }
     .container {
       padding: 0 10px;
@@ -514,10 +527,14 @@
       line-height: 1.4;
     }
     .card-subtitle {
-      font-size: 12.5px;
+      font-size: 13px;
       margin-top: -6px;
       margin-bottom: 14px;
-      line-height: 1.5;
+      line-height: 1.55;
+    }
+    .future-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
     }
     .flow-step {
       padding: 10px 12px;
@@ -561,16 +578,10 @@
 
 <header class="hero">
   <div class="tag-badge">业余小试验</div>
+  <div class="hero-pretitle">可搭载在钉钉上的</div>
   <h1>规划流转小工具</h1>
   <div class="hero-desc">
-    <div class="hero-quote-title">💡 设计初衷：</div>
-    <div class="hero-quote-lines">
-      <span>想让进度人人心中有数，却不添一页繁琐台账；</span>
-      <span>想让意见上下全盘通览，却不劳领导多打一字；</span>
-      <span>想让送册上会步步准点，却不让谁跑半趟冤枉路；</span>
-      <span>想让方案改动清晰可溯，却不增平时半点工作量。</span>
-    </div>
-    <div class="hero-quote-sub">—— 把规程梳理清楚，把轻松还给指尖。</div>
+    把项目流程梳理清楚，把轻松还给指尖。
   </div>
 </header>
 
@@ -579,7 +590,14 @@
   <!-- 1. 全流程图解：一张图看懂流转 -->
   <div class="card">
     <div class="card-header">🗺️ 一张图看懂：项目怎么往前走？</div>
-    <div class="card-subtitle">从一键建档到公告结项，清晰划分【建档】、【审查】、【会议】、【公示】四大节点：</div>
+    <div class="card-subtitle">
+      从一键建档到公告结项，清晰划分
+      <b style="color:#d97706;background:#fef3c7;padding:1px 6px;border-radius:4px">【建档】</b>、
+      <b style="color:#2563eb;background:#eff6ff;padding:1px 6px;border-radius:4px">【审查】</b>、
+      <b style="color:#7c3aed;background:#f5f3ff;padding:1px 6px;border-radius:4px">【会议】</b>、
+      <b style="color:#0284c7;background:#e0f2fe;padding:1px 6px;border-radius:4px">【公示】</b>
+      四大节点：
+    </div>
 
     <div class="flow-track">
       <!-- 步骤 0：起点建档 -->
@@ -697,7 +715,12 @@
   <!-- 2. 界面模拟：真人不打字，到底怎么用？ -->
   <div class="card">
     <div class="card-header">📱 真实操作长什么样？点点屏幕三秒完事</div>
-    <div class="card-subtitle">把打字负担压到极限：手机点按、加减号纠错、电脑直接粘贴截图：</div>
+    <div class="card-subtitle">
+      把打字负担压到极限：
+      <b style="color:#2563eb">手机点按</b>、
+      <b style="color:#dc2626">加减号纠错</b>、
+      <b style="color:#059669">电脑直接截图粘贴</b>
+    </div>
 
     <div class="mock-grid">
       <!-- 模拟 1 -->
@@ -768,6 +791,10 @@
   <!-- 3. 六个贴心细节 -->
   <div class="card">
     <div class="card-header">✨ 藏在里头的几个小心思</div>
+    <div class="card-subtitle">
+      不求大而全，但求每个细节都
+      <b style="color:#2563eb">切中真实痛点、省心顺手</b>：
+    </div>
     <div class="features-grid">
       <div class="feat-tile">
         <h4>⚡ 逐级与同时审查弹性并存</h4>
@@ -801,10 +828,62 @@
     </div>
   </div>
 
-  <!-- 4. 试跑吐槽与愿望墙 -->
+  <!-- 4. 延伸场景（待开发探索） -->
+  <div class="card" style="border-style:dashed;border-color:#94a3b8;background:#f8fafc">
+    <div class="card-header" style="border-bottom-color:#cbd5e1">
+      <span>🚧 更多延伸场景（规划待开发）</span>
+      <span style="font-size:12px;background:#e2e8f0;color:#475569;padding:2px 8px;border-radius:10px;font-weight:600">拓展探索</span>
+    </div>
+    <div class="card-subtitle">
+      以控规主干流程为样板，后续可低成本拓展到
+      <b style="color:#2563eb">分院更多日常业务场景</b>：
+    </div>
+
+    <div class="future-grid">
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px">
+        <div style="font-weight:700;font-size:14.5px;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+          <span style="color:#2563eb">📐</span> 其他类规划项目管理流程
+        </div>
+        <div style="font-size:13px;color:#475569;line-height:1.5">
+          涵盖城市设计、城市更新、专项规划、村庄规划等不同类型。按不同规划类别的技术要求与审查阶段，定制专属的流转节点。
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px">
+        <div style="font-weight:700;font-size:14.5px;color:#7c3aed;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+          <span style="color:#7c3aed">📅</span> 项目一键申请分院技术审查会
+        </div>
+        <div style="font-size:13px;color:#475569;line-height:1.5">
+          免去传统纸质报会单。项目组自审成熟后在手机上一点，自动核对材料并发起上会申请，由分院统筹排期并自动通知参会人员。
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px">
+        <div style="font-weight:700;font-size:14.5px;color:#059669;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+          <span style="color:#059669">🗄️</span> 历年规划成果与批注知识库
+        </div>
+        <div style="font-size:13px;color:#475569;line-height:1.5">
+          已归档项目的阶段图纸、共性审查意见与专家批注意见自动沉淀入库，新项目开题一键溯源查阅，避免重复踩坑。
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px">
+        <div style="font-weight:700;font-size:14.5px;color:#d97706;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+          <span style="color:#d97706">⚡</span> 更多轻量业务插件接入
+        </div>
+        <div style="font-size:13px;color:#475569;line-height:1.5">
+          根据全院试用吐槽墙的反馈，按需轻量增加所长周会备忘、专家外审打分等小插件，始终坚持“用哪个开哪个，不增多余负担”。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 试跑吐槽与愿望墙 -->
   <div class="card">
     <div class="card-header">📮 试跑体验与挑刺吐槽墙</div>
-    <div class="card-subtitle">先接入钉钉大家试跑。有不顺手的地方直接提，不论是否改动，条条都会公开回复：</div>
+    <div class="card-subtitle">
+      先接入钉钉大家试跑。<b style="color:#0f172a">有不顺手的地方直接提</b>，不论是否改动，条条都会公开回复：
+    </div>
 
     <div class="issue-box">
       <div class="issue-head">
@@ -841,10 +920,12 @@
     </div>
   </div>
 
-  <!-- 5. 落地推进：需要领导与信息部门对接的事情 -->
+  <!-- 6. 落地推进：需要领导与信息部门对接的事情 -->
   <div class="card">
     <div class="card-header">🛠️ 下一步落地：需要领导与信息技术部门协调推进的 2 件事</div>
-    <div class="card-subtitle">小工具要从“业余试验”真正变成“全院好用”，只需院里协调信息部门推进两项技术对接：</div>
+    <div class="card-subtitle">
+      小工具要从“业余试验”真正变成“全院好用”，只需协调信息部门推进 <b style="color:#2563eb">两项关键技术对接</b>：
+    </div>
 
     <div style="display:flex;flex-direction:column;gap:14px">
       <!-- 事项 1 -->
@@ -878,7 +959,7 @@
     </div>
   </div>
 
-  <!-- 6. 答疑折叠 -->
+  <!-- 7. 答疑折叠 -->
   <div class="card">
     <div class="card-header">☕ 一些也许你会好奇的问答</div>
 
@@ -921,6 +1002,22 @@
         纸质仍是最终载体。工具只管两头：<b>前端约好送达时间不跑空</b>，<b>后端留下批注照片与错误计数</b>，纸质件改完扔掉也不怕复核扯皮。
       </div>
     </details>
+  </div>
+
+  <!-- 结语卡片：初心与承诺（这四句话放在最后） -->
+  <div class="card" style="background:#ffffff;border:1.5px solid var(--border);border-left:4px solid #2563eb">
+    <div style="font-weight:700;font-size:15px;color:#0f172a;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+      <span style="color:#2563eb">💡</span> 关于做这个小工具的初心与承诺：
+    </div>
+    <ul class="clean-list">
+      <li><b>想让进度人人心中有数</b>，却不添一页繁琐台账；</li>
+      <li><b>想让意见上下全盘通览</b>，却不劳领导多打一字；</li>
+      <li><b>想让送册上会步步准点</b>，却不让谁跑半趟冤枉路；</li>
+      <li><b>想让方案改动清晰可溯</b>，却不增平时半点工作量。</li>
+    </ul>
+    <div style="margin-top:12px;padding-top:8px;border-top:1px dashed #e2e8f0;font-size:13px;color:#64748b;text-align:right">
+      —— 踏踏实实帮一线省事，清清爽爽让全院知悉
+    </div>
   </div>
 
   <div class="launch-bar">
