@@ -1,6 +1,10 @@
 // ===== 状态与通用工具 =====
-const KEY = 'review-proto-v3';
+const KEY = 'review-proto-v5';
 let DB = JSON.parse(localStorage.getItem(KEY) || 'null') || { projects: seedProjects() };
+if (!DB.projects.find((p) => p.id === 'p2') || !DB.projects.find((p) => p.id === 'p3')) {
+  DB = { projects: seedProjects() };
+  try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) {}
+}
 let me = localStorage.getItem(KEY + '-me') || 'u10';
 let route = { name: 'todo' };
 
@@ -220,6 +224,82 @@ function saveMeeting(p, m, key) {
   st(p, key).meeting = m;
   log(p, `${uname(me)} ${isEdit ? '修改了' : '填写了'}「${STAGES[key].name}」会议信息`, isEdit);
   save(); closeModal(); render();
+}
+
+// ---- 申请报会（直报院长）----
+function applyMeeting(p, d, key) {
+  key = key || curStage(p);
+  const s = st(p, key);
+  const isEdit = !!s.apply;
+  s.apply = {
+    applicant: me,
+    submittedAt: now(),
+    targetLeader: d.targetLeader || 'u1',
+    prefTime: d.prefTime || '',
+    prefQuick: d.prefQuick || '',
+    materials: d.materials || [],
+    note: d.note || '',
+    status: 'pending',
+  };
+  const timeDesc = d.prefQuick || fmtAppt(d.prefTime) || '尽快安排';
+  log(p, `${uname(me)} ${isEdit ? '修改了' : '提交了'}「${STAGES[key].name}」报会申请（直报王院长）：期望 ${timeDesc}`, isEdit);
+  save(); closeModal(); render();
+  notify([d.targetLeader || 'u1'], `${uname(me)} 提交了「${p.alias || p.name}」分院技术审查会报会申请，请审批排期`);
+  toast('✅ 报会申请已直报王院长！请等待排期通知。可切换到「王院长」身份模拟审批', 5000);
+}
+
+// ---- 院长审批并排定会议 ----
+function deanSchedule(p, d, key) {
+  key = key || curStage(p);
+  const s = st(p, key);
+  s.apply = s.apply || {};
+  s.apply.status = 'scheduled';
+  s.apply.scheduledTime = d.time;
+  s.apply.location = d.location;
+  s.apply.attendees = d.attendees;
+  s.apply.deanOpinion = d.deanOpinion;
+  s.apply.scheduledAt = now();
+
+  // 同步写入 meeting 结构
+  s.meeting = s.meeting || { opinion: '', implement: '', photos: [] };
+  s.meeting.time = d.time;
+  s.meeting.location = d.location;
+  s.meeting.attendees = d.attendees;
+  s.meeting.deanOpinion = d.deanOpinion;
+
+  log(p, `王院长 批准并排期「${STAGES[key].name}」：${fmtAppt(d.time)}（${d.location}）${d.deanOpinion ? '，批示：' + d.deanOpinion : ''}`);
+  save(); closeModal(); render();
+  const notifyList = uniq([...(d.attendees || []), p.leader, ...(p.members || [])]);
+  notify(notifyList, `王院长已排定「${p.alias || p.name}」${STAGES[key].name}：${fmtAppt(d.time)}（${d.location}）`);
+  toast('🎉 已成功排期！系统已同步通知全体参会人员', 5000);
+}
+
+// ---- 院长驳回报会申请 ----
+function deanRejectMeeting(p, reason, key) {
+  key = key || curStage(p);
+  const s = st(p, key);
+  if (!s.apply) return;
+  s.apply.status = 'rejected';
+  s.apply.rejectReason = reason;
+  s.apply.rejectedAt = now();
+  log(p, `王院长 驳回报会申请：${reason || '请补充完善材料后重新申报'}`);
+  save(); closeModal(); render();
+  notify([s.apply.applicant, p.leader], `王院长驳回了「${p.alias || p.name}」报会申请：${reason || '请补充完善材料'}`);
+  toast('已驳回报会申请', 4000);
+}
+
+// ---- 查询待院长审批排期的报会申请 ----
+function deanPendingApplies() {
+  const out = [];
+  DB.projects.forEach((p) => {
+    path(p).forEach((key) => {
+      const s = p.stages[key];
+      if (s && s.apply && s.apply.status === 'pending') {
+        out.push({ p, key, apply: s.apply });
+      }
+    });
+  });
+  return out;
 }
 
 // 待我处理的审查

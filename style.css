@@ -32,6 +32,9 @@ button.btn:active { opacity: 0.85; }
 button.btn.ghost { background: #fff; color: #1f6feb; border: 1px solid #1f6feb; }
 button.btn.gray { background: #f3f4f6; color: #24292f; border: 1px solid #d0d7de; }
 button.btn.green { background: #1a7f37; }
+button.btn.purple { background: #8250df; }
+button.btn.purple:hover { background: #713fc9; }
+button.btn.ghost.purple { background: #fff; color: #8250df; border: 1px solid #8250df; }
 button.btn.block { width: 100%; margin-top: 10px; }
 button.btn.sm { padding: 4px 10px; font-size: 12px; }
 

@@ -19,8 +19,32 @@ function statusTag(it) {
 }
 
 function viewTodo() {
+  let h = '';
+
+  // 1. 如果当前身份是院长（王院长），优先显示「待我排期 / 报会申请」
+  if (U(me).role === '院长') {
+    const applies = deanPendingApplies();
+    h += `<h2>🔔 待我排期 / 报会申请（${applies.length}）</h2>`;
+    h += applies.length ? applies.map(({ p, key, apply }) => `
+      <div class="card click" style="border:1.5px solid #8250df;background:#faf8ff" onclick="deanScheduleModal('${p.id}','${key}')">
+        <div class="row">
+          <b>${esc(p.alias || p.name)}</b>
+          <span class="tag purple">${STAGES[key].name}</span>
+        </div>
+        <div class="muted" style="margin-top:4px">
+          ${uname(apply.applicant || p.leader)} 申请直报王院长排期
+        </div>
+        <div style="margin-top:4px;font-size:13px;color:#8250df">
+          <b>期望时间：</b>${esc(apply.prefQuick || fmtAppt(apply.prefTime) || '尽快安排')}
+        </div>
+        ${apply.note ? `<div class="muted" style="margin-top:2px;font-size:12px;color:#475569">说明：${esc(apply.note)}</div>` : ''}
+        <div style="margin-top:8px;color:#8250df;font-size:13px;font-weight:600">👉 点此审批并排定会议</div>
+      </div>`).join('') : '<div class="empty">暂无待排期报会申请 ☕</div>';
+  }
+
+  // 2. 待我审查
   const tasks = myReviewTasks();
-  let h = `<h2>待我审查（${tasks.length}）</h2>`;
+  h += `<h2>待我审查（${tasks.length}）</h2>`;
   h += tasks.length ? tasks.map(({ p, r, it }) => `
     <div class="card click" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
       <div class="row"><b>${esc(p.alias || p.name)}</b>${statusTag(it)}</div>
@@ -29,16 +53,30 @@ function viewTodo() {
       <div style="margin-top:8px;color:#1f6feb;font-size:13px;font-weight:500">${it.status === 'pending' ? '👉 点此接收' + (r.paper ? '并约送册时间' : '') : '👉 点此填写审查意见'}</div>
     </div>`).join('') : '<div class="empty">暂无待审查事项 ☕</div>';
 
+  // 3. 我参与的项目
   const mine = DB.projects.filter((p) => p.members.includes(me) && !finished(p));
   h += `<h2>我参与的项目（${mine.length}）</h2>`;
   h += mine.length ? mine.map((p) => {
-    const items = p.reviews.filter((r) => r.stage === curStage(p)).flatMap((r) => r.items);
+    const curK = curStage(p);
+    const sCur = p.stages[curK] || {};
+    const items = p.reviews.filter((r) => r.stage === curK).flatMap((r) => r.items);
     const appts = items.filter((i) => i.status === 'accepted' && i.appointment);
     const back = items.filter((i) => i.status === 'done');
-    const curName = STAGES[curStage(p)] ? STAGES[curStage(p)].name : '已完成';
+    const curName = STAGES[curK] ? STAGES[curK].name : '已完成';
+
+    let applyBadge = '';
+    if (sCur.apply) {
+      if (sCur.apply.status === 'pending') {
+        applyBadge = `<div class="tag purple">⏳ 已直报院长，待排期中</div>`;
+      } else if (sCur.apply.status === 'scheduled') {
+        applyBadge = `<div class="tag green">🗓 院长已排期：${fmtAppt(sCur.apply.scheduledTime)}（${esc(sCur.apply.location || '三楼大会议室')}）</div>`;
+      }
+    }
+
     return `<div class="card click" onclick="go('project','${p.id}')">
       <div class="row"><b>${esc(p.alias || p.name)}</b><span class="tag">${p.category}</span></div>
       <div class="muted" style="margin-top:4px">当前阶段：${curName}</div>
+      ${applyBadge}
       ${appts.map((i) => `<div class="tag blue">📅 ${uname(i.uid)} 约 ${fmtAppt(i.appointment)} 送册</div>`).join('')}
       ${back.length ? `<div class="tag green">💬 本阶段已收到 ${back.length} 份意见</div>` : ''}
     </div>`;
@@ -213,11 +251,52 @@ function fbSummary(f) {
 function stageDetail(p, key) {
   const s = p.stages[key] || {};
   let h = '';
+
+  // 报会申请卡片（直报院长）
+  if (s.apply) {
+    const ap = s.apply;
+    const isPending = ap.status === 'pending';
+    const isScheduled = ap.status === 'scheduled';
+    const isRejected = ap.status === 'rejected';
+    h += `<div class="opinion" style="border-left-color:#8250df;background:#faf8ff">
+      <div class="row">
+        <span>📅 <b>报会申请（直报院长）</b></span>
+        <span class="tag ${isScheduled ? 'green' : isRejected ? 'red' : 'purple'}">
+          ${isScheduled ? '✅ 院长已排期' : isRejected ? '❌ 已退回' : '⏳ 待院长排期'}
+        </span>
+      </div>
+      <div class="muted" style="margin-top:2px">
+        申请人：${uname(ap.applicant || p.leader)} · 接收领导：${uname(ap.targetLeader || 'u1')}（院长） · ${ap.submittedAt || ''}
+      </div>
+      <div style="margin-top:4px;font-size:13px">
+        <b>期望时间：</b>${esc(ap.prefQuick || fmtAppt(ap.prefTime))}
+      </div>
+      ${ap.materials && ap.materials.length ? `<div style="margin-top:2px;font-size:12px;color:#475569"><b>就绪材料：</b>${ap.materials.map((m) => `<span class="tag">${esc(m)}</span>`).join('')}</div>` : ''}
+      ${ap.note ? `<div style="margin-top:2px;font-size:13px;color:#334155"><b>汇报说明：</b>${esc(ap.note)}</div>` : ''}
+      ${isScheduled ? `
+        <div style="margin-top:6px;padding-top:6px;border-top:1px dashed #d8b4fe;color:#1a7f37;font-size:13px">
+          <b>🗓 排期确认：</b>${fmtAppt(ap.scheduledTime)} · 地点：${esc(ap.location || '三楼大会议室')}
+          ${ap.attendees && ap.attendees.length ? `<div class="muted" style="margin-top:2px">参会人员：${ap.attendees.map(uname).join('、')}</div>` : ''}
+          ${ap.deanOpinion ? `<div style="margin-top:2px;color:#334155"><b>院长批示：</b>${esc(ap.deanOpinion)}</div>` : ''}
+        </div>` : ''}
+      ${isRejected ? `
+        <div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fca5a5;color:#cf222e;font-size:13px">
+          <b>退回原因：</b>${esc(ap.rejectReason || '材料需补充完善')}
+        </div>` : ''}
+      <div style="text-align:right;margin-top:6px">
+        ${U(me).role === '院长' && isPending ? `<button class="btn sm purple" onclick="deanScheduleModal('${p.id}','${key}')">🗓 审批并排期</button>` : ''}
+        ${isTeam(p) && (isPending || isRejected) ? `<span class="edit-link" onclick="applyMeetingModal('${p.id}','${key}')">✏️ ${isRejected ? '重新报会' : '修改申请'}</span>` : ''}
+      </div>
+    </div>`;
+  }
+
   if (s.meeting) {
     const m = s.meeting;
     h += `<div class="opinion meeting">
       <div class="row"><span>🗓 <b>${fmtAppt(m.time) || '时间未定'}</b></span>${isTeam(p) ? `<span class="edit-link" onclick="meetingModal('${p.id}','${key}')">✏️ 修改纪要</span>` : ''}</div>
+      ${m.location ? `<div class="muted" style="margin-top:2px">地点：${esc(m.location)}</div>` : ''}
       <div class="muted" style="margin-top:2px">参会：${m.attendees.map(uname).join('、') || '—'}</div>
+      ${m.deanOpinion ? `<div style="margin-top:4px;color:#8250df"><b>院长批示：</b>${esc(m.deanOpinion)}</div>` : ''}
       ${m.opinion ? `<div style="margin-top:4px"><b>会议意见：</b>${esc(m.opinion)}</div>` : ''}
       ${m.implement ? `<div style="margin-top:2px"><b>落实情况：</b>${esc(m.implement)}</div>` : ''}
       <div>${imgsHtml(m.photos)}</div></div>`;
@@ -270,21 +349,61 @@ function viewProject(p) {
   if (!p) return '<div class="empty">项目不存在</div>';
   if (!canSee(p, me)) return '<div class="empty">🔒 你不在该项目的公开范围内</div>';
   const keys = path(p), cur = curStage(p), def = STAGES[cur] || {}, team = isTeam(p);
-  
+  const sCur = p.stages[cur] || {};
+  const isDean = U(me).role === '院长';
+  const hasApply = !!sCur.apply;
+  const isAppliedPending = hasApply && sCur.apply.status === 'pending';
+  const isAppliedScheduled = hasApply && sCur.apply.status === 'scheduled';
+
+  // 院长专属待排期提示卡片
+  let deanCard = '';
+  if (isDean && isAppliedPending) {
+    deanCard = `<div class="card" style="border:1.5px solid #8250df;background:#faf8ff">
+      <div class="row">
+        <b>🔔 报会排期待审批</b>
+        <span class="tag purple">${def.name}</span>
+      </div>
+      <div class="muted" style="margin-top:6px">
+        申请人：<b>${uname(sCur.apply.applicant || p.leader)}</b> · 期望时间：<b>${esc(sCur.apply.prefQuick || fmtAppt(sCur.apply.prefTime) || '尽快安排')}</b>
+      </div>
+      ${sCur.apply.note ? `<div style="margin-top:4px;font-size:13px;color:#334155"><b>申请说明：</b>${esc(sCur.apply.note)}</div>` : ''}
+      <button class="btn purple block" onclick="deanScheduleModal('${p.id}','${cur}')">🗓 院长审批并排期</button>
+    </div>`;
+  }
+
   let act = '';
   if (team) {
     const revert = p.stageIdx > 0 ? `<button class="btn gray" onclick="revertStage(P('${p.id}'))">↩ 撤回上一阶段</button>` : '';
-    act = finished(p) ? `<div class="card"><b>✅ 全部阶段已完成</b><div style="margin-top:8px">${revert}</div></div>` :
-      `<div class="card">
+    if (finished(p)) {
+      act = `<div class="card"><b>✅ 全部阶段已完成</b><div style="margin-top:8px">${revert}</div></div>`;
+    } else {
+      let meetingBtns = '';
+      if (def.type === 'meeting') {
+        if (cur === 's2' || def.name.includes('技术审查会')) {
+          if (!hasApply || sCur.apply.status === 'rejected') {
+            meetingBtns = `<button class="btn purple" onclick="applyMeetingModal('${p.id}','${cur}')">📅 申请报会（直报院长）</button>`;
+          } else if (isAppliedPending) {
+            meetingBtns = `<button class="btn ghost purple" onclick="applyMeetingModal('${p.id}','${cur}')">⏳ 待院长排期（查看/修改报会）</button>`;
+          } else if (isAppliedScheduled) {
+            meetingBtns = `<button class="btn purple" onclick="meetingModal('${p.id}','${cur}')">📝 录入/修改会议纪要</button>`;
+          }
+        }
+        if (!meetingBtns) {
+          meetingBtns = `<button class="btn" onclick="meetingModal('${p.id}')">📝 会议信息</button>`;
+        }
+      }
+
+      act = `<div class="card">
         <div class="row"><b>当前阶段：${def.name}</b><span class="tag blue">${def.type === 'meeting' ? '会议节点' : '审查节点'}</span></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          ${def.type === 'meeting' ? `<button class="btn" onclick="meetingModal('${p.id}')">📝 会议信息</button>` : ''}
+          ${meetingBtns}
           ${def.type === 'review' || def.preReview ? `<button class="btn" onclick="reviewModal('${p.id}')">📤 送审</button>` : ''}
           <button class="btn green" onclick="completeStage(P('${p.id}'))">✔ 本阶段完成</button>
           ${def.optional ? `<button class="btn gray" onclick="completeStage(P('${p.id}'),true)">跳过（非必选）</button>` : ''}
           ${revert}
         </div>
       </div>`;
+    }
   }
 
   const vs = p.versions;
@@ -306,6 +425,7 @@ function viewProject(p) {
     </div>` : ''}
   </div>
 
+  ${deanCard}
   ${act}
 
   <h2 class="row">

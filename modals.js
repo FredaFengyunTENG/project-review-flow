@@ -130,22 +130,193 @@ function doNotify(pid) {
   closeModal(); notifyOthers(P(pid), who, $('#n_msg').value.trim());
 }
 
+// ---- 申请报会（直报院长）----
+function applyMeetingModal(pid, key) {
+  const p = P(pid); key = key || curStage(p);
+  const s = st(p, key);
+  const old = s.apply || {};
+
+  const defaultMats = [
+    '初步方案汇报演示文件 (PPT/PDF)',
+    '用地规划图与指标表',
+    '所内自审意见落实清单',
+    '各专业协同确认单',
+  ];
+  const curMats = old.materials && old.materials.length ? old.materials : defaultMats.slice(0, 3);
+
+  const quickTimes = [
+    '尽快安排',
+    '下周二上午 09:30',
+    '下周二下午 14:30',
+    '下周四上午 09:30',
+    '下周四下午 14:30',
+  ];
+  const curQuick = old.prefQuick || '尽快安排';
+
+  openModal(`<h3>📅 申请报会（直报院长）· ${STAGES[key].name}</h3>
+    <div class="card" style="border:1.5px solid #8250df;background:#faf8ff;padding:10px 12px">
+      <div class="row">
+        <b>直报领导：👑 王院长（院长）</b>
+        <span class="tag purple">分院直通审批</span>
+      </div>
+      <div class="muted" style="margin-top:4px;font-size:12px;line-height:1.4">
+        ⚡ 免去各所队先收集、再上报分院、逐级传达的冗长流程。项目自审成熟后一键直报院长日程排期。
+      </div>
+    </div>
+
+    <label class="f">期望上会时间（点选快捷时段）</label>
+    ${chips('a_quick', quickTimes.map((t) => [t, t]), [curQuick], true)}
+    <div style="margin-top:6px">
+      <input type="datetime-local" id="a_time" value="${old.prefTime || ''}" placeholder="或选择具体日期时间">
+    </div>
+
+    <label class="f">报会审查成果就绪核对（可多选）</label>
+    ${chips('a_mat', defaultMats.map((m) => [m, m]), curMats)}
+
+    <label class="f">报会说明 / 汇报重点（一两句话说明方案成熟度）</label>
+    <textarea id="a_note" placeholder="如：方案已征求所内各级意见自审成熟，指标与道路红线均已核准，特申请分院技术审查会审理。">${esc(old.note || (old.applicant ? '' : '方案已征求所内各级意见自审成熟，指标与道路红线均已核准，特申请分院技术审查会审理。'))}</textarea>
+
+    ${btns(`doApplyMeeting('${pid}','${key}')`, '🚀 立即上报院长')}`);
+}
+
+function doApplyMeeting(pid, key) {
+  const p = P(pid);
+  const prefQuick = picked('#a_quick')[0] || '';
+  const prefTime = $('#a_time').value;
+  const materials = picked('#a_mat');
+  const note = $('#a_note').value.trim();
+
+  if (!prefQuick && !prefTime) return toast('请选择或填写期望上会时间');
+  if (!materials.length) return toast('请至少勾选一项已就绪的成果材料');
+
+  applyMeeting(p, {
+    targetLeader: 'u1',
+    prefQuick,
+    prefTime,
+    materials,
+    note,
+  }, key);
+}
+
+// ---- 院长审批并排期 ----
+function deanScheduleModal(pid, key) {
+  const p = P(pid); key = key || curStage(p);
+  const s = st(p, key);
+  const ap = s.apply || {};
+  const people = projectPeople(p).map((u) => [u, `${uname(u)}·${U(u).role}`]);
+
+  const defaultAttendees = uniq([
+    me,
+    'u2',
+    'u3',
+    'u5',
+    ap.applicant || p.leader,
+    ...(p.members || []),
+  ]).filter((u) => projectPeople(p).includes(u));
+
+  const roomOptions = [
+    ['三楼大会议室', '三楼大会议室'],
+    ['二楼研讨室', '二楼研讨室'],
+    ['五楼多功能厅', '五楼多功能厅'],
+    ['钉钉视频会议', '钉钉视频会议'],
+  ];
+
+  openModal(`<h3>🗓 院长审批并排期 · ${STAGES[key].name}</h3>
+    <div class="card" style="background:#faf8ff;border:1px solid #d8b4fe">
+      <div class="row">
+        <b>${esc(p.alias || p.name)}</b>
+        <span class="tag purple">报会申请</span>
+      </div>
+      <div class="muted" style="margin-top:4px">
+        申请人：<b>${uname(ap.applicant || p.leader)}</b> · 提交时间：${ap.submittedAt || '刚刚'}
+      </div>
+      <div style="margin-top:4px;font-size:13px">
+        <b>申请人期望时间：</b><span style="color:#8250df;font-weight:600">${esc(ap.prefQuick || fmtAppt(ap.prefTime) || '尽快安排')}</span>
+      </div>
+      ${ap.materials && ap.materials.length ? `<div style="margin-top:4px;font-size:12px;color:#475569"><b>就绪材料：</b>${ap.materials.map((m) => `<span class="tag">${esc(m)}</span>`).join('')}</div>` : ''}
+      ${ap.note ? `<div style="margin-top:4px;font-size:13px;color:#334155;background:#fff;padding:6px 8px;border-radius:6px;border:1px solid #e9d5ff"><b>申请说明：</b>${esc(ap.note)}</div>` : ''}
+    </div>
+
+    <label class="f">确认排定会议时间</label>
+    <input type="datetime-local" id="d_time" value="${ap.scheduledTime || (s.meeting && s.meeting.time) || ''}">
+    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+      <button type="button" class="btn ghost sm" onclick="$('#d_time').value='${quickTime(1, 9)}'">明天 09:30</button>
+      <button type="button" class="btn ghost sm" onclick="$('#d_time').value='${quickTime(1, 14)}'">明天 14:30</button>
+      <button type="button" class="btn ghost sm" onclick="$('#d_time').value='${quickTime(2, 9)}'">后天 09:30</button>
+      <button type="button" class="btn ghost sm" onclick="$('#d_time').value='${quickTime(3, 14)}'">大后天 14:30</button>
+    </div>
+
+    <label class="f">会议地点 / 形式</label>
+    ${chips('d_loc', roomOptions, [ap.location || (s.meeting && s.meeting.location) || '三楼大会议室'], true)}
+
+    <label class="f">参会人员（系统将自动发送钉钉参会通知）</label>
+    ${chips('d_att', people, ap.attendees || (s.meeting && s.meeting.attendees) || defaultAttendees)}
+
+    <label class="f">院长批示 / 会前要求（选填）</label>
+    <textarea id="d_opinion" placeholder="如：方案总体成熟，重点审议指标与路网衔接，汇报控制在20分钟内">${esc(ap.deanOpinion || '')}</textarea>
+
+    <button class="btn purple block" onclick="doDeanSchedule('${pid}','${key}')">✔ 批准并发布会议通知</button>
+    <button class="btn gray block" onclick="doDeanReject('${pid}','${key}')" style="margin-top:6px">↩ 驳回补充材料</button>
+    <button class="btn gray block" onclick="closeModal()" style="margin-top:6px">取消</button>`);
+}
+
+function doDeanSchedule(pid, key) {
+  const p = P(pid);
+  const time = $('#d_time').value;
+  const location = picked('#d_loc')[0] || '三楼大会议室';
+  const attendees = picked('#d_att');
+  const deanOpinion = $('#d_opinion').value.trim();
+
+  if (!time) return toast('请选择排定的会议时间');
+  if (!attendees.length) return toast('请选择参会人员');
+
+  deanSchedule(p, { time, location, attendees, deanOpinion }, key);
+}
+
+function doDeanReject(pid, key) {
+  const reason = prompt('请输入退回原因或材料补正要求：', '方案材料尚不完善，请补充修改后再行报会');
+  if (reason === null) return;
+  deanRejectMeeting(P(pid), reason.trim(), key);
+}
+
 // ---- 会议信息（新填或修改）----
 function meetingModal(pid, key) {
   const p = P(pid); key = key || curStage(p);
-  const m = (p.stages[key] || {}).meeting || { time: '', attendees: [], opinion: '', implement: '', photos: [] };
+  const s = p.stages[key] || {};
+  const ap = s.apply || {};
+  const m = s.meeting || {
+    time: ap.scheduledTime || '',
+    location: ap.location || '',
+    attendees: (ap.attendees && ap.attendees.length) ? ap.attendees : [],
+    opinion: '',
+    implement: '',
+    photos: [],
+  };
   const people = projectPeople(p).map((u) => [u, `${uname(u)}·${U(u).role}`]);
-  openModal(`<h3>${STAGES[key].name}</h3>
+  const isScheduled = ap.status === 'scheduled';
+
+  openModal(`<h3>${STAGES[key].name} · 会议信息与纪要</h3>
+    ${isScheduled ? `<div class="card" style="background:#faf8ff;border:1px solid #d8b4fe;padding:8px 12px;margin-bottom:10px">
+      <div style="font-size:13px;color:#8250df"><b>✅ 院长已排期：</b>${fmtAppt(ap.scheduledTime)} · ${esc(ap.location || '三楼大会议室')}</div>
+      ${ap.deanOpinion ? `<div class="muted" style="margin-top:2px;font-size:12px">院长批示：${esc(ap.deanOpinion)}</div>` : ''}
+    </div>` : ''}
     <label class="f">上会时间</label><input type="datetime-local" id="g_time" value="${m.time}">
-    <label class="f">参会人员（仅本项目相关人员）</label>${chips('g_att', people, m.attendees)}
+    <label class="f">会议地点</label><input type="text" id="g_loc" value="${esc(m.location || ap.location || '三楼大会议室')}" placeholder="如：三楼大会议室">
+    <label class="f">参会人员（仅本项目相关人员）</label>${chips('g_att', people, m.attendees.length ? m.attendees : (ap.attendees || []))}
     <label class="f">会议意见 / 纪要</label><textarea id="g_op">${esc(m.opinion)}</textarea>
     <label class="f">纪要照片 / 截图</label>${uploader('g_photos', m.photos || [])}
     <label class="f">意见落实情况（简单写，哪些没落实）</label><textarea id="g_impl">${esc(m.implement)}</textarea>
     ${btns(`doMeeting('${pid}','${key}')`, '保存会议信息')}`);
 }
 function doMeeting(pid, key) {
-  saveMeeting(P(pid), { time: $('#g_time').value, attendees: picked('#g_att'), opinion: $('#g_op').value.trim(),
-    implement: $('#g_impl').value.trim(), photos: [...UPL.g_photos] }, key);
+  saveMeeting(P(pid), {
+    time: $('#g_time').value,
+    location: $('#g_loc').value.trim(),
+    attendees: picked('#g_att'),
+    opinion: $('#g_op').value.trim(),
+    implement: $('#g_impl').value.trim(),
+    photos: [...UPL.g_photos],
+  }, key);
 }
 
 // ---- 上传新方案 ----
