@@ -116,3 +116,7 @@ details summary { cursor: pointer; color: #1f6feb; font-size: 13px; margin-top: 
 .filter-bar .chip { font-size: 12px; padding: 3px 9px; flex-shrink: 0; }
 .note-box { border-left: 3px solid #8250df; background: #faf8ff; padding: 8px 12px; border-radius: 0 8px 8px 0; margin: 8px 0; font-size: 13.5px; }
 .issue-card { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+.bulletin-card { background: #fff; border: 1.5px solid #d0e2ff; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+.check-item { transition: background .15s; border-radius: 6px; }
+.check-item:hover { background: #f0f7ff; }
+

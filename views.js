@@ -17,6 +17,7 @@ function render() {
     else if (U(me).role === '院总') v.innerHTML = viewChiefEngineerBoard();
     else v.innerHTML = viewTodo();
   }
+  else if (route.name === 'bulletin') v.innerHTML = viewTechnicalBulletin();
   else if (route.name === 'projects') v.innerHTML = viewProjects();
   else if (route.name === 'new') { v.innerHTML = viewNew(); bindNew(); }
   else if (route.name === 'project') v.innerHTML = viewProject(P(route.arg));
@@ -81,6 +82,7 @@ function viewDeanBoard() {
       <span class="tag">${DEPTS[1]}：<b>${deptCounts[DEPTS[1]] || 0}</b> 项</span>
       <span class="tag">${DEPTS[2]}：<b>${deptCounts[DEPTS[2]] || 0}</b> 项</span>
       <span class="tag">控规新编：<b>${catCounts['控规'] || 0}</b> 项</span>
+      <span class="tag blue" onclick="go('bulletin')" style="cursor:pointer">📢 技术审查新规：<b>${(DB.bulletins || []).length}</b> 条生效中 →</span>
     </div>
   </div>`;
 
@@ -356,6 +358,20 @@ function viewChiefEngineerBoard() {
       </div>
     </div>`).join('') : '<div class="empty">暂无收集的普适性技术问题</div>';
 
+  // 院技术公告发布台
+  const bulletins = DB.bulletins || [];
+  h += `
+  <div class="row" style="margin:24px 0 8px">
+    <div>
+      <b style="font-size:15.5px;color:#0969da">📢 院技术公告发布台（${bulletins.length}）</b>
+      <div class="muted" style="font-size:12px;margin-top:2px">已向全院三个所通报发布的技术审查新规与自查标准</div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="btn sm purple" onclick="publishBulletinModal()">➕ 发布新规</button>
+      <button class="btn sm ghost" onclick="go('bulletin')">前往公告板 →</button>
+    </div>
+  </div>`;
+
   return h;
 }
 
@@ -366,6 +382,29 @@ function setCeFilter(k, v) {
 
 function viewTodo() {
   let h = '';
+
+  // 0. 院技术公告板速递卡片（让所有人第一眼看到院里发布的最新审查需求）
+  const bulletins = DB.bulletins || [];
+  const latestB = bulletins[0];
+  if (latestB) {
+    h += `
+    <div class="card click" style="border:1.5px solid #c8e1ff;background:linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);margin-bottom:14px;padding:12px 14px" onclick="go('bulletin')">
+      <div class="row">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:16px">📢</span>
+          <b style="color:#0969da;font-size:14px">院技术公告板 · 审查新规速递</b>
+          <span class="tag red" style="font-size:10px">NEW</span>
+        </div>
+        <span style="color:#1f6feb;font-size:12px;font-weight:500">全部 (${bulletins.length}) →</span>
+      </div>
+      <div style="margin-top:6px;font-size:13.5px;color:#1f2937;font-weight:600;line-height:1.4">
+        📌 ${esc(latestB.title)}
+      </div>
+      <div class="muted" style="margin-top:3px;font-size:12px">
+        ${esc(latestB.publisher)} · 适用【${esc(latestB.category)}】 · ${esc(latestB.summary.slice(0, 36))}...
+      </div>
+    </div>`;
+  }
 
   // 1. 待我审查
   const tasks = myReviewTasks();
@@ -406,6 +445,107 @@ function viewTodo() {
       ${back.length ? `<div class="tag green">💬 本阶段已收到 ${back.length} 份意见</div>` : ''}
     </div>`;
   }).join('') : '<div class="empty">暂无</div>';
+  return h;
+}
+
+// ===== 院技术公告板视图 =====
+function viewTechnicalBulletin() {
+  const isCE = U(me).role === '院总';
+  const allBulletins = DB.bulletins || [];
+
+  // 筛选过滤
+  let list = allBulletins.filter((b) => {
+    if (bulletinFilter.dept !== 'all') {
+      if (b.dept !== '全院三个所' && !b.dept.includes(bulletinFilter.dept)) return false;
+    }
+    if (bulletinFilter.cat !== 'all') {
+      if (b.category !== '全类型通用' && b.category !== bulletinFilter.cat) return false;
+    }
+    if (bulletinFilter.tag !== 'all') {
+      if (b.tag !== bulletinFilter.tag) return false;
+    }
+    return true;
+  });
+
+  let h = `
+  <div class="card" style="border:1.5px solid #1f6feb;background:linear-gradient(135deg, #f0f7ff 0%, #e6f0fd 100%)">
+    <div class="row">
+      <div>
+        <b style="font-size:16px;color:#0969da">📢 院技术公告板</b>
+        <div class="muted" style="margin-top:2px;font-size:12px">全院各类别项目技术审查新需求 · 规范与共性通报 · 送审自查清单</div>
+      </div>
+      ${isCE ? `<button class="btn sm purple" onclick="publishBulletinModal()">➕ 发布新审查需求</button>` : ''}
+    </div>
+  </div>
+
+  <!-- 三维筛选栏 -->
+  <div style="margin:10px 0 6px">
+    <div style="font-size:12px;color:#57606a;margin-bottom:4px">按所队筛选：</div>
+    <div class="filter-bar">
+      <span class="chip ${bulletinFilter.dept === 'all' ? 'on' : ''}" onclick="bulletinFilter.dept='all';render()">全部所队</span>
+      ${DEPTS.map((d) => `<span class="chip ${bulletinFilter.dept === d ? 'on' : ''}" onclick="bulletinFilter.dept='${d}';render()">${d}</span>`).join('')}
+    </div>
+
+    <div style="font-size:12px;color:#57606a;margin:6px 0 4px">按项目类型筛选：</div>
+    <div class="filter-bar">
+      <span class="chip ${bulletinFilter.cat === 'all' ? 'on' : ''}" onclick="bulletinFilter.cat='all';render()">全部类型</span>
+      <span class="chip ${bulletinFilter.cat === '全类型通用' ? 'on' : ''}" onclick="bulletinFilter.cat='全类型通用';render()">全类型通用</span>
+      ${CATEGORIES.filter((c) => c !== '其他（待开发）').map((c) => `<span class="chip ${bulletinFilter.cat === c ? 'on' : ''}" onclick="bulletinFilter.cat='${c}';render()">${c}</span>`).join('')}
+    </div>
+
+    <div style="font-size:12px;color:#57606a;margin:6px 0 4px">按公告类型筛选：</div>
+    <div class="filter-bar">
+      <span class="chip ${bulletinFilter.tag === 'all' ? 'on' : ''}" onclick="bulletinFilter.tag='all';render()">全部公告</span>
+      <span class="chip ${bulletinFilter.tag === '审查新需求' ? 'on' : ''}" onclick="bulletinFilter.tag='审查新需求';render()">审查新需求</span>
+      <span class="chip ${bulletinFilter.tag === '共性问题通报' ? 'on' : ''}" onclick="bulletinFilter.tag='共性问题通报';render()">共性问题通报</span>
+      <span class="chip ${bulletinFilter.tag === '送审清单' ? 'on' : ''}" onclick="bulletinFilter.tag='送审清单';render()">送审清单</span>
+    </div>
+  </div>
+
+  <div class="row" style="margin:12px 2px 8px">
+    <span style="font-size:13px;font-weight:600;color:#24292f">有效技术审查需求（${list.length} 条）</span>
+    ${(bulletinFilter.dept !== 'all' || bulletinFilter.cat !== 'all' || bulletinFilter.tag !== 'all') ? `<span class="edit-link" onclick="bulletinFilter={dept:'all',cat:'all',tag:'all'};render()">清空筛选</span>` : ''}
+  </div>`;
+
+  if (!list.length) {
+    h += `<div class="empty">暂无符合筛选条件的技术公告或审查新需求</div>`;
+  } else {
+    h += list.map((b) => {
+      const tagColor = b.priority === 'high' ? 'red' : (b.tag === '审查新需求' ? 'blue' : 'purple');
+      return `
+      <div class="bulletin-card click" onclick="bulletinDetailModal('${b.id}')">
+        <div class="row" style="margin-bottom:6px">
+          <div>
+            <span class="tag ${tagColor}">${b.tag || '审查新需求'}</span>
+            <span class="tag blue">${esc(b.category)}</span>
+            <span class="tag">${esc(b.dept)}</span>
+            ${b.priority === 'high' ? '<span class="tag red">🚨 重点必查</span>' : ''}
+          </div>
+          <span class="muted" style="font-size:11px">${b.publishAt ? b.publishAt.split(' ')[0] : ''}</span>
+        </div>
+
+        <div style="font-size:14.5px;font-weight:700;color:#1f2937;line-height:1.4;margin-bottom:6px">
+          ${esc(b.title)}
+        </div>
+
+        <div style="background:#f8faff;border-left:3px solid #1f6feb;padding:6px 10px;border-radius:0 6px 6px 0;font-size:12.5px;color:#374151;line-height:1.5;margin-bottom:8px">
+          ${esc(b.summary)}
+        </div>
+
+        ${(b.checklist || []).length ? `
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#0969da;background:#eef6ff;padding:4px 8px;border-radius:6px;margin-bottom:8px">
+            <span>✅ 包含送审前必查清单（${b.checklist.length} 项自查点）</span>
+          </div>
+        ` : ''}
+
+        <div class="row" style="font-size:12px;color:#6b7280;padding-top:4px;border-top:1px dashed #e5e7eb">
+          <span>发布人：${esc(b.publisher)}</span>
+          <span style="color:#1f6feb;font-weight:500">查看需求详情 & 自查 →</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
   return h;
 }
 
@@ -792,6 +932,33 @@ function viewProject(p) {
       ${team ? `<span class="edit-link" onclick="editProjectModal('${p.id}')">✏️ 修改基本信息</span>` : ''}
     </div>
   </div>
+
+  ${(() => {
+    const pBulletins = (DB.bulletins || []).filter((b) => b.category === p.category || b.category === '全类型通用');
+    if (!pBulletins.length) return '';
+    return `
+    <div class="card" style="border:1.5px solid #c8e1ff;background:#f8fbff;padding:12px 14px">
+      <div class="row">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:15px">💡</span>
+          <b style="font-size:13.5px;color:#0969da">适用本项目【${p.category}】的院审查新规（${pBulletins.length}条）</b>
+        </div>
+        <span class="edit-link" onclick="go('bulletin')" style="margin-left:0;font-size:12px">公告板 →</span>
+      </div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+        ${pBulletins.map((b) => `
+          <div style="background:#fff;border:1px solid #d0e2ff;border-radius:6px;padding:8px 10px;cursor:pointer" onclick="bulletinDetailModal('${b.id}')">
+            <div class="row">
+              <span style="font-size:13px;font-weight:600;color:#1f2937">${esc(b.title)}</span>
+              <span class="tag ${b.priority === 'high' ? 'red' : 'blue'}" style="font-size:10px">${b.tag}</span>
+            </div>
+            <div class="muted" style="font-size:12px;margin-top:3px">${esc(b.summary)}</div>
+            ${(b.checklist || []).length ? `<div style="margin-top:4px;font-size:11.5px;color:#0969da">✅ 含 ${b.checklist.length} 项送审自查要点（点击核对）</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  })()}
 
   ${deanCard}
   ${act}

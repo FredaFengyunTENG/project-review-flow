@@ -1,13 +1,14 @@
 // ===== 状态与通用工具 =====
-const KEY = 'review-proto-v7';
-let DB = JSON.parse(localStorage.getItem(KEY) || 'null') || { projects: seedProjects(), commonIssues: seedCommonIssues() };
-if (!DB.projects.find((p) => p.id === 'p5') || !DB.commonIssues || !DB.commonIssues.length) {
-  DB = { projects: seedProjects(), commonIssues: seedCommonIssues() };
+const KEY = 'review-proto-v8';
+let DB = JSON.parse(localStorage.getItem(KEY) || 'null') || { projects: seedProjects(), commonIssues: seedCommonIssues(), bulletins: seedBulletins() };
+if (!DB.projects.find((p) => p.id === 'p5') || !DB.bulletins || !DB.bulletins.length) {
+  DB = { projects: seedProjects(), commonIssues: seedCommonIssues(), bulletins: seedBulletins() };
   try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) {}
 }
 let me = localStorage.getItem(KEY + '-me') || 'u10';
 let route = { name: 'todo' };
 let ceFilter = { dept: 'all', cat: 'all' }; // 院总看板筛选状态
+let bulletinFilter = { dept: 'all', cat: 'all', tag: 'all' }; // 院技术公告板筛选状态
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -401,11 +402,37 @@ function broadcastCommonIssue(issueId, scope, msg) {
   iss.broadcastScope = scope;
   iss.broadcastAt = now();
   iss.broadcastMsg = msg;
+
+  // 同步发布/更新到「院技术公告板」
+  DB.bulletins = DB.bulletins || [];
+  const existB = DB.bulletins.find((b) => b.sourceIssueId === issueId);
+  const bData = {
+    id: existB ? existB.id : ('b_' + Date.now()),
+    sourceIssueId: issueId,
+    title: `【共性通报】${iss.title}`,
+    category: iss.category,
+    dept: scope.length === DEPTS.length ? '全院三个所' : scope.join('、'),
+    tag: '共性问题通报',
+    priority: 'high',
+    publisher: '李院总（院总工办）',
+    publishAt: now(),
+    summary: iss.problem,
+    content: `【核心问题与隐患】\n${iss.problem}\n\n【院总指导与审查要求】\n${iss.guide}${msg ? '\n\n【通报批示】\n' + msg : ''}`,
+    checklist: [
+      `严格复核【${iss.category}】相关指标与图件规范`,
+      `落实院总指导：${iss.guide.slice(0, 45)}...`,
+      '所内自审由所总专门复核，杜绝类似共性问题'
+    ],
+    relatedProject: iss.pname,
+  };
+  if (existB) Object.assign(existB, bData);
+  else DB.bulletins.unshift(bData);
+
   save(); closeModal(); render();
 
   const targetUsers = USERS.filter((u) => scope.includes(u.dept)).map((u) => u.id);
-  notify(targetUsers, `李院总发布技术审查普适性提示【${iss.category}·${iss.title}】`);
-  toast(`📢 普适性问题已向 ${scope.join('、')} 推送发布！`, 5000);
+  notify(targetUsers, `李院总已发布院技术公告【${iss.category}·${iss.title}】`);
+  toast(`📢 普适性问题已发布至「院技术公告板」并向 ${scope.join('、')} 推送通知！`, 5000);
 }
 
 function deleteCommonIssue(issueId) {
@@ -413,6 +440,24 @@ function deleteCommonIssue(issueId) {
   DB.commonIssues = (DB.commonIssues || []).filter((x) => x.id !== issueId);
   save(); render();
   toast('已从收集板移除');
+}
+
+// ===== 院技术公告板操作 =====
+function saveBulletin(b) {
+  DB.bulletins = DB.bulletins || [];
+  const idx = DB.bulletins.findIndex((x) => x.id === b.id);
+  if (idx >= 0) DB.bulletins[idx] = b;
+  else DB.bulletins.unshift(b);
+  save(); closeModal(); render();
+  notify(USERS.map((u) => u.id), `院技术公告板已发布新需求：${b.title}`);
+  toast('✅ 院技术公告已发布并通知全员！', 4000);
+}
+
+function deleteBulletin(id) {
+  if (!confirm('确认撤回/删除该条技术公告？')) return;
+  DB.bulletins = (DB.bulletins || []).filter((x) => x.id !== id);
+  save(); render();
+  toast('已从公告板撤回');
 }
 
 // 待我处理的审查
@@ -450,6 +495,6 @@ function suggestNext(p) {
 
 function resetDemo() {
   if (!confirm('清空所有数据并恢复示例？')) return;
-  DB = { projects: seedProjects(), commonIssues: seedCommonIssues() };
+  DB = { projects: seedProjects(), commonIssues: seedCommonIssues(), bulletins: seedBulletins() };
   save(); go('todo');
 }

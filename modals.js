@@ -603,3 +603,154 @@ function doBroadcastIssue(issueId) {
   const msg = $('#bi_msg').value.trim();
   broadcastCommonIssue(issueId, scope, msg);
 }
+
+// ===== 院技术公告板弹窗 =====
+function bulletinDetailModal(id) {
+  const b = (DB.bulletins || []).find((x) => x.id === id);
+  if (!b) return toast('公告不存在或已被撤回');
+
+  const isCE = U(me).role === '院总';
+  const tagColor = b.priority === 'high' ? 'red' : (b.tag === '审查新需求' ? 'blue' : 'purple');
+
+  const checkHtml = (b.checklist || []).length ? `
+    <div style="margin:12px 0;background:#f8fbff;border:1px solid #d0e2ff;border-radius:8px;padding:12px">
+      <div style="font-weight:600;font-size:13.5px;color:#0969da;margin-bottom:8px">✅ 送审前必查清单（设计人员逐条自查）</div>
+      ${b.checklist.map((c, i) => `
+        <label class="check-item" style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:13px;cursor:pointer">
+          <input type="checkbox" style="margin-top:2px" id="chk_${b.id}_${i}">
+          <span style="color:#24292f">${esc(c)}</span>
+        </label>
+      `).join('')}
+    </div>` : '';
+
+  openModal(`
+    <div class="row" style="margin-bottom:8px">
+      <span class="tag ${tagColor}">${b.tag || '审查新需求'}</span>
+      <span class="tag ${b.priority === 'high' ? 'red' : 'green'}">${b.priority === 'high' ? '🚨 重点必查' : '常规指引'}</span>
+      <span class="muted" style="font-size:12px;margin-left:auto">${b.publishAt}</span>
+    </div>
+
+    <h3 style="font-size:16px;line-height:1.4;margin:4px 0 10px">${esc(b.title)}</h3>
+
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px">
+      <span class="tag blue">适用：${esc(b.category)}</span>
+      <span class="tag">范围：${esc(b.dept)}</span>
+      <span class="tag">发布：${esc(b.publisher)}</span>
+      ${b.relatedProject ? `<span class="tag orange">关联：${esc(b.relatedProject)}</span>` : ''}
+    </div>
+
+    <div style="background:#f6f8fa;border-left:3px solid #1f6feb;padding:8px 12px;border-radius:0 8px 8px 0;font-size:13px;line-height:1.5;margin-bottom:12px">
+      <b>💡 核心需求速览：</b><br>${esc(b.summary)}
+    </div>
+
+    <div style="font-size:13.5px;line-height:1.6;color:#24292f;white-space:pre-wrap;margin-bottom:12px">
+      ${esc(b.content)}
+    </div>
+
+    ${checkHtml}
+
+    <div style="margin-top:16px;display:flex;gap:8px">
+      ${isCE ? `
+        <button class="btn ghost sm" onclick="editBulletinModal('${b.id}')" style="flex:1">✏️ 修改公告</button>
+        <button class="btn gray sm" onclick="deleteBulletin('${b.id}');closeModal();" style="flex:1;color:#cf222e">🗑 撤回</button>
+      ` : ''}
+      <button class="btn ${isCE ? 'gray sm' : 'block'}" onclick="closeModal()" style="${isCE ? 'flex:1' : ''}">已阅读理解</button>
+    </div>
+  `);
+}
+
+function publishBulletinModal() {
+  editBulletinModal(null);
+}
+
+function editBulletinModal(id) {
+  const b = id ? (DB.bulletins || []).find((x) => x.id === id) : null;
+  const isNew = !b;
+
+  const currentDepts = b ? (b.dept === '全院三个所' ? DEPTS : b.dept.split('、')) : DEPTS;
+
+  openModal(`
+    <h3>${isNew ? '➕ 发布新技术审查需求公告' : '✏️ 修改院技术公告'}</h3>
+    <div class="muted" style="margin-top:-6px;margin-bottom:12px">向全院或指定所队通报新的项目审查要求与技术规范</div>
+
+    <label class="f">公告标题</label>
+    <input type="text" id="eb_title" value="${esc(b ? b.title : '【审查新规】')}" placeholder="如：【审查新规】控规修改商业兼容比例超15%须提交交通承载力简析">
+
+    <label class="f">适用项目类型</label>
+    ${chips('eb_cat', [['全类型通用', '全类型通用'], ...CATEGORIES.filter((c) => c !== '其他（待开发）').map((c) => [c, c])], [b ? b.category : '控规修改'], true)}
+
+    <label class="f">适用所队范围</label>
+    ${chips('eb_dept', DEPTS.map((d) => [d, d]), currentDepts)}
+
+    <div class="row" style="margin-top:10px">
+      <div style="flex:1">
+        <label class="f" style="margin-top:0">公告类型</label>
+        <select id="eb_tag">
+          <option value="审查新需求" ${b && b.tag === '审查新需求' ? 'selected' : ''}>审查新需求</option>
+          <option value="共性问题通报" ${b && b.tag === '共性问题通报' ? 'selected' : ''}>共性问题通报</option>
+          <option value="送审清单" ${b && b.tag === '送审清单' ? 'selected' : ''}>送审清单</option>
+          <option value="规范更新" ${b && b.tag === '规范更新' ? 'selected' : ''}>规范更新</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label class="f" style="margin-top:0">紧急程度</label>
+        <select id="eb_priority">
+          <option value="high" ${b && b.priority === 'high' ? 'selected' : ''}>🚨 重点必查</option>
+          <option value="normal" ${!b || b.priority === 'normal' ? 'selected' : ''}>常规指引</option>
+        </select>
+      </div>
+    </div>
+
+    <label class="f">需求摘要（卡片速览提示）</label>
+    <textarea id="eb_summary" rows="2" placeholder="简要概括审查新要求，1~2句话">${esc(b ? b.summary : '')}</textarea>
+
+    <label class="f">详细技术审查要求与背景说明</label>
+    <textarea id="eb_content" rows="4" placeholder="详细阐述具体技术审查规范、易错点与应对方法">${esc(b ? b.content : '')}</textarea>
+
+    <label class="f">送审前自查点清单（每行一项，方便设计人员逐条自查）</label>
+    <textarea id="eb_check" rows="3" placeholder="每行一条，例如：\n核对商业/办公兼容比例是否超出 15%\n补充周边支路早晚高峰交通承载能力测算表">${esc(b && b.checklist ? b.checklist.join('\n') : '')}</textarea>
+
+    <label class="f">关联项目名称（选填）</label>
+    <input type="text" id="eb_rel" value="${esc(b ? (b.relatedProject || '') : '')}" placeholder="如：某某片区局部修改 (东湖地块)">
+
+    <button class="btn purple block" onclick="doSaveBulletin('${b ? b.id : ''}')">${isNew ? '📢 立即发布至全院公告板' : '💾 保存修改'}</button>
+    <button class="btn gray block" onclick="closeModal()" style="margin-top:6px">取消</button>
+  `);
+}
+
+function doSaveBulletin(id) {
+  const title = $('#eb_title').value.trim();
+  if (!title) return toast('请输入公告标题');
+  const cat = picked('#eb_cat')[0] || '全类型通用';
+  const depts = picked('#eb_dept');
+  if (!depts.length) return toast('请至少选择一个适用所队');
+  const tag = $('#eb_tag').value;
+  const priority = $('#eb_priority').value;
+  const summary = $('#eb_summary').value.trim();
+  const content = $('#eb_content').value.trim();
+  if (!summary || !content) return toast('请填写需求摘要与详细审查要求');
+
+  const checkText = $('#eb_check').value.trim();
+  const checklist = checkText ? checkText.split('\n').map((s) => s.trim()).filter(Boolean) : [];
+  const relatedProject = $('#eb_rel').value.trim();
+
+  const isNew = !id;
+  const oldB = id ? (DB.bulletins || []).find((x) => x.id === id) : null;
+
+  const item = {
+    id: id || ('b_' + Date.now()),
+    title,
+    category: cat,
+    dept: depts.length === DEPTS.length ? '全院三个所' : depts.join('、'),
+    tag,
+    priority,
+    publisher: oldB ? oldB.publisher : '李院总（院总工办）',
+    publishAt: oldB ? oldB.publishAt : now(),
+    summary,
+    content,
+    checklist,
+    relatedProject,
+  };
+
+  saveBulletin(item);
+}
