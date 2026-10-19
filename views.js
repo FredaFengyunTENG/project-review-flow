@@ -9,7 +9,10 @@ function render() {
     else if (U(me).role === '院总') todoBtn.textContent = '🏛 院总看板';
     else todoBtn.textContent = '📋 待办';
   }
-  $$('#tabbar button').forEach((b) => b.classList.toggle('on', b.dataset.go === route.name));
+  $$('#tabbar button').forEach((b) => {
+    const isDeanSub = (route.name === 'dean-meetings' || route.name === 'dean-notes') && b.dataset.go === 'todo';
+    b.classList.toggle('on', b.dataset.go === route.name || isDeanSub);
+  });
   const v = $('#view');
   lastUpl = null;
   if (route.name === 'todo') {
@@ -17,6 +20,8 @@ function render() {
     else if (U(me).role === '院总') v.innerHTML = viewChiefEngineerBoard();
     else v.innerHTML = viewTodo();
   }
+  else if (route.name === 'dean-meetings') v.innerHTML = viewDeanMeetings();
+  else if (route.name === 'dean-notes') v.innerHTML = viewDeanNotes();
   else if (route.name === 'bulletin') v.innerHTML = viewTechnicalBulletin();
   else if (route.name === 'projects') v.innerHTML = viewProjects();
   else if (route.name === 'new') { v.innerHTML = viewNew(); bindNew(); }
@@ -82,25 +87,166 @@ function viewDeanBoard() {
       <span class="tag">${DEPTS[1]}：<b>${deptCounts[DEPTS[1]] || 0}</b> 项</span>
       <span class="tag">${DEPTS[2]}：<b>${deptCounts[DEPTS[2]] || 0}</b> 项</span>
       <span class="tag">控规新编：<b>${catCounts['控规'] || 0}</b> 项</span>
-      <span class="tag blue" onclick="go('bulletin')" style="cursor:pointer">📢 技术审查新规：<b>${(DB.bulletins || []).length}</b> 条生效中 →</span>
     </div>
   </div>`;
 
-  // 1. 待办事件一：报会技术审查会看板（累计开会机制）
-  h += `<div class="row" style="margin:16px 0 8px">
-    <b style="font-size:15px;color:#1e293b">⚡ 分院技术审查会 · 报会看板（${applies.length}）</b>
-    ${applies.length >= 2 ? '<span class="tag orange" style="font-weight:600">已达集中开会建议量</span>' : ''}
+  // 1. 待办层级一：分院技术审查会报会（只报数量与概要，点进去看详细项目）
+  const appliesByDept = {};
+  applies.forEach(({ p }) => {
+    const d = p.dept || '规划一所';
+    appliesByDept[d] = (appliesByDept[d] || 0) + 1;
+  });
+  const appliesDeptSummary = Object.entries(appliesByDept).map(([d, c]) => `${d} ${c} 项`).join('、');
+  const appliesProjectNames = applies.map(({ p }) => esc(p.alias || p.name)).join('、');
+
+  h += `
+  <div class="row" style="margin:20px 0 8px">
+    <b style="font-size:15px;color:#1e293b">⚡ 待办一：分院技术审查会报会</b>
+    <span class="muted" style="font-size:12px">累计开会机制</span>
+  </div>
+
+  <div class="card click" style="border:1.5px solid ${applies.length >= 2 ? '#f59e0b' : '#d8b4fe'};background:${applies.length >= 2 ? '#fffdf7' : '#faf8ff'};padding:14px" onclick="go('dean-meetings')">
+    <div class="row">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:18px">⚡</span>
+        <b style="font-size:15px;color:#1e293b">报会项目待排期</b>
+        ${applies.length >= 2 ? '<span class="tag orange" style="font-weight:600">已达集中开会建议量</span>' : ''}
+      </div>
+      <span class="tag ${applies.length ? 'purple' : 'gray'}" style="font-weight:700;font-size:13px">${applies.length} 项</span>
+    </div>
+
+    ${applies.length ? `
+      <div style="margin-top:8px;font-size:13px;color:#334155;line-height:1.5">
+        当前共有 <b style="color:#7c3aed;font-size:15px">${applies.length}</b> 个项目申请报会${appliesDeptSummary ? `（来自 ${appliesDeptSummary}）` : ''}。
+        ${applies.length >= 2 ? '<br><span style="color:#b45309;font-weight:600">💡 报会数量已达到集中开会建议量，可合并排期集中开会。</span>' : ''}
+      </div>
+      <div style="margin-top:6px;font-size:12px;color:#64748b;background:#fff;padding:6px 10px;border-radius:6px;border:1px solid #e2e8f0">
+        📌 待审项目：${appliesProjectNames}
+      </div>
+      <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
+        <span style="color:#7c3aed;font-size:12.5px;font-weight:600">点击进入查看详细项目清单与排期 →</span>
+        <button class="btn sm purple" onclick="event.stopPropagation();go('dean-meetings')">进入查看 (${applies.length})</button>
+      </div>
+    ` : `
+      <div style="margin-top:6px;font-size:13px;color:#8c959f">
+        当前暂无待开会的报会项目申请。各项目自审完成后将直报至此。
+      </div>
+    `}
+  </div>`;
+
+  // 2. 待办层级二：院长直通车小纸条（只报数量与概要，点进去看详细内容与回复）
+  const urgentNotesCount = notes.filter(({ note }) => note.urgent).length;
+  const notesByDept = {};
+  notes.forEach(({ p }) => {
+    const d = p.dept || '规划一所';
+    notesByDept[d] = (notesByDept[d] || 0) + 1;
+  });
+  const notesDeptSummary = Object.entries(notesByDept).map(([d, c]) => `${d} ${c} 条`).join('、');
+  const latestNote = notes[0];
+
+  h += `
+  <div class="row" style="margin:20px 0 8px">
+    <b style="font-size:15px;color:#1e293b">✉️ 待办二：院长直通车（小纸条）</b>
+    <span class="muted" style="font-size:12px">项目组特殊急件请示</span>
+  </div>
+
+  <div class="card click" style="border:1.5px solid ${urgentNotesCount > 0 ? '#fca5a5' : '#8250df'};background:${urgentNotesCount > 0 ? '#fffbfb' : '#fff'};padding:14px" onclick="go('dean-notes')">
+    <div class="row">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:18px">✉️</span>
+        <b style="font-size:15px;color:#1e293b">直通车小纸条待回复</b>
+        ${urgentNotesCount > 0 ? `<span class="tag red" style="font-weight:600">🚨 包含 ${urgentNotesCount} 条加急</span>` : ''}
+      </div>
+      <span class="tag ${notes.length ? 'purple' : 'gray'}" style="font-weight:700;font-size:13px">${notes.length} 条</span>
+    </div>
+
+    ${notes.length ? `
+      <div style="margin-top:8px;font-size:13px;color:#334155;line-height:1.5">
+        收到 <b style="color:#7c3aed;font-size:15px">${notes.length}</b> 位项目团队成员递交的特殊请示${notesDeptSummary ? `（来自 ${notesDeptSummary}）` : ''}。
+      </div>
+      ${latestNote ? `
+        <div style="margin-top:6px;font-size:12px;color:#64748b;background:#faf8ff;padding:6px 10px;border-radius:6px;border:1px solid #e9d5ff">
+          📌 最近递送：来自 <b>${uname(latestNote.note.by)}</b>（${esc(latestNote.p.alias || latestNote.p.name)}）${latestNote.note.urgent ? ' · <span style="color:#cf222e;font-weight:600">加急请示</span>' : ''}
+        </div>
+      ` : ''}
+      <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
+        <span style="color:#8250df;font-size:12.5px;font-weight:600">点击进入查看小纸条内容与预约回复 →</span>
+        <button class="btn sm purple" onclick="event.stopPropagation();go('dean-notes')">进入查看 (${notes.length})</button>
+      </div>
+    ` : `
+      <div style="margin-top:6px;font-size:13px;color:#8c959f">
+        当前暂无待回复的直通车小纸条。各所成员如有重大疑难可随时在项目页递交。
+      </div>
+    `}
+  </div>`;
+
+  // 3. 待办层级三：个人待审事项（如果有）
+  if (myTasks.length) {
+    h += `
+    <div class="row" style="margin:20px 0 8px">
+      <b style="font-size:15px;color:#1e293b">📝 待办三：待我常规审查把关</b>
+      <span class="tag blue">${myTasks.length} 项</span>
+    </div>
+    <div class="card click" style="border:1.5px solid #d0e2ff;background:#f8fbff;padding:12px 14px" onclick="go('projects')">
+      <div class="row">
+        <div>
+          <b style="font-size:14px;color:#0969da">待王院长亲自签署意见的项目成果</b>
+          <div class="muted" style="margin-top:2px;font-size:12px">涉及 ${myTasks.map(({ p }) => esc(p.alias || p.name)).join('、')}</div>
+        </div>
+        <span style="color:#1f6feb;font-size:12px;font-weight:500">去审查 →</span>
+      </div>
+    </div>`;
+  }
+
+  // 4. 辅助层级：技术公告与全院项目库
+  h += `
+  <div style="margin-top:22px;display:flex;gap:8px;flex-direction:column">
+    <div class="card click" style="border:1px solid #d0e2ff;background:#f0f7ff;padding:10px 14px" onclick="go('bulletin')">
+      <div class="row">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:15px">📢</span>
+          <b style="font-size:13.5px;color:#0969da">院技术公告板 · 审查新规（${(DB.bulletins || []).length} 条生效中）</b>
+        </div>
+        <span style="color:#1f6feb;font-size:12px;font-weight:500">查看 →</span>
+      </div>
+    </div>
+
+    <button class="btn gray block" onclick="go('projects')">📁 浏览分院全部规划项目 (${totalProjects} 项)</button>
+  </div>`;
+
+  return h;
+}
+
+// ===== 王院长二级页面：分院技术审查会详细报会清单与排期 =====
+function viewDeanMeetings() {
+  const applies = deanPendingApplies();
+
+  let h = `
+  <div class="row" style="margin-bottom:12px">
+    <button class="btn sm gray" onclick="go('todo')">← 返回院长看板</button>
+    <span class="muted" style="font-size:12px">👑 王院长 · 报会审批与排期</span>
+  </div>
+
+  <div class="card" style="border:1.5px solid #8250df;background:linear-gradient(135deg, #faf8ff 0%, #f3e8ff 100%)">
+    <div class="row">
+      <div>
+        <b style="font-size:16px;color:#581c87">⚡ 分院技术审查会 · 报会清单</b>
+        <div class="muted" style="margin-top:2px;font-size:12px">项目组直报院长 · 集中合并开会或单独排期</div>
+      </div>
+      <span class="tag purple" style="font-size:13px;font-weight:700">${applies.length} 个项目申请</span>
+    </div>
   </div>`;
 
   if (applies.length >= 2) {
-    h += `<div class="card" style="border:1.5px solid #f59e0b;background:#fffbeb;padding:10px 12px">
-      <div style="font-weight:600;font-size:13.5px;color:#b45309">
-        💡 报会数量已达集中开会标准（已累计 ${applies.length} 个项目申请上会）
+    h += `
+    <div class="card" style="border:1.5px solid #f59e0b;background:#fffbeb;padding:12px">
+      <div style="font-weight:700;font-size:14px;color:#b45309">
+        💡 报会数量已达集中开会标准（已累计 ${applies.length} 个项目）
       </div>
-      <div style="font-size:12.5px;color:#92400e;margin-top:3px;line-height:1.4">
+      <div style="font-size:12.5px;color:#92400e;margin-top:4px;line-height:1.4">
         建议统一排定时间组织集中审查会，一并通知相关所队参会人员，提高领导会商效率。
       </div>
-      <button class="btn purple block" style="margin-top:8px" onclick="deanBatchScheduleModal()">🗓 一键合并排期开会（${applies.length}个项目合并上会）</button>
+      <button class="btn purple block" style="margin-top:10px" onclick="deanBatchScheduleModal()">🗓 一键合并排期集中开会（${applies.length}个项目合并上会）</button>
     </div>`;
   } else if (applies.length === 1) {
     h += `<div class="card" style="background:#f8fafc;padding:8px 12px;font-size:12.5px;color:#475569">
@@ -108,61 +254,87 @@ function viewDeanBoard() {
     </div>`;
   }
 
-  h += applies.length ? applies.map(({ p, key, apply }) => `
-    <div class="card" style="border:1px solid #d8b4fe;background:#faf8ff">
-      <div class="row">
-        <b>${esc(p.alias || p.name)}</b>
-        <span class="tag purple">${p.dept || '规划一所'}</span>
-      </div>
-      <div class="muted" style="margin-top:3px">
-        申请人：<b>${uname(apply.applicant || p.leader)}</b> · 提交时间：${apply.submittedAt || ''}
-      </div>
-      <div style="margin-top:4px;font-size:13px">
-        <b>期望时间：</b><span style="color:#7c3aed;font-weight:600">${esc(apply.prefQuick || fmtAppt(apply.prefTime))}</span>
-      </div>
-      ${apply.materials && apply.materials.length ? `<div style="margin-top:2px;font-size:12px;color:#475569">材料就绪：${apply.materials.map((m) => `<span class="tag">${esc(m)}</span>`).join('')}</div>` : ''}
-      ${apply.note ? `<div style="margin-top:3px;font-size:12.5px;color:#334155;background:#fff;padding:5px 8px;border-radius:6px;border:1px solid #e9d5ff">自审说明：${esc(apply.note)}</div>` : ''}
-      <div style="margin-top:8px;text-align:right">
-        <button class="btn sm purple" onclick="deanScheduleModal('${p.id}','${key}')">🗓 审批并单独排期</button>
-      </div>
-    </div>`).join('') : '<div class="empty">暂无待开会的报会申请 ☕</div>';
-
-  // 2. 待办事件二：院长直通车（小纸条）待办
-  h += `<div class="row" style="margin:20px 0 8px">
-    <b style="font-size:15px;color:#1e293b">✉️ 院长直通车 · 小纸条待办（${notes.length}）</b>
-    <span class="muted" style="font-size:12px">项目组特殊急件请示</span>
-  </div>`;
-
-  h += notes.length ? notes.map(({ p, note }) => `
-    <div class="card click" style="border:1.5px solid ${note.urgent ? '#fca5a5' : '#8250df'};background:#fff" onclick="deanReplyNoteModal('${p.id}','${note.id}')">
-      <div class="row">
-        <b>${esc(p.alias || p.name)}</b>
-        <span class="tag ${note.urgent ? 'red' : 'purple'}">${note.urgent ? '🚨 加急请示' : '✉️ 小纸条'}</span>
-      </div>
-      <div class="muted" style="margin-top:3px">
-        来自：<b>${uname(note.by)}</b>（${p.dept || '规划一所'}） · 递送于 ${note.at}
-      </div>
-      <div style="margin-top:6px;font-size:13.5px;color:#1e293b;background:#faf8ff;padding:8px 10px;border-radius:6px;border:1px solid #e9d5ff">
-        📝 ${esc(note.text)}
-      </div>
-      ${note.photos && note.photos.length ? `<div style="margin-top:4px">${imgsHtml(note.photos)}</div>` : ''}
-      <div style="margin-top:8px;color:#8250df;font-size:13px;font-weight:600">👉 点此回复预约沟通时间（啥时候来）</div>
-    </div>`).join('') : '<div class="empty">暂无待回复直通车小纸条 ☕</div>';
-
-  // 3. 常规待我审查（如果有）
-  if (myTasks.length) {
-    h += `<h2>待我审查（${myTasks.length}）</h2>` + myTasks.map(({ p, r, it }) => `
-      <div class="card click" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
-        <div class="row"><b>${esc(p.alias || p.name)}</b>${statusTag(it)}</div>
-        <div class="muted" style="margin-top:4px">${STAGES[r.stage].name} · ${uname(p.leader)} 送审</div>
-        ${r.parallel ? `<span class="tag red">同时审查：${esc(r.reason)}</span>` : ''}
+  if (!applies.length) {
+    h += `<div class="empty">暂无待开会的报会申请 ☕<div style="margin-top:10px"><button class="btn sm gray" onclick="go('todo')">返回院长看板</button></div></div>`;
+  } else {
+    h += applies.map(({ p, key, apply }) => `
+      <div class="card" style="border:1.5px solid #d8b4fe;background:#fff">
+        <div class="row">
+          <div>
+            <b style="font-size:15px;color:#1e293b">${esc(p.alias || p.name)}</b>
+            <span class="muted" style="font-size:12px">（${esc(p.name)}）</span>
+          </div>
+          <span class="tag purple">${p.dept || '规划一所'}</span>
+        </div>
+        <div class="muted" style="margin-top:4px;font-size:12.5px">
+          报会申请人：<b>${uname(apply.applicant || p.leader)}</b> · 提交时间：${apply.submittedAt || ''}
+        </div>
+        <div style="margin-top:6px;font-size:13px">
+          <b>期望开会时间：</b><span style="color:#7c3aed;font-weight:600">${esc(apply.prefQuick || fmtAppt(apply.prefTime))}</span>
+        </div>
+        ${apply.materials && apply.materials.length ? `
+          <div style="margin-top:4px;font-size:12px;color:#475569">
+            汇报材料：${apply.materials.map((m) => `<span class="tag">${esc(m)}</span>`).join('')}
+          </div>` : ''}
+        ${apply.note ? `
+          <div style="margin-top:6px;font-size:12.5px;color:#334155;background:#faf8ff;padding:6px 10px;border-radius:6px;border:1px solid #e9d5ff">
+            <b>自审说明：</b>${esc(apply.note)}
+          </div>` : ''}
+        <div class="row" style="margin-top:12px;padding-top:8px;border-top:1px dashed #e2e8f0">
+          <span class="edit-link" onclick="go('project','${p.id}')" style="margin-left:0">查看所属项目 →</span>
+          <button class="btn sm purple" onclick="deanScheduleModal('${p.id}','${key}')">🗓 审批并单独排期</button>
+        </div>
       </div>`).join('');
   }
 
-  // 4. 全部项目快捷查看
-  h += `<div style="margin-top:20px;text-align:center">
-    <button class="btn gray" onclick="go('projects')">📁 查看分院全部规划项目列表 (${totalProjects})</button>
+  return h;
+}
+
+// ===== 王院长二级页面：院长直通车小纸条待办清单与回复 =====
+function viewDeanNotes() {
+  const notes = deanPendingNotes();
+
+  let h = `
+  <div class="row" style="margin-bottom:12px">
+    <button class="btn sm gray" onclick="go('todo')">← 返回院长看板</button>
+    <span class="muted" style="font-size:12px">👑 王院长直通车</span>
+  </div>
+
+  <div class="card" style="border:1.5px solid #8250df;background:linear-gradient(135deg, #faf8ff 0%, #f3e8ff 100%)">
+    <div class="row">
+      <div>
+        <b style="font-size:16px;color:#581c87">✉️ 院长直通车 · 小纸条待办</b>
+        <div class="muted" style="margin-top:2px;font-size:12px">各所技术人员直接递交的特殊急件与请示 · 支持预约面谈回复</div>
+      </div>
+      <span class="tag purple" style="font-size:13px;font-weight:700">${notes.length} 条待回复</span>
+    </div>
   </div>`;
+
+  if (!notes.length) {
+    h += `<div class="empty">暂无待回复的直通车小纸条 ☕<div style="margin-top:10px"><button class="btn sm gray" onclick="go('todo')">返回院长看板</button></div></div>`;
+  } else {
+    h += notes.map(({ p, note }) => `
+      <div class="card" style="border:1.5px solid ${note.urgent ? '#fca5a5' : '#8250df'};background:#fff">
+        <div class="row">
+          <div>
+            <b style="font-size:15px;color:#1e293b">${esc(p.alias || p.name)}</b>
+            <span class="tag ${note.urgent ? 'red' : 'purple'}">${note.urgent ? '🚨 加急请示' : '✉️ 小纸条'}</span>
+          </div>
+          <span class="tag">${p.dept || '规划一所'}</span>
+        </div>
+        <div class="muted" style="margin-top:4px;font-size:12.5px">
+          递交人：<b>${uname(note.by)}</b> · 递送时间：${note.at}
+        </div>
+        <div style="margin-top:8px;font-size:13.5px;color:#1e293b;background:#faf8ff;padding:10px 12px;border-radius:8px;border:1px solid #e9d5ff;line-height:1.5">
+          📝 ${esc(note.text)}
+        </div>
+        ${note.photos && note.photos.length ? `<div style="margin-top:6px">${imgsHtml(note.photos)}</div>` : ''}
+        <div class="row" style="margin-top:12px;padding-top:8px;border-top:1px dashed #e2e8f0">
+          <span class="edit-link" onclick="go('project','${p.id}')" style="margin-left:0">查看所属项目 →</span>
+          <button class="btn sm purple" onclick="deanReplyNoteModal('${p.id}','${note.id}')">👉 回复预约沟通时间（啥时候来）</button>
+        </div>
+      </div>`).join('');
+  }
 
   return h;
 }
