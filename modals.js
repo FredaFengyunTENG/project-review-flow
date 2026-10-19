@@ -356,3 +356,250 @@ function doEditProject(pid) {
   const visible = VIS_ROLES.flatMap((r) => picked('#n_v_' + r));
   editProject(P(pid), { name, alias: $('#e_alias').value.trim(), members: memberState, visible });
 }
+
+// ---- 院长直通车：递小纸条 ----
+function deanNoteModal(pid) {
+  const p = P(pid);
+  openModal(`<h3>✉️ 院长直通车 · 递小纸条给王院长</h3>
+    <div class="card" style="border:1.5px solid #8250df;background:#faf8ff;padding:10px 12px">
+      <div class="row">
+        <b>直通领导：👑 王院长（分院院长）</b>
+        <span class="tag purple">急件直接呈递</span>
+      </div>
+      <div class="muted" style="margin-top:4px;font-size:12px;line-height:1.4">
+        ⚡ 针对特殊规划难题、政策疑难、跨部门/跨所协调或需请示院长的紧急问题，无需纸质逐级流转，直达院长。王院长将回复并预约面谈沟通时间。
+      </div>
+    </div>
+    <div class="muted" style="margin:8px 0 2px">所属项目：<b>${esc(p.alias || p.name)}</b> <span class="tag">${p.dept || '规划一所'}</span></div>
+    <label class="f">紧急程度</label>
+    ${chips('dn_urg', [['0', '普通请示沟通'], ['1', '加急紧急协调']], ['0'], true)}
+    <label class="f">小纸条内容（一两句话说明请示事项或需要院长指导的问题）</label>
+    <textarea id="dn_text" placeholder="如：东湖地块容积率调整涉及周边限高与相邻单位前置协调，规划局要求出具分院核准说明，恳请王院长安排时间指导沟通。"></textarea>
+    <label class="f">📷 附图 / 截图（选填）</label>
+    ${uploader('dn_photos', [])}
+    ${btns(`doSubmitDeanNote('${pid}')`, '🚀 立即呈递王院长')}`);
+}
+
+function doSubmitDeanNote(pid) {
+  const text = $('#dn_text').value.trim();
+  if (!text) return toast('请填写小纸条内容');
+  const urgent = picked('#dn_urg')[0] === '1';
+  submitDeanNote(P(pid), {
+    text,
+    urgent,
+    photos: [...(UPL.dn_photos || [])],
+  });
+}
+
+// ---- 院长直通车：王院长回复预约时间 ----
+function deanReplyNoteModal(pid, noteId) {
+  const p = P(pid);
+  const n = (p.deanNotes || []).find((x) => x.id === noteId);
+  if (!n) return toast('未找到该小纸条');
+
+  const q = (label, v, loc = '院长办公室') =>
+    `<button type="button" class="btn ghost sm" onclick="$('#dr_time').value='${v}';$('#dr_loc_input').value='${loc}'">${label}</button>`;
+
+  openModal(`<h3>✉️ 回复直通车小纸条 · 预约沟通时间</h3>
+    <div class="card" style="border:1.5px solid #8250df;background:#faf8ff">
+      <div class="row">
+        <b>${esc(p.alias || p.name)}</b>
+        <span class="tag ${n.urgent ? 'red' : 'purple'}">${n.urgent ? '🚨 加急请示' : '✉️ 小纸条'}</span>
+      </div>
+      <div class="muted" style="margin-top:4px">
+        递送人：<b>${uname(n.by)}</b>（${p.dept || '规划一所'}） · 递送时间：${n.at}
+      </div>
+      <div style="margin-top:6px;font-size:13.5px;color:#1e293b;background:#fff;padding:8px 10px;border-radius:6px;border:1px solid #e9d5ff">
+        📝 ${esc(n.text)}
+      </div>
+      ${n.photos && n.photos.length ? `<div style="margin-top:6px">${imgsHtml(n.photos)}</div>` : ''}
+    </div>
+
+    <label class="f">什么时候方便项目组过来面谈？点选快捷时间</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      ${q('随时到办公室来', 'any')}
+      ${q('今天 16:30', quickTime(0, 16).replace(':00', ':30'))}
+      ${q('明天 10:00', quickTime(1, 10))}
+      ${q('明天 15:30', quickTime(1, 15).replace(':00', ':30'))}
+      ${q('后天 10:00', quickTime(2, 10))}
+      ${q('下周一 09:30', quickTime(3, 9).replace(':00', ':30'))}
+    </div>
+
+    <label class="f" style="margin-top:10px">或自定义预约时间</label>
+    <input type="datetime-local" id="dr_time" value="${n.replyTime || ''}">
+
+    <label class="f">面谈地点 / 沟通方式</label>
+    ${chips('dr_loc', [['院长办公室', '院长办公室'], ['钉钉视频/电话', '钉钉视频/电话'], ['二楼研讨室', '二楼研讨室'], ['三楼大会议室', '三楼大会议室']], [n.replyLoc || '院长办公室'], true)}
+    <input type="text" id="dr_loc_input" value="${esc(n.replyLoc || '院长办公室')}" style="margin-top:6px" placeholder="地点">
+
+    <label class="f">院长批示 / 准备要求（选填）</label>
+    <textarea id="dr_msg" placeholder="如：带上方案总图与技术指标表过来面谈，已跟局里领导初步沟通。">${esc(n.replyMsg || '')}</textarea>
+
+    <button class="btn purple block" onclick="doDeanReplyNote('${pid}','${noteId}')">✔ 确认预约并回复项目组</button>
+    <button class="btn gray block" onclick="closeModal()" style="margin-top:6px">稍后处理</button>`);
+}
+
+function doDeanReplyNote(pid, noteId) {
+  const p = P(pid);
+  const replyTime = $('#dr_time').value || 'any';
+  const replyLoc = $('#dr_loc_input').value.trim() || picked('#dr_loc')[0] || '院长办公室';
+  const replyMsg = $('#dr_msg').value.trim();
+  deanReplyNote(p, noteId, { replyTime, replyLoc, replyMsg });
+}
+
+// ---- 院长批量合并排定期分院技术审查会 ----
+function deanBatchScheduleModal() {
+  const applies = deanPendingApplies();
+  if (!applies.length) return toast('暂无待排期的报会申请');
+
+  const allAttendees = uniq([
+    me, 'u2', 'u3', 'u4', 'u5', 'u6',
+    ...applies.flatMap((a) => [a.p.leader, ...(a.p.members || [])]),
+  ]);
+  const people = USERS.filter((u) => allAttendees.includes(u.id)).map((u) => [u.id, `${u.name}·${u.role}`]);
+
+  openModal(`<h3>🗓 批量排定分院技术审查会 · 王院长</h3>
+    <div class="card" style="background:#faf8ff;border:1.5px solid #8250df;padding:10px 12px">
+      <b>⚡ 已勾选合并上会项目（共 ${applies.length} 项）</b>
+      <div class="muted" style="margin-top:4px;font-size:12px">
+        已达集中开会建议量。将统一排定会议时段与会议室，系统自动向全体参会人员发送合并会议通知。
+      </div>
+    </div>
+
+    <label class="f">选择本次上会项目</label>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${applies.map(({ p, apply }) => `
+        <label class="card" style="margin:0;padding:8px 10px;display:flex;gap:10px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" name="bs_pids" value="${p.id}" checked style="margin-top:4px;width:auto">
+          <div style="flex:1">
+            <div class="row"><b>${esc(p.alias || p.name)}</b><span class="tag purple">${p.dept || '规划一所'}</span></div>
+            <div class="muted" style="font-size:12px;margin-top:2px">申请人：${uname(apply.applicant || p.leader)} · 期望：${esc(apply.prefQuick || fmtAppt(apply.prefTime))}</div>
+            ${apply.note ? `<div style="font-size:12px;color:#475569;margin-top:2px">自审说明：${esc(apply.note)}</div>` : ''}
+          </div>
+        </label>`).join('')}
+    </div>
+
+    <label class="f" style="margin-top:12px">会议时间</label>
+    <input type="datetime-local" id="bs_time" value="${quickTime(1, 9)}">
+    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+      <button type="button" class="btn ghost sm" onclick="$('#bs_time').value='${quickTime(1, 9)}'">明天 09:30</button>
+      <button type="button" class="btn ghost sm" onclick="$('#bs_time').value='${quickTime(1, 14)}'">明天 14:30</button>
+      <button type="button" class="btn ghost sm" onclick="$('#bs_time').value='${quickTime(2, 9)}'">后天 09:30</button>
+    </div>
+
+    <label class="f">会议地点</label>
+    ${chips('bs_loc', [['三楼大会议室', '三楼大会议室'], ['二楼研讨室', '二楼研讨室'], ['五楼多功能厅', '五楼多功能厅'], ['钉钉视频会议', '钉钉视频会议']], ['三楼大会议室'], true)}
+
+    <label class="f">参会人员（已自动合并各项目关键人员）</label>
+    ${chips('bs_att', people, allAttendees)}
+
+    <label class="f">院长批示 / 会议组织要求</label>
+    <textarea id="bs_op" placeholder="如：各项目汇报时间严格控制在 20 分钟内，重点汇报指标调整合理性与交通配套落实情况。">本次技术审查会合并审议，请各项目组按次序汇报（每项 20 分钟），重点审议规划指标与红线协同。</textarea>
+
+    <button class="btn purple block" onclick="doDeanBatchSchedule()">✔ 批量排期开会并通知全员</button>
+    <button class="btn gray block" onclick="closeModal()" style="margin-top:6px">取消</button>`);
+}
+
+function doDeanBatchSchedule() {
+  const pids = $$('input[name="bs_pids"]:checked').map((x) => x.value);
+  if (!pids.length) return toast('请至少勾选一个上会项目');
+  const time = $('#bs_time').value;
+  if (!time) return toast('请选择排定的会议时间');
+  const location = picked('#bs_loc')[0] || '三楼大会议室';
+  const attendees = picked('#bs_att');
+  const deanOpinion = $('#bs_op').value.trim();
+
+  deanBatchSchedule(pids, { time, location, attendees, deanOpinion });
+}
+
+// ---- 普适性技术问题收集板：编辑 / 新增 ----
+function editIssueModal(issueId) {
+  const iss = (DB.commonIssues || []).find((x) => x.id === issueId) || {};
+  openModal(`<h3>✏️ 修改普适性技术问题</h3>
+    <label class="f">问题摘要 / 标题</label>
+    <input type="text" id="ei_title" value="${esc(iss.title || '')}" placeholder="如：指标表地下建筑面积计算规则不一致">
+
+    <label class="f">对应规划项目类型</label>
+    ${chips('ei_cat', CATEGORIES.filter((c) => c !== '其他（待开发）').map((c) => [c, c]), [iss.category || '控规修改'], true)}
+
+    <label class="f">来源项目及所属所队（选填）</label>
+    <input type="text" id="ei_pname" value="${esc(iss.pname || '')}" placeholder="如：某某片区局部修改 (东湖地块)">
+
+    <label class="f">高频共性问题描述（具体是什么问题需要注意）</label>
+    <textarea id="ei_prob" style="min-height:70px" placeholder="描述具体是什么问题需要注意">${esc(iss.problem || '')}</textarea>
+
+    <label class="f">💡 院总提示与把关要求（对全院的执行指引）</label>
+    <textarea id="ei_guide" style="min-height:70px" placeholder="说明院内规范或统一的技术尺度要求">${esc(iss.guide || '')}</textarea>
+
+    <button class="btn purple block" onclick="doSaveIssue('${issueId}')">保存并更新收集板</button>
+    <button class="btn gray block" onclick="closeModal()" style="margin-top:6px">取消</button>`);
+}
+
+function newIssueModal() {
+  const newId = 'iss' + Date.now();
+  editIssueModal(newId);
+}
+
+function doSaveIssue(issueId) {
+  const title = $('#ei_title').value.trim();
+  const problem = $('#ei_prob').value.trim();
+  const guide = $('#ei_guide').value.trim();
+  const category = picked('#ei_cat')[0] || '控规修改';
+  const pname = $('#ei_pname').value.trim() || '全院通用经验';
+
+  if (!title) return toast('请填写问题摘要');
+  if (!problem && !guide) return toast('请填写问题描述或院总提示要求');
+
+  const old = (DB.commonIssues || []).find((x) => x.id === issueId) || {};
+  saveCommonIssue({
+    id: issueId,
+    pid: old.pid || '',
+    pname,
+    category,
+    dept: old.dept || '全院',
+    createdAt: old.createdAt || now(),
+    by: me,
+    title,
+    problem,
+    guide,
+    broadcasted: old.broadcasted || false,
+    broadcastScope: old.broadcastScope || [],
+    broadcastAt: old.broadcastAt || '',
+  });
+}
+
+// ---- 院总推送普适性技术问题至全院 ----
+function broadcastIssueModal(issueId) {
+  const iss = (DB.commonIssues || []).find((x) => x.id === issueId);
+  if (!iss) return toast('未找到该问题');
+
+  openModal(`<h3>📢 推送普适性技术问题至全院</h3>
+    <div class="card" style="border:1.5px solid #8250df;background:#faf8ff">
+      <div class="row">
+        <b>${esc(iss.title)}</b>
+        <span class="tag blue">${esc(iss.category)}</span>
+      </div>
+      <div style="font-size:13px;color:#475569;margin-top:6px;line-height:1.45">
+        <b>问题描述：</b>${esc(iss.problem)}
+      </div>
+      <div style="font-size:13px;color:#7c3aed;margin-top:6px;line-height:1.45;background:#fff;padding:6px 8px;border-radius:6px;border:1px solid #e9d5ff">
+        <b>院总提示：</b>${esc(iss.guide)}
+      </div>
+    </div>
+
+    <label class="f">选择推送范围（我们有三个所）</label>
+    ${chips('bi_scope', DEPTS.map((d) => [d, d]), iss.broadcastScope && iss.broadcastScope.length ? iss.broadcastScope : DEPTS)}
+
+    <label class="f">推送附言 / 院总通知（选填）</label>
+    <textarea id="bi_msg" placeholder="如：近期各所此类问题多发，请各所长、所总在项目内审时严格复核，统一全院技术尺度。">近期在项目审查中发现此类共性问题频发，请各所长、所总及项目负责人在内部审查中严格按此要求执行。</textarea>
+
+    <button class="btn purple block" onclick="doBroadcastIssue('${issueId}')">🚀 立即发送给所选所队（全院）</button>
+    <button class="btn gray block" onclick="closeModal()" style="margin-top:6px">取消</button>`);
+}
+
+function doBroadcastIssue(issueId) {
+  const scope = picked('#bi_scope');
+  if (!scope.length) return toast('请至少勾选一个接收所队');
+  const msg = $('#bi_msg').value.trim();
+  broadcastCommonIssue(issueId, scope, msg);
+}

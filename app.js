@@ -1,12 +1,13 @@
 // ===== 状态与通用工具 =====
-const KEY = 'review-proto-v5';
-let DB = JSON.parse(localStorage.getItem(KEY) || 'null') || { projects: seedProjects() };
-if (!DB.projects.find((p) => p.id === 'p2') || !DB.projects.find((p) => p.id === 'p3')) {
-  DB = { projects: seedProjects() };
+const KEY = 'review-proto-v7';
+let DB = JSON.parse(localStorage.getItem(KEY) || 'null') || { projects: seedProjects(), commonIssues: seedCommonIssues() };
+if (!DB.projects.find((p) => p.id === 'p5') || !DB.commonIssues || !DB.commonIssues.length) {
+  DB = { projects: seedProjects(), commonIssues: seedCommonIssues() };
   try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) {}
 }
 let me = localStorage.getItem(KEY + '-me') || 'u10';
 let route = { name: 'todo' };
+let ceFilter = { dept: 'all', cat: 'all' }; // 院总看板筛选状态
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -302,6 +303,118 @@ function deanPendingApplies() {
   return out;
 }
 
+// ---- 院长直通车：递小纸条 ----
+function submitDeanNote(p, d) {
+  p.deanNotes = p.deanNotes || [];
+  const note = {
+    id: 'dn' + Date.now(),
+    by: me,
+    at: now(),
+    urgent: !!d.urgent,
+    text: d.text.trim(),
+    photos: d.photos || [],
+    status: 'pending',
+    replyTime: '',
+    replyLoc: '',
+    replyMsg: '',
+    repliedAt: '',
+  };
+  p.deanNotes.push(note);
+  log(p, `${uname(me)} 向王院长递送直通车小纸条${note.urgent ? '【加急】' : ''}：${note.text}`);
+  save(); closeModal(); render();
+  notify(['u1'], `${uname(me)} 呈递「${p.alias || p.name}」直通车小纸条${note.urgent ? '【加急】' : ''}：${note.text}`);
+  toast('✅ 小纸条已直呈王院长！王院长将回复沟通预约时间', 5000);
+}
+
+// ---- 院长直通车：王院长回复预约时间 ----
+function deanReplyNote(p, noteId, d) {
+  p.deanNotes = p.deanNotes || [];
+  const n = p.deanNotes.find((x) => x.id === noteId);
+  if (!n) return;
+  n.status = 'replied';
+  n.replyTime = d.replyTime;
+  n.replyLoc = d.replyLoc || '院长办公室';
+  n.replyMsg = d.replyMsg || '';
+  n.repliedAt = now();
+  const timeDesc = fmtAppt(d.replyTime) || '随时面谈';
+  log(p, `王院长 回复直通车小纸条：预约于 ${timeDesc}（${n.replyLoc}）沟通面谈${d.replyMsg ? '，批示：' + d.replyMsg : ''}`);
+  save(); closeModal(); render();
+  notify([n.by, p.leader], `王院长已回复直通车小纸条：预约于 ${timeDesc}（${n.replyLoc}）面谈沟通`);
+  toast('🎉 已预约沟通时间并通知项目组！', 5000);
+}
+
+// ---- 查询待王院长回复的直通车小纸条 ----
+function deanPendingNotes() {
+  const out = [];
+  DB.projects.forEach((p) => {
+    (p.deanNotes || []).forEach((n) => {
+      if (n.status === 'pending') out.push({ p, note: n });
+    });
+  });
+  return out;
+}
+
+// ---- 院长批量合并排定审查会 ----
+function deanBatchSchedule(projectIds, d) {
+  if (!projectIds || !projectIds.length) return toast('请选择要合并排期的项目');
+  if (!d.time) return toast('请选择排定的会议时间');
+  projectIds.forEach((pid) => {
+    const p = P(pid);
+    if (!p) return;
+    const s = st(p, 's2');
+    s.apply = s.apply || {};
+    s.apply.status = 'scheduled';
+    s.apply.scheduledTime = d.time;
+    s.apply.location = d.location;
+    s.apply.attendees = d.attendees;
+    s.apply.deanOpinion = d.deanOpinion;
+    s.apply.scheduledAt = now();
+
+    s.meeting = s.meeting || { opinion: '', implement: '', photos: [] };
+    s.meeting.time = d.time;
+    s.meeting.location = d.location;
+    s.meeting.attendees = d.attendees;
+    s.meeting.deanOpinion = d.deanOpinion;
+
+    log(p, `王院长 批量排定分院技术审查会：${fmtAppt(d.time)}（${d.location}）${d.deanOpinion ? '，批示：' + d.deanOpinion : ''}`);
+  });
+  save(); closeModal(); render();
+  notify(d.attendees, `王院长已合并排定 ${projectIds.length} 个项目的分院技术审查会：${fmtAppt(d.time)}（${d.location}）`);
+  toast(`🎉 已成功合并排期 ${projectIds.length} 个项目上会，并通知全体参会人员！`, 5000);
+}
+
+// ===== 普适性技术问题收集板数据操作 =====
+function saveCommonIssue(iss) {
+  DB.commonIssues = DB.commonIssues || [];
+  const idx = DB.commonIssues.findIndex((x) => x.id === iss.id);
+  if (idx >= 0) DB.commonIssues[idx] = iss;
+  else DB.commonIssues.unshift(iss);
+  save(); closeModal(); render();
+  toast('✅ 普适性问题已保存至收集板');
+}
+
+function broadcastCommonIssue(issueId, scope, msg) {
+  DB.commonIssues = DB.commonIssues || [];
+  const iss = DB.commonIssues.find((x) => x.id === issueId);
+  if (!iss) return;
+  iss.broadcasted = true;
+  iss.broadcastScope = scope;
+  iss.broadcastAt = now();
+  iss.broadcastMsg = msg;
+  save(); closeModal(); render();
+
+  const targetUsers = USERS.filter((u) => scope.includes(u.dept)).map((u) => u.id);
+  notify(targetUsers, `李院总发布技术审查普适性提示【${iss.category}·${iss.title}】`);
+  toast(`📢 普适性问题已向 ${scope.join('、')} 推送发布！`, 5000);
+}
+
+function deleteCommonIssue(issueId) {
+  if (!confirm('确认从收集板中移除该条目？')) return;
+  DB.commonIssues = (DB.commonIssues || []).filter((x) => x.id !== issueId);
+  save(); render();
+  toast('已从收集板移除');
+}
+
 // 待我处理的审查
 function myReviewTasks() {
   const out = [];
@@ -337,5 +450,6 @@ function suggestNext(p) {
 
 function resetDemo() {
   if (!confirm('清空所有数据并恢复示例？')) return;
-  DB = { projects: seedProjects() }; save(); go('todo');
+  DB = { projects: seedProjects(), commonIssues: seedCommonIssues() };
+  save(); go('todo');
 }

@@ -3,10 +3,20 @@
 let memberState = []; // 当前编辑中的项目组成员列表 [uid1, uid2...] 第一位为负责人
 
 function render() {
+  const todoBtn = $('#tabbar button[data-go="todo"]');
+  if (todoBtn) {
+    if (U(me).role === '院长') todoBtn.textContent = '👑 院长看板';
+    else if (U(me).role === '院总') todoBtn.textContent = '🏛 院总看板';
+    else todoBtn.textContent = '📋 待办';
+  }
   $$('#tabbar button').forEach((b) => b.classList.toggle('on', b.dataset.go === route.name));
   const v = $('#view');
   lastUpl = null;
-  if (route.name === 'todo') v.innerHTML = viewTodo();
+  if (route.name === 'todo') {
+    if (U(me).role === '院长') v.innerHTML = viewDeanBoard();
+    else if (U(me).role === '院总') v.innerHTML = viewChiefEngineerBoard();
+    else v.innerHTML = viewTodo();
+  }
   else if (route.name === 'projects') v.innerHTML = viewProjects();
   else if (route.name === 'new') { v.innerHTML = viewNew(); bindNew(); }
   else if (route.name === 'project') v.innerHTML = viewProject(P(route.arg));
@@ -18,42 +28,357 @@ function statusTag(it) {
   return '<span class="tag orange">待接收</span>';
 }
 
+// ===== 王院长专属看板 =====
+function viewDeanBoard() {
+  const totalProjects = DB.projects.length;
+
+  // 各类别统计
+  const catCounts = {};
+  CATEGORIES.filter((c) => c !== '其他（待开发）').forEach((c) => (catCounts[c] = 0));
+  DB.projects.forEach((p) => {
+    if (catCounts[p.category] !== undefined) catCounts[p.category]++;
+  });
+
+  // 各所队分布统计
+  const deptCounts = {};
+  DEPTS.forEach((d) => (deptCounts[d] = 0));
+  DB.projects.forEach((p) => {
+    const d = p.dept || '规划一所';
+    deptCounts[d] = (deptCounts[d] || 0) + 1;
+  });
+
+  const applies = deanPendingApplies();
+  const notes = deanPendingNotes();
+  const myTasks = myReviewTasks();
+
+  let h = `
+  <div class="card" style="border:1.5px solid #8250df;background:linear-gradient(135deg, #faf8ff 0%, #f3e8ff 100%)">
+    <div class="row">
+      <div>
+        <b style="font-size:16px;color:#581c87">👑 王院长 · 分院全景看板</b>
+        <div class="muted" style="margin-top:2px;font-size:12px">分院宏观把控 · 报会统筹排期 · 直通车预约沟通</div>
+      </div>
+      <span class="tag purple" style="font-size:12px;font-weight:600">全院共 ${totalProjects} 项项目</span>
+    </div>
+
+    <div class="stat-grid" style="margin-top:12px">
+      <div class="stat-item">
+        <div class="stat-num" style="color:#7c3aed">${totalProjects}</div>
+        <div class="stat-lbl">分院总项目数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" style="color:#0969da">${catCounts['控规修改'] || 0}</div>
+        <div class="stat-lbl">控规修改类</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" style="color:#1a7f37">${catCounts['控规优化调整'] || 0}</div>
+        <div class="stat-lbl">控规优化调整</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+      <span class="tag">${DEPTS[0]}：<b>${deptCounts[DEPTS[0]] || 0}</b> 项</span>
+      <span class="tag">${DEPTS[1]}：<b>${deptCounts[DEPTS[1]] || 0}</b> 项</span>
+      <span class="tag">${DEPTS[2]}：<b>${deptCounts[DEPTS[2]] || 0}</b> 项</span>
+      <span class="tag">控规新编：<b>${catCounts['控规'] || 0}</b> 项</span>
+    </div>
+  </div>`;
+
+  // 1. 待办事件一：报会技术审查会看板（累计开会机制）
+  h += `<div class="row" style="margin:16px 0 8px">
+    <b style="font-size:15px;color:#1e293b">⚡ 分院技术审查会 · 报会看板（${applies.length}）</b>
+    ${applies.length >= 2 ? '<span class="tag orange" style="font-weight:600">已达集中开会建议量</span>' : ''}
+  </div>`;
+
+  if (applies.length >= 2) {
+    h += `<div class="card" style="border:1.5px solid #f59e0b;background:#fffbeb;padding:10px 12px">
+      <div style="font-weight:600;font-size:13.5px;color:#b45309">
+        💡 报会数量已达集中开会标准（已累计 ${applies.length} 个项目申请上会）
+      </div>
+      <div style="font-size:12.5px;color:#92400e;margin-top:3px;line-height:1.4">
+        建议统一排定时间组织集中审查会，一并通知相关所队参会人员，提高领导会商效率。
+      </div>
+      <button class="btn purple block" style="margin-top:8px" onclick="deanBatchScheduleModal()">🗓 一键合并排期开会（${applies.length}个项目合并上会）</button>
+    </div>`;
+  } else if (applies.length === 1) {
+    h += `<div class="card" style="background:#f8fafc;padding:8px 12px;font-size:12.5px;color:#475569">
+      当前已累计 1 项报会申请（通常累计 2~3 项集中开会，亦可随时单独排期开会）。
+    </div>`;
+  }
+
+  h += applies.length ? applies.map(({ p, key, apply }) => `
+    <div class="card" style="border:1px solid #d8b4fe;background:#faf8ff">
+      <div class="row">
+        <b>${esc(p.alias || p.name)}</b>
+        <span class="tag purple">${p.dept || '规划一所'}</span>
+      </div>
+      <div class="muted" style="margin-top:3px">
+        申请人：<b>${uname(apply.applicant || p.leader)}</b> · 提交时间：${apply.submittedAt || ''}
+      </div>
+      <div style="margin-top:4px;font-size:13px">
+        <b>期望时间：</b><span style="color:#7c3aed;font-weight:600">${esc(apply.prefQuick || fmtAppt(apply.prefTime))}</span>
+      </div>
+      ${apply.materials && apply.materials.length ? `<div style="margin-top:2px;font-size:12px;color:#475569">材料就绪：${apply.materials.map((m) => `<span class="tag">${esc(m)}</span>`).join('')}</div>` : ''}
+      ${apply.note ? `<div style="margin-top:3px;font-size:12.5px;color:#334155;background:#fff;padding:5px 8px;border-radius:6px;border:1px solid #e9d5ff">自审说明：${esc(apply.note)}</div>` : ''}
+      <div style="margin-top:8px;text-align:right">
+        <button class="btn sm purple" onclick="deanScheduleModal('${p.id}','${key}')">🗓 审批并单独排期</button>
+      </div>
+    </div>`).join('') : '<div class="empty">暂无待开会的报会申请 ☕</div>';
+
+  // 2. 待办事件二：院长直通车（小纸条）待办
+  h += `<div class="row" style="margin:20px 0 8px">
+    <b style="font-size:15px;color:#1e293b">✉️ 院长直通车 · 小纸条待办（${notes.length}）</b>
+    <span class="muted" style="font-size:12px">项目组特殊急件请示</span>
+  </div>`;
+
+  h += notes.length ? notes.map(({ p, note }) => `
+    <div class="card click" style="border:1.5px solid ${note.urgent ? '#fca5a5' : '#8250df'};background:#fff" onclick="deanReplyNoteModal('${p.id}','${note.id}')">
+      <div class="row">
+        <b>${esc(p.alias || p.name)}</b>
+        <span class="tag ${note.urgent ? 'red' : 'purple'}">${note.urgent ? '🚨 加急请示' : '✉️ 小纸条'}</span>
+      </div>
+      <div class="muted" style="margin-top:3px">
+        来自：<b>${uname(note.by)}</b>（${p.dept || '规划一所'}） · 递送于 ${note.at}
+      </div>
+      <div style="margin-top:6px;font-size:13.5px;color:#1e293b;background:#faf8ff;padding:8px 10px;border-radius:6px;border:1px solid #e9d5ff">
+        📝 ${esc(note.text)}
+      </div>
+      ${note.photos && note.photos.length ? `<div style="margin-top:4px">${imgsHtml(note.photos)}</div>` : ''}
+      <div style="margin-top:8px;color:#8250df;font-size:13px;font-weight:600">👉 点此回复预约沟通时间（啥时候来）</div>
+    </div>`).join('') : '<div class="empty">暂无待回复直通车小纸条 ☕</div>';
+
+  // 3. 常规待我审查（如果有）
+  if (myTasks.length) {
+    h += `<h2>待我审查（${myTasks.length}）</h2>` + myTasks.map(({ p, r, it }) => `
+      <div class="card click" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
+        <div class="row"><b>${esc(p.alias || p.name)}</b>${statusTag(it)}</div>
+        <div class="muted" style="margin-top:4px">${STAGES[r.stage].name} · ${uname(p.leader)} 送审</div>
+        ${r.parallel ? `<span class="tag red">同时审查：${esc(r.reason)}</span>` : ''}
+      </div>`).join('');
+  }
+
+  // 4. 全部项目快捷查看
+  h += `<div style="margin-top:20px;text-align:center">
+    <button class="btn gray" onclick="go('projects')">📁 查看分院全部规划项目列表 (${totalProjects})</button>
+  </div>`;
+
+  return h;
+}
+
+// ===== 李院总专属看板 =====
+function viewChiefEngineerBoard() {
+  const allProjects = DB.projects.filter((p) => canSee(p, me));
+
+  const curDept = ceFilter.dept || 'all';
+  const curCat = ceFilter.cat || 'all';
+
+  const filterProjects = allProjects.filter((p) => {
+    if (curDept !== 'all' && (p.dept || '规划一所') !== curDept) return false;
+    if (curCat !== 'all' && p.category !== curCat) return false;
+    return true;
+  });
+
+  // 院总审查任务分层
+  // Layer 1: 🚨 待我紧急审查 (加急/同时审查)
+  const urgentTasks = [];
+  // Layer 2: ⏳ 待我常规把关 (逐级已到院总)
+  const normalTasks = [];
+
+  filterProjects.forEach((p) => {
+    p.reviews.forEach((r) => {
+      r.items.forEach((it) => {
+        if (it.uid === me && it.status !== 'done') {
+          if (r.parallel) urgentTasks.push({ p, r, it });
+          else normalTasks.push({ p, r, it });
+        }
+      });
+    });
+  });
+
+  // Layer 3: 👀 各所自审中（即将送审院总·下周工作预判）
+  const upcomingProjects = filterProjects.filter((p) => {
+    const cur = curStage(p);
+    if (cur !== 's1' && cur !== 's3') return false;
+    const hasMine = p.reviews.some((r) => r.stage === cur && r.items.some((i) => i.uid === me));
+    return !hasMine && !finished(p);
+  });
+
+  // Layer 4: ✅ 院总已审完（各所落实跟踪中）
+  const doneProjects = filterProjects.filter((p) => {
+    return p.reviews.some((r) => r.items.some((i) => i.uid === me && i.status === 'done')) && !finished(p);
+  });
+
+  // 普适性技术问题收集板
+  const rawIssues = DB.commonIssues || [];
+  const issues = rawIssues.filter((iss) => {
+    if (curCat !== 'all' && iss.category !== curCat) return false;
+    if (curDept !== 'all' && iss.dept !== '全院' && iss.dept !== curDept) return false;
+    return true;
+  });
+
+  let h = `
+  <div class="card" style="border:1.5px solid #1f6feb;background:linear-gradient(135deg, #f0f7ff 0%, #e6f0fd 100%)">
+    <div class="row">
+      <div>
+        <b style="font-size:16px;color:#1e40af">🏛 李院总 · 全院技术审查总看板</b>
+        <div class="muted" style="margin-top:2px;font-size:12px">全院规划技术最高把关 · 清晰分类分层 · 普适性问题全院统一</div>
+      </div>
+      <span class="tag blue" style="font-size:12px;font-weight:600">把关 ${allProjects.length} 项</span>
+    </div>
+
+    <div class="stat-grid" style="margin-top:10px">
+      <div class="stat-item">
+        <div class="stat-num" style="color:#cf222e">${urgentTasks.length}</div>
+        <div class="stat-lbl">🚨 紧急加急待审</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" style="color:#0969da">${normalTasks.length}</div>
+        <div class="stat-lbl">⏳ 常规待审项目</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" style="color:#7c3aed">${issues.length}</div>
+        <div class="stat-lbl">💡 普适性问题提炼</div>
+      </div>
+    </div>
+  </div>`;
+
+  // 多维度筛选条（三个所队 + 类别）
+  h += `<div class="card" style="padding:10px 12px;margin-bottom:12px">
+    <div style="font-size:12px;color:#57606a;margin-bottom:4px">按所队筛选（我们有三个所）：</div>
+    <div class="filter-bar">
+      ${[['all', '全部三个所'], ...DEPTS.map((d) => [d, d])].map(([v, label]) => `
+        <span class="chip ${curDept === v ? 'on' : ''}" onclick="setCeFilter('dept','${v}')">${label}</span>`).join('')}
+    </div>
+    <div style="font-size:12px;color:#57606a;margin:8px 0 4px">按项目类型筛选：</div>
+    <div class="filter-bar">
+      ${[['all', '全部类型'], ...CATEGORIES.filter((c) => c !== '其他（待开发）').map((c) => [c, c])].map(([v, label]) => `
+        <span class="chip ${curCat === v ? 'on' : ''}" onclick="setCeFilter('cat','${v}')">${label}</span>`).join('')}
+    </div>
+  </div>`;
+
+  // Layer 1: 🚨 待我紧急审查 (加急/同时审查)
+  h += `<div class="row" style="margin:16px 0 6px">
+    <b style="font-size:15px;color:#cf222e">🚨 第一层：待我加急审查（${urgentTasks.length}）</b>
+    <span class="tag red">优先保障</span>
+  </div>`;
+  h += urgentTasks.length ? urgentTasks.map(({ p, r, it }) => `
+    <div class="card click" style="border:1.5px solid #fca5a5;background:#fff5f5" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
+      <div class="row">
+        <b>${esc(p.alias || p.name)}</b>
+        <span class="tag red">同时审查·加急</span>
+      </div>
+      <div class="muted" style="margin-top:2px">${p.dept || '规划一所'} · ${p.category}</div>
+      <div style="margin-top:4px;font-size:13px;color:#cf222e;font-weight:500">
+        ⚡ 加急原因：${esc(r.reason || '紧急审议')}
+      </div>
+      <div style="margin-top:8px;color:#1f6feb;font-size:13px;font-weight:600">👉 点此填写院总技术把关意见</div>
+    </div>`).join('') : '<div class="card empty" style="padding:16px 0;margin-bottom:8px">暂无紧急加急待办 ☕</div>';
+
+  // Layer 2: ⏳ 待我常规把关 (逐级已到院总)
+  h += `<div class="row" style="margin:16px 0 6px">
+    <b style="font-size:15px;color:#0969da">⏳ 第二层：待我常规把关（${normalTasks.length}）</b>
+    <span class="tag blue">逐级审查已到院总</span>
+  </div>`;
+  h += normalTasks.length ? normalTasks.map(({ p, r, it }) => `
+    <div class="card click" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
+      <div class="row">
+        <b>${esc(p.alias || p.name)}</b>
+        ${statusTag(it)}
+      </div>
+      <div class="muted" style="margin-top:2px">${p.dept || '规划一所'} · ${STAGES[r.stage].name} · ${uname(p.leader)} 送审</div>
+      <div class="muted" style="margin-top:2px">成果形式：${esc(r.form)} · ${r.paper ? '纸质册子' : '电子档'}</div>
+      <div style="margin-top:8px;color:#1f6feb;font-size:13px;font-weight:500">
+        ${it.status === 'pending' ? '👉 点此接收' + (r.paper ? '并约送册时间' : '') : '👉 点此录入技术审查把关意见'}
+      </div>
+    </div>`).join('') : '<div class="card empty" style="padding:16px 0;margin-bottom:8px">暂无常规待审项目 ☕</div>';
+
+  // Layer 3: 👀 各所自审中（即将送审院总·工作量预判）
+  h += `<div class="row" style="margin:16px 0 6px">
+    <b style="font-size:15px;color:#475569">👀 第三层：各所自审中·下周工作预判（${upcomingProjects.length}）</b>
+    <span class="tag gray">即将送院总</span>
+  </div>`;
+  if (upcomingProjects.length) {
+    h += `<div class="card" style="padding:8px 12px">
+      <div class="muted" style="font-size:12px;margin-bottom:6px">以下项目目前所内组长/所总正在审理中，预计近期将流转至院总把关：</div>
+      ${upcomingProjects.map((p) => `
+        <div style="padding:6px 0;border-bottom:1px dashed #e2e8f0" class="row">
+          <div>
+            <b>${esc(p.alias || p.name)}</b>
+            <span class="muted" style="font-size:12px">（${p.dept || '规划一所'} · ${STAGES[curStage(p)] ? STAGES[curStage(p)].name : ''}）</span>
+          </div>
+          <span class="edit-link" onclick="go('project','${p.id}')">提前预看</span>
+        </div>`).join('')}
+    </div>`;
+  } else {
+    h += '<div class="card empty" style="padding:12px 0;margin-bottom:8px">暂无所内自审预报</div>';
+  }
+
+  // 重点板块：💡 普适性技术问题收集板
+  h += `
+  <div class="row" style="margin:24px 0 8px">
+    <div>
+      <b style="font-size:15.5px;color:#7c3aed">💡 普适性技术问题收集板（${issues.length}）</b>
+      <div class="muted" style="font-size:12px;margin-top:2px">从院总审查批注与意见中自动沉淀 · 可修改后一键发送三个所</div>
+    </div>
+    <button class="btn sm purple" onclick="newIssueModal()">＋ 新增注意点</button>
+  </div>`;
+
+  h += issues.length ? issues.map((iss) => `
+    <div class="issue-card">
+      <div class="row">
+        <div>
+          <span class="tag blue">${esc(iss.category)}</span>
+          <span class="tag">${esc(iss.dept)}</span>
+          <span class="tag ${iss.broadcasted ? 'green' : 'orange'}">${iss.broadcasted ? '📢 已发全院三个所' : '⏳ 待发全院'}</span>
+        </div>
+        <span class="muted" style="font-size:11px">${iss.createdAt}</span>
+      </div>
+      <div class="muted" style="font-size:12px;margin-top:4px">来源：${esc(iss.pname)}</div>
+      
+      <div style="font-weight:700;font-size:14px;color:#1e293b;margin:6px 0 2px">⚠️ ${esc(iss.title)}</div>
+      <div style="font-size:13px;color:#475569;line-height:1.45;background:#f8fafc;padding:6px 8px;border-radius:6px;border:1px solid #e2e8f0">
+        ${esc(iss.problem)}
+      </div>
+
+      <div style="font-size:13px;color:#7c3aed;margin-top:6px;background:#faf5ff;padding:6px 8px;border-radius:6px;border:1px solid #e9d5ff;line-height:1.45">
+        <b>💡 院总提示与把关要求：</b>${esc(iss.guide)}
+      </div>
+
+      <div class="row" style="margin-top:10px;padding-top:6px;border-top:1px dashed #e2e8f0">
+        <div>
+          ${iss.broadcasted ? `<span class="muted" style="font-size:12px">已推：${iss.broadcastScope.join('、')} (${iss.broadcastAt})</span>` : ''}
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn sm gray" onclick="editIssueModal('${iss.id}')">✏️ 修改内容</button>
+          <button class="btn sm purple" onclick="broadcastIssueModal('${iss.id}')">📢 发送给三个所</button>
+          <button class="btn sm gray" onclick="deleteCommonIssue('${iss.id}')" title="删除">🗑</button>
+        </div>
+      </div>
+    </div>`).join('') : '<div class="empty">暂无收集的普适性技术问题</div>';
+
+  return h;
+}
+
+function setCeFilter(k, v) {
+  ceFilter[k] = v;
+  render();
+}
+
 function viewTodo() {
   let h = '';
 
-  // 1. 如果当前身份是院长（王院长），优先显示「待我排期 / 报会申请」
-  if (U(me).role === '院长') {
-    const applies = deanPendingApplies();
-    h += `<h2>🔔 待我排期 / 报会申请（${applies.length}）</h2>`;
-    h += applies.length ? applies.map(({ p, key, apply }) => `
-      <div class="card click" style="border:1.5px solid #8250df;background:#faf8ff" onclick="deanScheduleModal('${p.id}','${key}')">
-        <div class="row">
-          <b>${esc(p.alias || p.name)}</b>
-          <span class="tag purple">${STAGES[key].name}</span>
-        </div>
-        <div class="muted" style="margin-top:4px">
-          ${uname(apply.applicant || p.leader)} 申请直报王院长排期
-        </div>
-        <div style="margin-top:4px;font-size:13px;color:#8250df">
-          <b>期望时间：</b>${esc(apply.prefQuick || fmtAppt(apply.prefTime) || '尽快安排')}
-        </div>
-        ${apply.note ? `<div class="muted" style="margin-top:2px;font-size:12px;color:#475569">说明：${esc(apply.note)}</div>` : ''}
-        <div style="margin-top:8px;color:#8250df;font-size:13px;font-weight:600">👉 点此审批并排定会议</div>
-      </div>`).join('') : '<div class="empty">暂无待排期报会申请 ☕</div>';
-  }
-
-  // 2. 待我审查
+  // 1. 待我审查
   const tasks = myReviewTasks();
   h += `<h2>待我审查（${tasks.length}）</h2>`;
   h += tasks.length ? tasks.map(({ p, r, it }) => `
     <div class="card click" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
       <div class="row"><b>${esc(p.alias || p.name)}</b>${statusTag(it)}</div>
-      <div class="muted" style="margin-top:4px">${STAGES[r.stage].name} · ${uname(p.leader)} 送审</div>
+      <div class="muted" style="margin-top:4px">${p.dept || '规划一所'} · ${STAGES[r.stage].name} · ${uname(p.leader)} 送审</div>
       ${r.parallel ? `<span class="tag red">同时审查：${esc(r.reason)}</span>` : ''}
       <div style="margin-top:8px;color:#1f6feb;font-size:13px;font-weight:500">${it.status === 'pending' ? '👉 点此接收' + (r.paper ? '并约送册时间' : '') : '👉 点此填写审查意见'}</div>
     </div>`).join('') : '<div class="empty">暂无待审查事项 ☕</div>';
 
-  // 3. 我参与的项目
+  // 2. 我参与的项目
   const mine = DB.projects.filter((p) => p.members.includes(me) && !finished(p));
   h += `<h2>我参与的项目（${mine.length}）</h2>`;
   h += mine.length ? mine.map((p) => {
@@ -75,7 +400,7 @@ function viewTodo() {
 
     return `<div class="card click" onclick="go('project','${p.id}')">
       <div class="row"><b>${esc(p.alias || p.name)}</b><span class="tag">${p.category}</span></div>
-      <div class="muted" style="margin-top:4px">当前阶段：${curName}</div>
+      <div class="muted" style="margin-top:4px">${p.dept || '规划一所'} · 当前阶段：${curName}</div>
       ${applyBadge}
       ${appts.map((i) => `<div class="tag blue">📅 ${uname(i.uid)} 约 ${fmtAppt(i.appointment)} 送册</div>`).join('')}
       ${back.length ? `<div class="tag green">💬 本阶段已收到 ${back.length} 份意见</div>` : ''}
@@ -398,6 +723,7 @@ function viewProject(p) {
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
           ${meetingBtns}
           ${def.type === 'review' || def.preReview ? `<button class="btn" onclick="reviewModal('${p.id}')">📤 送审</button>` : ''}
+          <button class="btn ghost purple" onclick="deanNoteModal('${p.id}')">✉️ 递小纸条给院长</button>
           <button class="btn green" onclick="completeStage(P('${p.id}'))">✔ 本阶段完成</button>
           ${def.optional ? `<button class="btn gray" onclick="completeStage(P('${p.id}'),true)">跳过（非必选）</button>` : ''}
           ${revert}
@@ -406,13 +732,54 @@ function viewProject(p) {
     }
   }
 
+  // 院长直通车小纸条展示
+  const notes = p.deanNotes || [];
+  let notesHtml = '';
+  if (notes.length) {
+    notesHtml = `<div class="card" style="border:1.5px solid #8250df;background:#faf8ff">
+      <div class="row">
+        <b>✉️ 院长直通车记录（${notes.length}）</b>
+        <button class="btn sm purple" onclick="deanNoteModal('${p.id}')">＋ 再递一张</button>
+      </div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+        ${notes.slice().reverse().map((n) => `
+          <div style="background:#fff;padding:8px 10px;border-radius:8px;border:1px solid #e9d5ff">
+            <div class="row">
+              <div>
+                <b>${uname(n.by)}</b>
+                <span class="muted" style="font-size:12px"> · ${n.at}</span>
+                ${n.urgent ? '<span class="tag red">🚨 加急请示</span>' : ''}
+              </div>
+              <span class="tag ${n.status === 'replied' ? 'green' : 'orange'}">
+                ${n.status === 'replied' ? '✅ 王院长已回复' : '⏳ 待王院长回复'}
+              </span>
+            </div>
+            <div style="margin-top:4px;font-size:13.5px;color:#1e293b">📝 ${esc(n.text)}</div>
+            ${n.photos && n.photos.length ? `<div style="margin-top:4px">${imgsHtml(n.photos)}</div>` : ''}
+            ${n.status === 'replied' ? `
+              <div style="margin-top:6px;padding-top:6px;border-top:1px dashed #d8b4fe;color:#166534;font-size:13px">
+                <b>🗓 王院长已回复预约：</b>${fmtAppt(n.replyTime)}（${esc(n.replyLoc || '院长办公室')}）
+                ${n.replyMsg ? `<div style="margin-top:2px;color:#334155"><b>批示：</b>${esc(n.replyMsg)}</div>` : ''}
+              </div>` : ''}
+            ${U(me).role === '院长' && n.status === 'pending' ? `
+              <div style="margin-top:6px;text-align:right">
+                <button class="btn sm purple" onclick="deanReplyNoteModal('${p.id}','${n.id}')">👉 回复预约沟通时间</button>
+              </div>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
   const vs = p.versions;
   const otherMembers = p.members.filter((m) => m !== p.leader);
 
   return `<div class="card">
     <div class="row">
       <b style="font-size:17px">${esc(p.alias || p.name)}</b>
-      <span class="tag">${p.category}</span>
+      <div>
+        <span class="tag purple">${p.dept || '规划一所'}</span>
+        <span class="tag">${p.category}</span>
+      </div>
     </div>
     <div class="muted" style="margin-top:4px">${esc(p.name)}</div>
     ${imgsHtml(p.nameImgs)}
@@ -420,13 +787,15 @@ function viewProject(p) {
       项目组：<b style="color:#b7791f">👑 ${uname(p.leader)}（负责人）</b>${otherMembers.length ? ' · ' + otherMembers.map(uname).join('、') : ''}
     </div>
     <div class="muted" style="margin-top:2px">公开：${p.visible.map(uname).join('、')}</div>
-    ${team ? `<div style="margin-top:10px;padding-top:8px;border-top:1px solid #f0f2f5;text-align:right">
-      <span class="edit-link" onclick="editProjectModal('${p.id}')">✏️ 修改项目基本信息</span>
-    </div>` : ''}
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid #f0f2f5;display:flex;justify-content:space-between;align-items:center">
+      <span class="edit-link" onclick="deanNoteModal('${p.id}')" style="margin-left:0;color:#8250df">✉️ 院长直通车（递小纸条）</span>
+      ${team ? `<span class="edit-link" onclick="editProjectModal('${p.id}')">✏️ 修改基本信息</span>` : ''}
+    </div>
   </div>
 
   ${deanCard}
   ${act}
+  ${notesHtml}
 
   <h2 class="row">
     <span>项目主要内容 ${vs.length > 1 ? `<span class="tag green">第 ${latest(p).no} 版</span>` : ''}</span>
