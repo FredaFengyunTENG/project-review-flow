@@ -11,7 +11,8 @@ function render() {
   }
   $$('#tabbar button').forEach((b) => {
     const isDeanSub = (route.name === 'dean-meetings' || route.name === 'dean-notes') && b.dataset.go === 'todo';
-    b.classList.toggle('on', b.dataset.go === route.name || isDeanSub);
+    const isCeSub = (route.name === 'ce-reviews' || route.name === 'ce-upcoming' || route.name === 'ce-issues') && b.dataset.go === 'todo';
+    b.classList.toggle('on', b.dataset.go === route.name || isDeanSub || isCeSub);
   });
   const v = $('#view');
   lastUpl = null;
@@ -22,6 +23,9 @@ function render() {
   }
   else if (route.name === 'dean-meetings') v.innerHTML = viewDeanMeetings();
   else if (route.name === 'dean-notes') v.innerHTML = viewDeanNotes();
+  else if (route.name === 'ce-reviews') v.innerHTML = viewChiefEngineerReviews();
+  else if (route.name === 'ce-upcoming') v.innerHTML = viewChiefEngineerUpcoming();
+  else if (route.name === 'ce-issues') v.innerHTML = viewChiefEngineerIssues();
   else if (route.name === 'bulletin') v.innerHTML = viewTechnicalBulletin();
   else if (route.name === 'projects') v.innerHTML = viewProjects();
   else if (route.name === 'new') { v.innerHTML = viewNew(); bindNew(); }
@@ -339,8 +343,201 @@ function viewDeanNotes() {
   return h;
 }
 
-// ===== 李院总专属看板 =====
+// ===== 李院总专属看板（分层级总览与下钻）=====
 function viewChiefEngineerBoard() {
+  const allProjects = DB.projects.filter((p) => canSee(p, me));
+
+  // 院总审查任务
+  const urgentTasks = [];
+  const normalTasks = [];
+  allProjects.forEach((p) => {
+    p.reviews.forEach((r) => {
+      r.items.forEach((it) => {
+        if (it.uid === me && it.status !== 'done') {
+          if (r.parallel) urgentTasks.push({ p, r, it });
+          else normalTasks.push({ p, r, it });
+        }
+      });
+    });
+  });
+
+  // 各所自审中（下周工作预判）
+  const upcomingProjects = allProjects.filter((p) => {
+    const cur = curStage(p);
+    if (cur !== 's1' && cur !== 's3') return false;
+    const hasMine = p.reviews.some((r) => r.stage === cur && r.items.some((i) => i.uid === me));
+    return !hasMine && !finished(p);
+  });
+
+  // 普适性技术问题
+  const issues = DB.commonIssues || [];
+  const broadcastedIssuesCount = issues.filter((i) => i.broadcasted).length;
+  const latestIssue = issues[0];
+
+  let h = `
+  <div class="card" style="border:1.5px solid #1f6feb;background:linear-gradient(135deg, #f0f7ff 0%, #e6f0fd 100%)">
+    <div class="row">
+      <div>
+        <b style="font-size:16px;color:#1e40af">🏛 李院总 · 全院技术把关大盘</b>
+        <div class="muted" style="margin-top:2px;font-size:12px">全院技术最高把关 · 待办分类分层 · 普适性问题提炼</div>
+      </div>
+      <span class="tag blue" style="font-size:12px;font-weight:600">全院把关 ${allProjects.length} 项</span>
+    </div>
+
+    <div class="stat-grid" style="margin-top:12px">
+      <div class="stat-item click" onclick="go('ce-reviews')" style="cursor:pointer">
+        <div class="stat-num" style="color:#cf222e">${urgentTasks.length}</div>
+        <div class="stat-lbl">🚨 紧急加急待审</div>
+      </div>
+      <div class="stat-item click" onclick="go('ce-reviews')" style="cursor:pointer">
+        <div class="stat-num" style="color:#0969da">${normalTasks.length}</div>
+        <div class="stat-lbl">⏳ 常规待审项目</div>
+      </div>
+      <div class="stat-item click" onclick="go('ce-issues')" style="cursor:pointer">
+        <div class="stat-num" style="color:#7c3aed">${issues.length}</div>
+        <div class="stat-lbl">💡 普适性问题提炼</div>
+      </div>
+    </div>
+  </div>`;
+
+  // 1. 待办层级一：待我技术审查把关（紧急加急 + 常规待审）
+  const totalTasksCount = urgentTasks.length + normalTasks.length;
+  h += `
+  <div class="row" style="margin:20px 0 8px">
+    <b style="font-size:15px;color:#1e293b">⚡ 待办一：待我技术审查把关</b>
+    <span class="muted" style="font-size:12px">逐级审查到院总</span>
+  </div>
+
+  <div class="card click" style="border:1.5px solid ${urgentTasks.length ? '#cf222e' : (normalTasks.length ? '#0969da' : '#cbd5e1')};background:${urgentTasks.length ? '#fff8f8' : '#fff'};padding:14px" onclick="go('ce-reviews')">
+    <div class="row">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:18px">${urgentTasks.length ? '🚨' : '⏳'}</span>
+        <b style="font-size:15px;color:#1e293b">待审成果签批</b>
+        ${urgentTasks.length ? `<span class="tag red" style="font-weight:700">含 ${urgentTasks.length} 项加急</span>` : ''}
+        ${normalTasks.length ? `<span class="tag blue">${normalTasks.length} 项常规</span>` : ''}
+      </div>
+      <span class="tag ${totalTasksCount ? 'red' : 'gray'}" style="font-weight:700;font-size:13px">${totalTasksCount} 项待审</span>
+    </div>
+
+    ${totalTasksCount ? `
+      <div style="margin-top:8px;font-size:13px;color:#334155;line-height:1.5">
+        当前共有 <b style="color:#cf222e;font-size:15px">${totalTasksCount}</b> 个项目成果等待院总出具技术把关意见。
+      </div>
+      ${urgentTasks.length ? `
+        <div style="margin-top:6px;font-size:12px;color:#991b1b;background:#fee2e2;padding:6px 10px;border-radius:6px;border:1px solid #fca5a5">
+          ⚡ <b>优先保障：</b>${urgentTasks.map(({ p, r }) => `${esc(p.alias || p.name)}（${p.dept || '规划一所'} · ${esc(r.reason || '加急')}）`).join('；')}
+        </div>
+      ` : ''}
+      ${normalTasks.length ? `
+        <div style="margin-top:4px;font-size:12px;color:#475569;background:#f8fafc;padding:5px 10px;border-radius:6px;border:1px solid #e2e8f0">
+          ⏳ <b>常规待审：</b>${normalTasks.map(({ p }) => `${esc(p.alias || p.name)}（${p.dept || '规划一所'}）`).join('、')}
+        </div>
+      ` : ''}
+      <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
+        <span style="color:#0969da;font-size:12.5px;font-weight:600">点击进入审查工作台签批 →</span>
+        <button class="btn sm ${urgentTasks.length ? 'red' : 'purple'}" onclick="event.stopPropagation();go('ce-reviews')">进入审查 (${totalTasksCount})</button>
+      </div>
+    ` : `
+      <div style="margin-top:6px;font-size:13px;color:#8c959f">
+        暂无待院总把关的审查项目 ☕ 各所自审完成后将陆续送审。
+      </div>
+    `}
+  </div>`;
+
+  // 2. 待办层级二：各所自审中·下周负荷预判
+  h += `
+  <div class="row" style="margin:20px 0 8px">
+    <b style="font-size:15px;color:#1e293b">👀 待办二：各所自审预报（下周预判）</b>
+    <span class="muted" style="font-size:12px">工作量前瞻预看</span>
+  </div>
+
+  <div class="card click" style="border:1px solid #cbd5e1;background:#f8fafc;padding:14px" onclick="go('ce-upcoming')">
+    <div class="row">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:18px">👀</span>
+        <b style="font-size:15px;color:#334155">各所自审进行中</b>
+      </div>
+      <span class="tag gray" style="font-weight:700;font-size:13px">${upcomingProjects.length} 项</span>
+    </div>
+
+    ${upcomingProjects.length ? `
+      <div style="margin-top:8px;font-size:13px;color:#475569;line-height:1.5">
+        所内组长/所总正在自审中，预计近期将陆续送审院总把关。
+      </div>
+      <div style="margin-top:6px;font-size:12px;color:#64748b;background:#fff;padding:6px 10px;border-radius:6px;border:1px solid #e2e8f0">
+        📌 即将送审：${upcomingProjects.map((p) => `${esc(p.alias || p.name)}（${p.dept || '规划一所'}）`).join('、')}
+      </div>
+      <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
+        <span style="color:#475569;font-size:12.5px;font-weight:500">点击可提前预看方案图纸 →</span>
+        <button class="btn sm gray" onclick="event.stopPropagation();go('ce-upcoming')">查看自审进度 (${upcomingProjects.length})</button>
+      </div>
+    ` : `
+      <div style="margin-top:6px;font-size:13px;color:#8c959f">
+        暂无正在所内自审的项目预报。
+      </div>
+    `}
+  </div>`;
+
+  // 3. 待办层级三：普适性技术问题收集板
+  h += `
+  <div class="row" style="margin:20px 0 8px">
+    <b style="font-size:15px;color:#1e293b">💡 待办三：普适性技术问题收集板</b>
+    <span class="muted" style="font-size:12px">知识沉淀与全院统一</span>
+  </div>
+
+  <div class="card click" style="border:1.5px solid #8250df;background:#faf8ff;padding:14px" onclick="go('ce-issues')">
+    <div class="row">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:18px">💡</span>
+        <b style="font-size:15px;color:#581c87">共性技术要点沉淀库</b>
+      </div>
+      <span class="tag purple" style="font-weight:700;font-size:13px">${issues.length} 条沉淀</span>
+    </div>
+
+    ${issues.length ? `
+      <div style="margin-top:8px;font-size:13px;color:#334155;line-height:1.5">
+        已从审查批注中自动提炼 <b style="color:#7c3aed;font-size:15px">${issues.length}</b> 条共性问题（其中 <b>${broadcastedIssuesCount}</b> 条已发全院，<b>${issues.length - broadcastedIssuesCount}</b> 条待发）。
+      </div>
+      ${latestIssue ? `
+        <div style="margin-top:6px;font-size:12px;color:#64748b;background:#fff;padding:6px 10px;border-radius:6px;border:1px solid #e9d5ff">
+          📌 最新沉淀：<b>${esc(latestIssue.title)}</b>（适用【${esc(latestIssue.category)}】）
+        </div>
+      ` : ''}
+      <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
+        <span style="color:#7c3aed;font-size:12.5px;font-weight:600">点击进入修改内容与分发三个所 →</span>
+        <button class="btn sm purple" onclick="event.stopPropagation();go('ce-issues')">进入收集板 (${issues.length})</button>
+      </div>
+    ` : `
+      <div style="margin-top:6px;font-size:13px;color:#8c959f">
+        暂无沉淀的共性技术问题。
+      </div>
+    `}
+  </div>`;
+
+  // 4. 辅助层级：技术公告发布与全院项目
+  h += `
+  <div style="margin-top:22px;display:flex;gap:8px;flex-direction:column">
+    <div class="card click" style="border:1px solid #d0e2ff;background:#f0f7ff;padding:12px 14px" onclick="go('bulletin')">
+      <div class="row">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:16px">📢</span>
+          <b style="font-size:14px;color:#0969da">院技术公告发布台（${(DB.bulletins || []).length} 条生效中）</b>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn sm purple" onclick="event.stopPropagation();publishBulletinModal()">➕ 发布新规</button>
+          <button class="btn sm ghost" onclick="event.stopPropagation();go('bulletin')">公告板 →</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn gray block" onclick="go('projects')">📁 浏览全院规划项目库 (${allProjects.length} 项)</button>
+  </div>`;
+
+  return h;
+}
+
+// ===== 李院总二级页面：技术审查工作台 =====
+function viewChiefEngineerReviews() {
   const allProjects = DB.projects.filter((p) => canSee(p, me));
 
   const curDept = ceFilter.dept || 'all';
@@ -352,12 +549,8 @@ function viewChiefEngineerBoard() {
     return true;
   });
 
-  // 院总审查任务分层
-  // Layer 1: 🚨 待我紧急审查 (加急/同时审查)
   const urgentTasks = [];
-  // Layer 2: ⏳ 待我常规把关 (逐级已到院总)
   const normalTasks = [];
-
   filterProjects.forEach((p) => {
     p.reviews.forEach((r) => {
       r.items.forEach((it) => {
@@ -369,56 +562,25 @@ function viewChiefEngineerBoard() {
     });
   });
 
-  // Layer 3: 👀 各所自审中（即将送审院总·下周工作预判）
-  const upcomingProjects = filterProjects.filter((p) => {
-    const cur = curStage(p);
-    if (cur !== 's1' && cur !== 's3') return false;
-    const hasMine = p.reviews.some((r) => r.stage === cur && r.items.some((i) => i.uid === me));
-    return !hasMine && !finished(p);
-  });
-
-  // Layer 4: ✅ 院总已审完（各所落实跟踪中）
-  const doneProjects = filterProjects.filter((p) => {
-    return p.reviews.some((r) => r.items.some((i) => i.uid === me && i.status === 'done')) && !finished(p);
-  });
-
-  // 普适性技术问题收集板
-  const rawIssues = DB.commonIssues || [];
-  const issues = rawIssues.filter((iss) => {
-    if (curCat !== 'all' && iss.category !== curCat) return false;
-    if (curDept !== 'all' && iss.dept !== '全院' && iss.dept !== curDept) return false;
-    return true;
-  });
-
   let h = `
+  <div class="row" style="margin-bottom:12px">
+    <button class="btn sm gray" onclick="go('todo')">← 返回院总看板</button>
+    <span class="muted" style="font-size:12px">🏛 院总技术审查工作台</span>
+  </div>
+
   <div class="card" style="border:1.5px solid #1f6feb;background:linear-gradient(135deg, #f0f7ff 0%, #e6f0fd 100%)">
     <div class="row">
       <div>
-        <b style="font-size:16px;color:#1e40af">🏛 李院总 · 全院技术审查总看板</b>
-        <div class="muted" style="margin-top:2px;font-size:12px">全院规划技术最高把关 · 清晰分类分层 · 普适性问题全院统一</div>
+        <b style="font-size:16px;color:#1e40af">⚡ 待我技术审查把关成果清单</b>
+        <div class="muted" style="margin-top:2px;font-size:12px">包含加急优先签批与常规逐级把关项目</div>
       </div>
-      <span class="tag blue" style="font-size:12px;font-weight:600">把关 ${allProjects.length} 项</span>
+      <span class="tag red" style="font-size:13px;font-weight:700">共 ${urgentTasks.length + normalTasks.length} 项</span>
     </div>
+  </div>
 
-    <div class="stat-grid" style="margin-top:10px">
-      <div class="stat-item">
-        <div class="stat-num" style="color:#cf222e">${urgentTasks.length}</div>
-        <div class="stat-lbl">🚨 紧急加急待审</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-num" style="color:#0969da">${normalTasks.length}</div>
-        <div class="stat-lbl">⏳ 常规待审项目</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-num" style="color:#7c3aed">${issues.length}</div>
-        <div class="stat-lbl">💡 普适性问题提炼</div>
-      </div>
-    </div>
-  </div>`;
-
-  // 多维度筛选条（三个所队 + 类别）
-  h += `<div class="card" style="padding:10px 12px;margin-bottom:12px">
-    <div style="font-size:12px;color:#57606a;margin-bottom:4px">按所队筛选（我们有三个所）：</div>
+  <!-- 多维度筛选条（三个所队 + 类别） -->
+  <div class="card" style="padding:10px 12px;margin-bottom:12px">
+    <div style="font-size:12px;color:#57606a;margin-bottom:4px">按所队筛选：</div>
     <div class="filter-bar">
       ${[['all', '全部三个所'], ...DEPTS.map((d) => [d, d])].map(([v, label]) => `
         <span class="chip ${curDept === v ? 'on' : ''}" onclick="setCeFilter('dept','${v}')">${label}</span>`).join('')}
@@ -430,29 +592,31 @@ function viewChiefEngineerBoard() {
     </div>
   </div>`;
 
-  // Layer 1: 🚨 待我紧急审查 (加急/同时审查)
+  // 第一部分：🚨 待我紧急审查
   h += `<div class="row" style="margin:16px 0 6px">
-    <b style="font-size:15px;color:#cf222e">🚨 第一层：待我加急审查（${urgentTasks.length}）</b>
+    <b style="font-size:15px;color:#cf222e">🚨 待我加急审查（${urgentTasks.length}）</b>
     <span class="tag red">优先保障</span>
   </div>`;
+
   h += urgentTasks.length ? urgentTasks.map(({ p, r, it }) => `
     <div class="card click" style="border:1.5px solid #fca5a5;background:#fff5f5" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
       <div class="row">
         <b>${esc(p.alias || p.name)}</b>
         <span class="tag red">同时审查·加急</span>
       </div>
-      <div class="muted" style="margin-top:2px">${p.dept || '规划一所'} · ${p.category}</div>
+      <div class="muted" style="margin-top:2px">${p.dept || '规划一所'} · ${p.category} · 送审人：${uname(p.leader)}</div>
       <div style="margin-top:4px;font-size:13px;color:#cf222e;font-weight:500">
         ⚡ 加急原因：${esc(r.reason || '紧急审议')}
       </div>
       <div style="margin-top:8px;color:#1f6feb;font-size:13px;font-weight:600">👉 点此填写院总技术把关意见</div>
-    </div>`).join('') : '<div class="card empty" style="padding:16px 0;margin-bottom:8px">暂无紧急加急待办 ☕</div>';
+    </div>`).join('') : '<div class="card empty" style="padding:12px 0;margin-bottom:8px">暂无紧急加急项目 ☕</div>';
 
-  // Layer 2: ⏳ 待我常规把关 (逐级已到院总)
+  // 第二部分：⏳ 待我常规把关
   h += `<div class="row" style="margin:16px 0 6px">
-    <b style="font-size:15px;color:#0969da">⏳ 第二层：待我常规把关（${normalTasks.length}）</b>
+    <b style="font-size:15px;color:#0969da">⏳ 待我常规把关（${normalTasks.length}）</b>
     <span class="tag blue">逐级审查已到院总</span>
   </div>`;
+
   h += normalTasks.length ? normalTasks.map(({ p, r, it }) => `
     <div class="card click" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
       <div class="row">
@@ -464,85 +628,157 @@ function viewChiefEngineerBoard() {
       <div style="margin-top:8px;color:#1f6feb;font-size:13px;font-weight:500">
         ${it.status === 'pending' ? '👉 点此接收' + (r.paper ? '并约送册时间' : '') : '👉 点此录入技术审查把关意见'}
       </div>
-    </div>`).join('') : '<div class="card empty" style="padding:16px 0;margin-bottom:8px">暂无常规待审项目 ☕</div>';
+    </div>`).join('') : '<div class="card empty" style="padding:12px 0;margin-bottom:8px">暂无常规待审项目 ☕</div>';
 
-  // Layer 3: 👀 各所自审中（即将送审院总·工作量预判）
-  h += `<div class="row" style="margin:16px 0 6px">
-    <b style="font-size:15px;color:#475569">👀 第三层：各所自审中·下周工作预判（${upcomingProjects.length}）</b>
-    <span class="tag gray">即将送院总</span>
+  return h;
+}
+
+// ===== 李院总二级页面：各所自审中·下周负荷预判 =====
+function viewChiefEngineerUpcoming() {
+  const allProjects = DB.projects.filter((p) => canSee(p, me));
+
+  const curDept = ceFilter.dept || 'all';
+
+  const filterProjects = allProjects.filter((p) => {
+    if (curDept !== 'all' && (p.dept || '规划一所') !== curDept) return false;
+    return true;
+  });
+
+  const upcomingProjects = filterProjects.filter((p) => {
+    const cur = curStage(p);
+    if (cur !== 's1' && cur !== 's3') return false;
+    const hasMine = p.reviews.some((r) => r.stage === cur && r.items.some((i) => i.uid === me));
+    return !hasMine && !finished(p);
+  });
+
+  let h = `
+  <div class="row" style="margin-bottom:12px">
+    <button class="btn sm gray" onclick="go('todo')">← 返回院总看板</button>
+    <span class="muted" style="font-size:12px">🏛 各所自审中预报</span>
+  </div>
+
+  <div class="card" style="border:1.5px solid #cbd5e1;background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)">
+    <div class="row">
+      <div>
+        <b style="font-size:16px;color:#334155">👀 各所自审中 · 下周工作预判</b>
+        <div class="muted" style="margin-top:2px;font-size:12px">所内组长/所总正在审理中 · 预计近期送审院总</div>
+      </div>
+      <span class="tag gray" style="font-size:13px;font-weight:700">${upcomingProjects.length} 项进行中</span>
+    </div>
+  </div>
+
+  <!-- 多维度筛选条 -->
+  <div class="card" style="padding:10px 12px;margin-bottom:12px">
+    <div style="font-size:12px;color:#57606a;margin-bottom:4px">按所队筛选：</div>
+    <div class="filter-bar">
+      ${[['all', '全部三个所'], ...DEPTS.map((d) => [d, d])].map(([v, label]) => `
+        <span class="chip ${curDept === v ? 'on' : ''}" onclick="setCeFilter('dept','${v}')">${label}</span>`).join('')}
+    </div>
   </div>`;
-  if (upcomingProjects.length) {
-    h += `<div class="card" style="padding:8px 12px">
-      <div class="muted" style="font-size:12px;margin-bottom:6px">以下项目目前所内组长/所总正在审理中，预计近期将流转至院总把关：</div>
-      ${upcomingProjects.map((p) => `
-        <div style="padding:6px 0;border-bottom:1px dashed #e2e8f0" class="row">
-          <div>
-            <b>${esc(p.alias || p.name)}</b>
-            <span class="muted" style="font-size:12px">（${p.dept || '规划一所'} · ${STAGES[curStage(p)] ? STAGES[curStage(p)].name : ''}）</span>
-          </div>
-          <span class="edit-link" onclick="go('project','${p.id}')">提前预看</span>
-        </div>`).join('')}
-    </div>`;
+
+  if (!upcomingProjects.length) {
+    h += `<div class="empty">暂无符合条件的自审项目 ☕<div style="margin-top:10px"><button class="btn sm gray" onclick="go('todo')">返回院总看板</button></div></div>`;
   } else {
-    h += '<div class="card empty" style="padding:12px 0;margin-bottom:8px">暂无所内自审预报</div>';
+    h += upcomingProjects.map((p) => `
+      <div class="card" style="border:1px solid #e2e8f0;background:#fff">
+        <div class="row">
+          <div>
+            <b style="font-size:15px;color:#1e293b">${esc(p.alias || p.name)}</b>
+            <span class="muted" style="font-size:12px">（${esc(p.name)}）</span>
+          </div>
+          <span class="tag purple">${p.dept || '规划一所'}</span>
+        </div>
+        <div class="muted" style="margin-top:4px;font-size:12.5px">
+          当前阶段：<b>${STAGES[curStage(p)] ? STAGES[curStage(p)].name : ''}</b> · 负责人：${uname(p.leader)}
+        </div>
+        <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
+          <span class="muted" style="font-size:12px">预计近期流转至院总</span>
+          <button class="btn sm ghost" onclick="go('project','${p.id}')">提前预看方案 →</button>
+        </div>
+      </div>`).join('');
   }
 
-  // 重点板块：💡 普适性技术问题收集板
-  h += `
-  <div class="row" style="margin:24px 0 8px">
-    <div>
-      <b style="font-size:15.5px;color:#7c3aed">💡 普适性技术问题收集板（${issues.length}）</b>
-      <div class="muted" style="font-size:12px;margin-top:2px">从院总审查批注与意见中自动沉淀 · 可修改后一键发送三个所</div>
-    </div>
+  return h;
+}
+
+// ===== 李院总二级页面：普适性技术问题收集板 =====
+function viewChiefEngineerIssues() {
+  const curDept = ceFilter.dept || 'all';
+  const curCat = ceFilter.cat || 'all';
+
+  const rawIssues = DB.commonIssues || [];
+  const issues = rawIssues.filter((iss) => {
+    if (curCat !== 'all' && iss.category !== curCat) return false;
+    if (curDept !== 'all' && iss.dept !== '全院' && iss.dept !== curDept) return false;
+    return true;
+  });
+
+  let h = `
+  <div class="row" style="margin-bottom:12px">
+    <button class="btn sm gray" onclick="go('todo')">← 返回院总看板</button>
     <button class="btn sm purple" onclick="newIssueModal()">＋ 新增注意点</button>
-  </div>`;
+  </div>
 
-  h += issues.length ? issues.map((iss) => `
-    <div class="issue-card">
-      <div class="row">
-        <div>
-          <span class="tag blue">${esc(iss.category)}</span>
-          <span class="tag">${esc(iss.dept)}</span>
-          <span class="tag ${iss.broadcasted ? 'green' : 'orange'}">${iss.broadcasted ? '📢 已发全院三个所' : '⏳ 待发全院'}</span>
-        </div>
-        <span class="muted" style="font-size:11px">${iss.createdAt}</span>
+  <div class="card" style="border:1.5px solid #8250df;background:linear-gradient(135deg, #faf8ff 0%, #f3e8ff 100%)">
+    <div class="row">
+      <div>
+        <b style="font-size:16px;color:#581c87">💡 普适性技术问题收集板</b>
+        <div class="muted" style="margin-top:2px;font-size:12px">从项目审查中提炼典型问题 · 可修改后一键发送三个所</div>
       </div>
-      <div class="muted" style="font-size:12px;margin-top:4px">来源：${esc(iss.pname)}</div>
-      
-      <div style="font-weight:700;font-size:14px;color:#1e293b;margin:6px 0 2px">⚠️ ${esc(iss.title)}</div>
-      <div style="font-size:13px;color:#475569;line-height:1.45;background:#f8fafc;padding:6px 8px;border-radius:6px;border:1px solid #e2e8f0">
-        ${esc(iss.problem)}
-      </div>
-
-      <div style="font-size:13px;color:#7c3aed;margin-top:6px;background:#faf5ff;padding:6px 8px;border-radius:6px;border:1px solid #e9d5ff;line-height:1.45">
-        <b>💡 院总提示与把关要求：</b>${esc(iss.guide)}
-      </div>
-
-      <div class="row" style="margin-top:10px;padding-top:6px;border-top:1px dashed #e2e8f0">
-        <div>
-          ${iss.broadcasted ? `<span class="muted" style="font-size:12px">已推：${iss.broadcastScope.join('、')} (${iss.broadcastAt})</span>` : ''}
-        </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn sm gray" onclick="editIssueModal('${iss.id}')">✏️ 修改内容</button>
-          <button class="btn sm purple" onclick="broadcastIssueModal('${iss.id}')">📢 发送给三个所</button>
-          <button class="btn sm gray" onclick="deleteCommonIssue('${iss.id}')" title="删除">🗑</button>
-        </div>
-      </div>
-    </div>`).join('') : '<div class="empty">暂无收集的普适性技术问题</div>';
-
-  // 院技术公告发布台
-  const bulletins = DB.bulletins || [];
-  h += `
-  <div class="row" style="margin:24px 0 8px">
-    <div>
-      <b style="font-size:15.5px;color:#0969da">📢 院技术公告发布台（${bulletins.length}）</b>
-      <div class="muted" style="font-size:12px;margin-top:2px">已向全院三个所通报发布的技术审查新规与自查标准</div>
+      <span class="tag purple" style="font-size:13px;font-weight:700">${issues.length} 条</span>
     </div>
-    <div style="display:flex;gap:6px">
-      <button class="btn sm purple" onclick="publishBulletinModal()">➕ 发布新规</button>
-      <button class="btn sm ghost" onclick="go('bulletin')">前往公告板 →</button>
+  </div>
+
+  <!-- 多维度筛选条 -->
+  <div class="card" style="padding:10px 12px;margin-bottom:12px">
+    <div style="font-size:12px;color:#57606a;margin-bottom:4px">按所队筛选：</div>
+    <div class="filter-bar">
+      ${[['all', '全部三个所'], ...DEPTS.map((d) => [d, d])].map(([v, label]) => `
+        <span class="chip ${curDept === v ? 'on' : ''}" onclick="setCeFilter('dept','${v}')">${label}</span>`).join('')}
+    </div>
+    <div style="font-size:12px;color:#57606a;margin:8px 0 4px">按项目类型筛选：</div>
+    <div class="filter-bar">
+      ${[['all', '全部类型'], ...CATEGORIES.filter((c) => c !== '其他（待开发）').map((c) => [c, c])].map(([v, label]) => `
+        <span class="chip ${curCat === v ? 'on' : ''}" onclick="setCeFilter('cat','${v}')">${label}</span>`).join('')}
     </div>
   </div>`;
+
+  if (!issues.length) {
+    h += `<div class="empty">暂无收集的普适性技术问题 ☕<div style="margin-top:10px"><button class="btn sm gray" onclick="go('todo')">返回院总看板</button></div></div>`;
+  } else {
+    h += issues.map((iss) => `
+      <div class="issue-card" style="border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px;background:#fff">
+        <div class="row">
+          <div>
+            <span class="tag blue">${esc(iss.category)}</span>
+            <span class="tag">${esc(iss.dept)}</span>
+            <span class="tag ${iss.broadcasted ? 'green' : 'orange'}">${iss.broadcasted ? '📢 已发全院三个所' : '⏳ 待发全院'}</span>
+          </div>
+          <span class="muted" style="font-size:11px">${iss.createdAt}</span>
+        </div>
+        <div class="muted" style="margin-top:4px">来源项目：${esc(iss.pname)}</div>
+        
+        <div style="font-weight:700;font-size:14px;color:#1e293b;margin:6px 0 2px">⚠️ ${esc(iss.title)}</div>
+        <div style="font-size:13px;color:#475569;line-height:1.45;background:#f8fafc;padding:6px 8px;border-radius:6px;border:1px solid #e2e8f0">
+          ${esc(iss.problem)}
+        </div>
+
+        <div style="font-size:13px;color:#7c3aed;margin-top:6px;background:#faf5ff;padding:6px 8px;border-radius:6px;border:1px solid #e9d5ff;line-height:1.45">
+          <b>💡 院总提示与把关要求：</b>${esc(iss.guide)}
+        </div>
+
+        <div class="row" style="margin-top:10px;padding-top:6px;border-top:1px dashed #e2e8f0">
+          <div>
+            ${iss.broadcasted ? `<span class="muted" style="font-size:12px">已推：${iss.broadcastScope.join('、')} (${iss.broadcastAt})</span>` : ''}
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn sm gray" onclick="editIssueModal('${iss.id}')">✏️ 修改内容</button>
+            <button class="btn sm purple" onclick="broadcastIssueModal('${iss.id}')">📢 发送给三个所</button>
+            <button class="btn sm gray" onclick="deleteCommonIssue('${iss.id}')" title="删除">🗑</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
 
   return h;
 }
