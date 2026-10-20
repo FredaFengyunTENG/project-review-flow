@@ -1,5 +1,5 @@
 // ===== 状态与通用工具 =====
-const KEY = 'review-proto-v8';
+const KEY = 'review-proto-v9';
 let DB = JSON.parse(localStorage.getItem(KEY) || 'null') || { projects: seedProjects(), commonIssues: seedCommonIssues(), bulletins: seedBulletins() };
 if (!DB.projects.find((p) => p.id === 'p5') || !DB.bulletins || !DB.bulletins.length) {
   DB = { projects: seedProjects(), commonIssues: seedCommonIssues(), bulletins: seedBulletins() };
@@ -145,8 +145,35 @@ function createProject(d) {
 function addVersion(p, v) {
   const no = p.versions.length + 1;
   p.versions.push({ no, at: now(), by: me, ...v });
-  log(p, `${uname(me)} 上传第 ${no} 版方案：${v.note}`, true);
+  const resCount = (v.resolutions || []).length;
+  const resSuffix = resCount ? `（附《审查意见修改落实对照清单》${resCount} 条）` : '';
+  log(p, `${uname(me)} 上传第 ${no} 版方案：${v.note}${resSuffix}`, true);
   save(); closeModal(); render();
+  toast(`✅ 已上传第 ${no} 版方案！${resCount ? `已包含 ${resCount} 条修改落实对照记录` : ''}`, 4000);
+}
+
+// 审查人复核并销项
+function toggleResolution(pid, versionNo, resId) {
+  const p = P(pid);
+  if (!p) return;
+  const v = p.versions.find((x) => x.no === versionNo);
+  if (!v || !v.resolutions) return;
+  const r = v.resolutions.find((x) => x.id === resId);
+  if (!r) return;
+  r.resolved = !r.resolved;
+  if (r.resolved) {
+    r.resolvedBy = me;
+    r.resolvedAt = now();
+    const shortDesc = r.feedbackSummary ? r.feedbackSummary.slice(0, 25) : '审查意见';
+    log(p, `${uname(me)} 核实并销项第 ${versionNo} 版审查意见：「${shortDesc}...」`);
+    toast('✔ 审查意见已核实销项！');
+  } else {
+    r.resolvedBy = '';
+    r.resolvedAt = '';
+    log(p, `${uname(me)} 撤销了审查意见销项状态`, true);
+    toast('已恢复为待销项状态');
+  }
+  save(); render();
 }
 
 // 修改项目信息，并把改动写进操作记录
@@ -186,12 +213,22 @@ function acceptReview(p, r, item, appt) {
   render();
 }
 
-function submitFeedback(p, r, item, fb, alsoNotify = [], msg = '') {
+function submitFeedback(p, r, item, fb, alsoNotify = [], msg = '', commonIssueData = null) {
   const isEdit = item.status === 'done';
   item.feedback = fb; item.status = 'done'; item.at = now();
   log(p, `${uname(item.uid)} ${isEdit ? '修改了' : '反馈'}「${STAGES[r.stage].name}」审查意见`, isEdit);
+
+  if (commonIssueData) {
+    DB.commonIssues = DB.commonIssues || [];
+    DB.commonIssues.unshift(commonIssueData);
+    log(p, `${uname(item.uid)} 将审查意见提炼为全院普适性问题：「${commonIssueData.title}」`, true);
+  }
+
   save(); closeModal(); render();
   notify([p.leader], `${uname(item.uid)} 已${isEdit ? '修改' : '反馈'}「${p.alias || p.name}」审查意见`);
+  if (commonIssueData) {
+    toast('💡 审查意见已提交，并已自动沉淀至「普适性问题收集板」！', 5000);
+  }
   if (alsoNotify.length) setTimeout(() => notifyOthers(p, alsoNotify, msg), 800);
 }
 
@@ -491,6 +528,36 @@ function suggestNext(p) {
   const done = p.reviews.filter((r) => r.stage === curStage(p)).flatMap((r) => r.items.map((i) => i.uid));
   const lastRole = done.length ? Math.max(...done.map((u) => VIS_ROLES.indexOf(U(u).role))) : -1;
   return reviewerPool(p).find((u) => VIS_ROLES.indexOf(U(u).role) > lastRole);
+}
+
+// ===== 所长管理数据辅助 =====
+function deptProjects(dept) {
+  return DB.projects.filter((p) => (p.dept || '规划一所') === dept);
+}
+
+function deptPendingReviews(dept) {
+  const out = [];
+  deptProjects(dept).forEach((p) => {
+    p.reviews.forEach((r) => {
+      r.items.forEach((it) => {
+        if (it.status !== 'done') out.push({ p, r, it });
+      });
+    });
+  });
+  return out;
+}
+
+function deptMeetingApplies(dept) {
+  const out = [];
+  deptProjects(dept).forEach((p) => {
+    path(p).forEach((key) => {
+      const s = p.stages[key];
+      if (s && s.apply) {
+        out.push({ p, key, apply: s.apply });
+      }
+    });
+  });
+  return out;
 }
 
 function resetDemo() {

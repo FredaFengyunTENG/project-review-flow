@@ -7,6 +7,7 @@ function render() {
   if (todoBtn) {
     if (U(me).role === '院长') todoBtn.textContent = '👑 院长看板';
     else if (U(me).role === '院总') todoBtn.textContent = '🏛 院总看板';
+    else if (U(me).role === '所长') todoBtn.textContent = `🏢 ${U(me).dept || '本所'}看板`;
     else todoBtn.textContent = '📋 待办';
   }
   $$('#tabbar button').forEach((b) => {
@@ -19,6 +20,7 @@ function render() {
   if (route.name === 'todo') {
     if (U(me).role === '院长') v.innerHTML = viewDeanBoard();
     else if (U(me).role === '院总') v.innerHTML = viewChiefEngineerBoard();
+    else if (U(me).role === '所长') v.innerHTML = viewDirectorBoard();
     else v.innerHTML = viewTodo();
   }
   else if (route.name === 'dean-meetings') v.innerHTML = viewDeanMeetings();
@@ -788,6 +790,178 @@ function setCeFilter(k, v) {
   render();
 }
 
+// ===== 所长专属生产管理看板 =====
+function viewDirectorBoard() {
+  const dept = U(me).dept || '规划一所';
+  const dProjects = deptProjects(dept);
+  const myReviews = myReviewTasks();
+  const meetingApplies = deptMeetingApplies(dept);
+
+  // 阶段分布
+  const s1Count = dProjects.filter((p) => curStage(p) === 's1').length;
+  const s2Count = dProjects.filter((p) => curStage(p) === 's2').length;
+  const s3PlusCount = dProjects.filter((p) => ['s3', 's4', 's5', 's6', 's7', 's8', 's9'].includes(curStage(p))).length;
+  const doneCount = dProjects.filter((p) => finished(p)).length;
+
+  // 待我把关的任务
+  let myReviewHtml = '';
+  if (myReviews.length) {
+    myReviewHtml = `<div class="card" style="border:1.5px solid #0969da;background:#f8fbff">
+      <div class="row">
+        <b>🔥 待我把关审查（${myReviews.length} 项）</b>
+        <span class="tag red">所长把关</span>
+      </div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+        ${myReviews.map(({ p, r, it }) => `
+          <div style="background:#fff;border:1px solid #d0e2ff;border-radius:8px;padding:9px 12px">
+            <div class="row">
+              <b>${esc(p.alias || p.name)}</b>
+              <span class="tag blue">${esc(r.form)}</span>
+            </div>
+            <div class="muted" style="font-size:12px;margin-top:4px">
+              送审节点：<b>${STAGES[r.stage].name}</b> · 负责人：<b>${uname(p.leader)}</b>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+              <button class="btn sm" onclick="go('project','${p.id}')">查看项目</button>
+              <button class="btn sm green" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
+                ${it.status === 'pending' ? '👉 接收审查' : '✍️ 填写审查意见'}
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }
+
+  // 本所报会跟踪
+  let meetingHtml = '';
+  if (meetingApplies.length) {
+    meetingHtml = `<div class="card" style="border:1.5px solid #8250df;background:#faf8ff">
+      <div class="row">
+        <b>📅 本所报会与推进追踪（${meetingApplies.length} 个）</b>
+        <span class="tag purple">分院技术审查会</span>
+      </div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+        ${meetingApplies.map(({ p, key, apply }) => {
+          const isPending = apply.status === 'pending';
+          const isScheduled = apply.status === 'scheduled';
+          return `
+            <div style="background:#fff;border:1px solid #e9d5ff;border-radius:8px;padding:9px 12px">
+              <div class="row">
+                <b>${esc(p.alias || p.name)}</b>
+                <span class="tag ${isScheduled ? 'green' : isPending ? 'orange' : 'gray'}">
+                  ${isScheduled ? '🗓 王院长已排期' : isPending ? '⏳ 待王院长排期' : '未排期'}
+                </span>
+              </div>
+              <div class="muted" style="font-size:12px;margin-top:4px">
+                申请人：<b>${uname(apply.applicant || p.leader)}</b> · 申报时间：${apply.submittedAt}
+              </div>
+              ${isScheduled ? `
+                <div style="margin-top:4px;font-size:12.5px;color:#166534">
+                  <b>排定会议：</b>${fmtAppt(apply.scheduledTime)}（${esc(apply.location || '分院会议室')}）
+                </div>` : `
+                <div style="margin-top:4px;font-size:12.5px;color:#b45309">
+                  <b>期望时间：</b>${esc(apply.prefQuick || fmtAppt(apply.prefTime) || '尽快安排')}
+                </div>`}
+              <div style="margin-top:6px;text-align:right">
+                <button class="btn sm ghost purple" onclick="go('project','${p.id}')">查看申报详情 →</button>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  // 适用本所的公告
+  const deptBulletins = (DB.bulletins || []).filter((b) => b.dept === '全院三个所' || b.dept.includes(dept));
+
+  return `
+    <div class="card" style="background:linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);border-left:4px solid #1f6feb">
+      <div class="row">
+        <b style="font-size:17px">🏢 ${dept} 生产调度看板</b>
+        <span class="tag blue">所长：${uname(me)}</span>
+      </div>
+      <div class="muted" style="margin-top:4px">
+        统揽本所项目进展、各级自审把关、技术质量闭环与报会状态
+      </div>
+    </div>
+
+    <!-- 生产大盘指标卡 -->
+    <div class="stat-grid" style="grid-template-columns:repeat(4, 1fr);margin-bottom:14px">
+      <div class="stat-item">
+        <div class="stat-num">${dProjects.length}</div>
+        <div class="stat-lbl">本所总项目</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" style="color:#0969da">${s1Count}</div>
+        <div class="stat-lbl">前期初方案</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" style="color:#8250df">${s2Count}</div>
+        <div class="stat-lbl">报会推进中</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" style="color:#1a7f37">${s3PlusCount + doneCount}</div>
+        <div class="stat-lbl">评审/报批/结项</div>
+      </div>
+    </div>
+
+    ${myReviewHtml}
+    ${meetingHtml}
+
+    <!-- 本所项目流水清单 -->
+    <h2>📋 本所生产项目清单（${dProjects.length}）</h2>
+    ${!dProjects.length ? '<div class="empty">本所暂无在编项目</div>' :
+      dProjects.map((p) => {
+        const curK = curStage(p);
+        const curDef = STAGES[curK] || {};
+        const isFin = finished(p);
+        const latestV = latest(p);
+        const resCount = (latestV.resolutions || []).length;
+        const resDoneCount = (latestV.resolutions || []).filter((r) => r.resolved).length;
+        return `
+          <div class="card click" onclick="go('project','${p.id}')">
+            <div class="row">
+              <b style="font-size:15px">${esc(p.alias || p.name)}</b>
+              <span class="tag ${isFin ? 'green' : 'blue'}">${isFin ? '已完成' : curDef.name}</span>
+            </div>
+            <div class="muted" style="font-size:12.5px;margin-top:4px">${esc(p.name)}</div>
+            <div class="row" style="margin-top:6px;font-size:12.5px">
+              <span class="muted">负责人：<b>${uname(p.leader)}</b></span>
+              <span class="muted">类别：<span class="tag">${p.category}</span></span>
+            </div>
+            ${resCount ? `
+              <div style="margin-top:6px;padding:4px 8px;background:#f8fafc;border-radius:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center">
+                <span>📋 意见落实清单（第 ${latestV.no} 版）：</span>
+                <span class="tag ${resDoneCount === resCount ? 'green' : 'orange'}">
+                  ${resDoneCount === resCount ? `✔ 全部已销项（${resCount}条）` : `⏳ ${resDoneCount}/${resCount} 已销项`}
+                </span>
+              </div>` : ''}
+            <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px dashed #e1e4e8">
+              <span class="muted" style="font-size:11.5px">最近动态：${(p.log[p.log.length - 1] || {}).text || '—'}</span>
+              <span style="font-size:12px;color:#1f6feb;font-weight:500">进入项目 →</span>
+            </div>
+          </div>`;
+      }).join('')}
+
+    ${deptBulletins.length ? `
+      <h2>📢 适用本所的院技术新规与自查要点</h2>
+      <div class="card" style="border:1px solid #c8e1ff;background:#f8fbff">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${deptBulletins.slice(0, 3).map((b) => `
+            <div style="background:#fff;border:1px solid #d0e2ff;border-radius:6px;padding:8px 10px;cursor:pointer" onclick="bulletinDetailModal('${b.id}')">
+              <div class="row">
+                <span style="font-size:13px;font-weight:600;color:#1f2937">${esc(b.title)}</span>
+                <span class="tag ${b.priority === 'high' ? 'red' : 'blue'}" style="font-size:10px">${b.tag}</span>
+              </div>
+              <div class="muted" style="font-size:12px;margin-top:2px">${esc(b.summary)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : ''}
+  `;
+}
+
 function viewTodo() {
   let h = '';
 
@@ -1201,10 +1375,48 @@ function renderSchemeCard(p) {
   const cur = vs[vs.length - 1];
   const two = p.category === '控规';
 
+  const resHtml = (v) => {
+    if (!v.resolutions || !v.resolutions.length) return '';
+    const total = v.resolutions.length;
+    const resolvedCount = v.resolutions.filter((r) => r.resolved).length;
+    const allDone = resolvedCount === total;
+    return `
+      <div style="margin:10px 0;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:8px;padding:10px">
+        <div class="row">
+          <b style="font-size:13px;color:#1e293b">📋 《审查意见修改落实对照清单》（第 ${v.no} 版）</b>
+          <span class="tag ${allDone ? 'green' : 'orange'}">${allDone ? `✔ 全部已销项 (${total})` : `⏳ 销项进度 ${resolvedCount}/${total}`}</span>
+        </div>
+        <div style="margin-top:6px;display:flex;flex-direction:column;gap:6px">
+          ${v.resolutions.map((r) => {
+            const isReviewer = me === r.reviewerUid;
+            const canResolve = isReviewer || ['院总', '所总', '所长'].includes(U(me).role) || isTeam(p);
+            return `
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:12.5px">
+                <div class="row">
+                  <span><b>${uname(r.reviewerUid)}</b> <small class="muted">（${r.reviewerRole || '审查人'}）</small></span>
+                  ${r.resolved ? `<span class="tag green">✔ 已销项 · ${uname(r.resolvedBy)}</span>` : `<span class="tag orange">⏳ 待核实销项</span>`}
+                </div>
+                <div style="color:#64748b;margin-top:3px">💬 意见：${esc(r.feedbackSummary)}</div>
+                <div style="color:#0f172a;margin-top:3px;background:#f0fdf4;padding:4px 8px;border-radius:4px">
+                  <b>落实说明：</b>${esc(r.reply)}
+                </div>
+                ${canResolve ? `
+                  <div style="text-align:right;margin-top:6px">
+                    <button class="btn sm ${r.resolved ? 'ghost' : 'green'}" onclick="toggleResolution('${p.id}', ${v.no}, '${r.id}')">
+                      ${r.resolved ? '↩ 撤销销项' : '✔ 核实并销项'}
+                    </button>
+                  </div>` : ''}
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  };
+
   const bodyHtml = (v, isOld) => `
     <div class="ver ${!isMulti ? 'single' : isOld ? 'old' : ''}">
       ${isMulti ? `<div class="row"><b>第 ${v.no} 版</b><span class="muted">🕒 ${v.at} · ${uname(v.by)}</span></div>` : ''}
       ${isMulti && v.note ? `<div class="note">📝 ${esc(v.note)}</div>` : ''}
+      ${resHtml(v)}
       ${v.text ? `<div style="margin:4px 0">${esc(v.text)}</div>` : ''}
       ${v.clause ? `<span class="tag">${BASIS[p.category] || ''}${v.clause}</span>` : ''}
       ${two ? `<div class="muted" style="margin-top:6px">用地图</div>${imgsHtml(v.imgs.a) || '<span class="muted">—</span>'}
@@ -1244,37 +1456,101 @@ function viewProject(p) {
     </div>`;
   }
 
+  // 🎯 下一步核心行动（Next Best Action）
   let act = '';
   if (team) {
-    const revert = p.stageIdx > 0 ? `<button class="btn gray" onclick="revertStage(P('${p.id}'))">↩ 撤回上一阶段</button>` : '';
+    const revertBtn = p.stageIdx > 0 ? `<button class="btn sm gray" onclick="revertStage(P('${p.id}'))">↩ 撤回上一阶段</button>` : '';
     if (finished(p)) {
-      act = `<div class="card"><b>✅ 全部阶段已完成</b><div style="margin-top:8px">${revert}</div></div>`;
+      act = `<div class="card" style="border:1.5px solid #1a7f37;background:#f6fbf7">
+        <div class="row">
+          <b style="color:#1a7f37;font-size:15px">🎉 全部审查流程已圆满完成</b>
+          <span class="tag green">已结项归档</span>
+        </div>
+        <div class="muted" style="margin-top:6px">所有审查意见均已销项，法定程序已完备。</div>
+        <div style="margin-top:10px">${revertBtn}</div>
+      </div>`;
     } else {
-      let meetingBtns = '';
+      let heroTitle = '';
+      let heroBadge = '';
+      let heroDesc = '';
+      let heroAction = '';
+      let altAction = '';
+
       if (def.type === 'meeting') {
         if (cur === 's2' || def.name.includes('技术审查会')) {
           if (!hasApply || sCur.apply.status === 'rejected') {
-            meetingBtns = `<button class="btn purple" onclick="applyMeetingModal('${p.id}','${cur}')">📅 申请报会（直报院长）</button>`;
+            heroTitle = '申请报会（直报王院长）';
+            heroBadge = '<span class="tag purple">分院会节点</span>';
+            heroDesc = '前期初方案自审成熟，请一键申请报会直报王院长排定审查会日程，免去纸质流转。';
+            heroAction = `<button class="btn purple block" style="font-size:15px;padding:10px" onclick="applyMeetingModal('${p.id}','${cur}')">📅 申请报会（直报王院长排期）</button>`;
           } else if (isAppliedPending) {
-            meetingBtns = `<button class="btn ghost purple" onclick="applyMeetingModal('${p.id}','${cur}')">⏳ 待院长排期（查看/修改报会）</button>`;
+            heroTitle = '等待王院长审批排期';
+            heroBadge = '<span class="tag orange">审批排期中</span>';
+            heroDesc = `已于 ${sCur.apply.submittedAt} 直报王院长，期望时间：<b>${esc(sCur.apply.prefQuick || fmtAppt(sCur.apply.prefTime) || '尽快安排')}</b>。`;
+            heroAction = `<button class="btn ghost purple block" onclick="applyMeetingModal('${p.id}','${cur}')">👀 查看 / 补充报会申报材料</button>`;
           } else if (isAppliedScheduled) {
-            meetingBtns = `<button class="btn purple" onclick="meetingModal('${p.id}','${cur}')">📝 录入/修改会议纪要</button>`;
+            heroTitle = '审查会已排期，待录入纪要';
+            heroBadge = '<span class="tag green">已排期</span>';
+            heroDesc = `王院长已排期于 <b>${fmtAppt(sCur.apply.scheduledTime)}</b>（${esc(sCur.apply.location || '分院会议室')}）。请按时参会并录入修改纪要。`;
+            heroAction = `<button class="btn purple block" style="font-size:15px;padding:10px" onclick="meetingModal('${p.id}','${cur}')">📝 录入审查会纪要与落实情况</button>`;
+            altAction = `<button class="btn green block" style="margin-top:6px" onclick="completeStage(P('${p.id}'))">✔ 会议要求已落实，推进至下一阶段 →</button>`;
           }
+        } else {
+          heroTitle = '录入会议信息与纪要';
+          heroBadge = '<span class="tag blue">会议节点</span>';
+          heroDesc = `请录入「${def.name}」的召开时间、地点与审查结论。`;
+          heroAction = `<button class="btn block" onclick="meetingModal('${p.id}')">📝 录入会议信息</button>`;
+          altAction = `<button class="btn green block" style="margin-top:6px" onclick="completeStage(P('${p.id}'))">✔ 完成本阶段会议，进入下一阶段 →</button>`;
         }
-        if (!meetingBtns) {
-          meetingBtns = `<button class="btn" onclick="meetingModal('${p.id}')">📝 会议信息</button>`;
+      } else {
+        // review node
+        const stageReviews = p.reviews.filter((r) => r.stage === cur);
+        if (!stageReviews.length) {
+          heroTitle = `发起「${def.forms ? def.forms[0] : '成果'}」送审`;
+          heroBadge = '<span class="tag orange">待送审</span>';
+          heroDesc = `当前处于「${def.name}」，请上传成果材料，选择校对/组长/所总等相关人员发起把关审查。`;
+          heroAction = `<button class="btn block" style="font-size:15px;padding:10px" onclick="reviewModal('${p.id}')">📤 发起送审「${(def.forms && def.forms[0]) || '成果材料'}」</button>`;
+        } else {
+          const allDone = stageReviews.every((r) => r.items.every((it) => it.status === 'done'));
+          const pendingItems = stageReviews.flatMap((r) => r.items.filter((it) => it.status !== 'done'));
+          if (allDone) {
+            heroTitle = `本阶段审查已全部完成！`;
+            heroBadge = '<span class="tag green">审查全部通过</span>';
+            heroDesc = `本阶段所有审查人员已完成意见反馈及销项核对，可推进至下一流程节点。`;
+            heroAction = `<button class="btn green block" style="font-size:15px;padding:10px" onclick="completeStage(P('${p.id}'))">✔ 完成「${def.name}」，推进至下一阶段 →</button>`;
+            altAction = `<button class="btn ghost sm" style="margin-top:8px" onclick="reviewModal('${p.id}')">＋ 追加送审其他人</button>`;
+          } else {
+            heroTitle = `等待审查人员反馈意见`;
+            heroBadge = '<span class="tag blue">审查进行中</span>';
+            heroDesc = `正在等待 <b>${pendingItems.map((i) => uname(i.uid)).join('、')}</b> 审查把关反馈。`;
+            heroAction = `<button class="btn block" onclick="reviewModal('${p.id}')">📤 追加送审其他审查人</button>`;
+            altAction = `<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end">
+              ${def.optional ? `<button class="btn sm gray" onclick="completeStage(P('${p.id}'),true)">跳过（非必选）</button>` : ''}
+              <button class="btn sm ghost green" onclick="completeStage(P('${p.id}'))">强制进入下一阶段</button>
+            </div>`;
+          }
         }
       }
 
-      act = `<div class="card">
-        <div class="row"><b>当前阶段：${def.name}</b><span class="tag blue">${def.type === 'meeting' ? '会议节点' : '审查节点'}</span></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          ${meetingBtns}
-          ${def.type === 'review' || def.preReview ? `<button class="btn" onclick="reviewModal('${p.id}')">📤 送审</button>` : ''}
-          <button class="btn ghost purple" onclick="deanNoteModal('${p.id}')">✉️ 递小纸条给院长</button>
-          <button class="btn green" onclick="completeStage(P('${p.id}'))">✔ 本阶段完成</button>
-          ${def.optional ? `<button class="btn gray" onclick="completeStage(P('${p.id}'),true)">跳过（非必选）</button>` : ''}
-          ${revert}
+      act = `<div class="card" style="border:1.5px solid #1f6feb;background:linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%)">
+        <div class="row">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:16px">🎯</span>
+            <b style="font-size:14.5px;color:#0969da">下一步核心行动：${heroTitle}</b>
+          </div>
+          ${heroBadge}
+        </div>
+        <div class="muted" style="margin-top:6px;font-size:13px;line-height:1.4">${heroDesc}</div>
+        <div style="margin-top:10px">${heroAction}</div>
+        ${altAction ? `<div>${altAction}</div>` : ''}
+        
+        <!-- 次级功能收纳条 -->
+        <div style="margin-top:10px;padding-top:8px;border-top:1px dashed #d0d7de;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+          <div style="display:flex;gap:6px">
+            <button class="btn sm ghost purple" onclick="deanNoteModal('${p.id}')">✉️ 递小纸条给院长</button>
+            <button class="btn sm ghost" onclick="versionModal('${p.id}')">＋ 上传新方案</button>
+          </div>
+          <div>${revertBtn}</div>
         </div>
       </div>`;
     }

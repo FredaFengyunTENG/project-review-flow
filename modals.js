@@ -100,6 +100,22 @@ function feedbackModal(pid, rid) {
       <label class="f">📢 同时通知所内各级审查人员查看此意见（选填）</label>
       ${chips('f_notify', subReviewers.map((u) => [u, `${uname(u)}·${U(u).role}`]))}
       <input type="text" id="f_msg" placeholder="附言（选填），如：指标表格式问题请所内审查时留意" style="margin-top:6px">` : ''}
+    ${isYuanZong ? `
+      <div style="margin-top:14px;background:#f5f3ff;border:1.5px solid #d8b4fe;border-radius:10px;padding:12px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#6b21a8;font-size:13.5px">
+          <input type="checkbox" id="f_to_common" onchange="const b=$('#common_issue_box');if(b)b.style.display=this.checked?'block':'none';">
+          💡 提炼为全院普适性问题同步至收集板
+        </label>
+        <div id="common_issue_box" style="display:none;margin-top:10px">
+          <label class="f" style="font-size:12px;color:#581c87">提炼标题（必填）</label>
+          <input type="text" id="f_issue_title" placeholder="如：地下指标计算规则与用地图边界不一致">
+          <label class="f" style="font-size:12px;color:#581c87;margin-top:6px">核心问题与隐患说明</label>
+          <textarea id="f_issue_problem" style="min-height:48px" placeholder="重点指出送审成果中的共性错误或政策脱节隐患"></textarea>
+          <label class="f" style="font-size:12px;color:#581c87;margin-top:6px">院总技术指导与全院审查要求</label>
+          <textarea id="f_issue_guide" style="min-height:48px" placeholder="对全院三个所该类项目提出的送审前复核要求与规避指引"></textarea>
+          <div class="muted" style="font-size:11.5px;margin-top:6px">提交后自动沉淀至「🏛 院总看板 → 普适性问题收集板」，后续可随时修改并一键向三个所通报发布。</div>
+        </div>
+      </div>` : ''}
     ${btns(`doFeedback('${pid}','${rid}')`, '提交意见')}`);
 }
 
@@ -109,7 +125,30 @@ function doFeedback(pid, rid, quick = '') {
     quick: '', ...fbCount, key: $('#f_key').value.trim(), other: $('#f_other').value.trim(), photos: [...UPL.f_photos],
   };
   if (!quick && !fb.dataErr && !fb.textErr && !fb.key && !fb.other && !fb.photos.length) return toast('请至少填写一项，或点「已阅，无意见」');
-  submitFeedback(p, r, it, fb, $('#f_notify') ? picked('#f_notify') : [], $('#f_msg')?.value.trim() || '');
+
+  let commonIssueData = null;
+  if ($('#f_to_common') && $('#f_to_common').checked) {
+    const title = $('#f_issue_title')?.value.trim() || fb.key.slice(0, 24) || '普适性技术审查问题';
+    const problem = $('#f_issue_problem')?.value.trim() || fb.key || '详见项目审查批注与意见。';
+    const guide = $('#f_issue_guide')?.value.trim() || '全院各所请在同类项目审查把关中重点复核，杜绝类似错误。';
+    commonIssueData = {
+      id: 'iss' + Date.now(),
+      pid: p.id,
+      pname: p.alias || p.name,
+      category: p.category,
+      dept: p.dept || '规划一所',
+      createdAt: now(),
+      by: me,
+      title,
+      problem,
+      guide,
+      broadcasted: false,
+      broadcastScope: [],
+      broadcastAt: '',
+    };
+  }
+
+  submitFeedback(p, r, it, fb, $('#f_notify') ? picked('#f_notify') : [], $('#f_msg')?.value.trim() || '', commonIssueData);
 }
 
 // ---- 院总向所内各级审查人员推送通知 ----
@@ -322,18 +361,90 @@ function doMeeting(pid, key) {
 // ---- 上传新方案 ----
 function versionModal(pid) {
   const p = P(pid), v = latest(p);
+  const prevFeedbacks = [];
+  p.reviews.forEach((r) => {
+    r.items.forEach((it) => {
+      if (it.status === 'done' && it.feedback) {
+        const fb = it.feedback;
+        let desc = '';
+        if (fb.key) desc += fb.key;
+        if (fb.dataErr) desc += (desc ? '；' : '') + `数据错误 ${fb.dataErr} 处`;
+        if (fb.textErr) desc += (desc ? '；' : '') + `文字错误 ${fb.textErr} 处`;
+        if (fb.other) desc += (desc ? '；' : '') + `其他：${fb.other}`;
+        if (!desc && fb.quick && fb.quick !== '已阅，无意见') desc = fb.quick;
+        if (desc) {
+          prevFeedbacks.push({
+            uid: it.uid,
+            role: U(it.uid).role,
+            stage: r.stage,
+            stageName: (STAGES[r.stage] && STAGES[r.stage].name) || '审查阶段',
+            form: r.form,
+            desc,
+          });
+        }
+      }
+    });
+  });
+
+  const resHtml = prevFeedbacks.length ? `
+    <div style="margin:14px 0 8px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:10px;padding:12px">
+      <div class="row">
+        <b style="font-size:13.5px;color:#1e293b">📋 审查意见修改落实对照清单</b>
+        <span class="tag blue" style="font-size:11px">质量闭环</span>
+      </div>
+      <div class="muted" style="font-size:12px;margin:4px 0 8px">
+        系统已调取往轮审查批注，请逐条填写落实说明及图纸页码：
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${prevFeedbacks.map((item, idx) => `
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:9px 11px">
+            <div class="row" style="font-size:12.5px">
+              <b>${uname(item.uid)} <span class="muted">（${item.role} · ${item.stageName}）</span></b>
+              <span class="tag orange">待落实</span>
+            </div>
+            <div style="margin-top:4px;font-size:12.5px;color:#334155;background:#f1f5f9;padding:6px 8px;border-radius:6px">
+              💬 审查批注：${esc(item.desc)}
+            </div>
+            <label class="f" style="font-size:12px;margin-top:6px;color:#0969da">修改落实情况及图纸页码：</label>
+            <textarea class="res-item-reply" data-uid="${item.uid}" data-role="${item.role}" data-stage="${item.stage}" data-summary="${esc(item.desc)}" placeholder="如：已按意见修正指标表地下商业面积为 12000㎡，详见 P12 规划指标表及 P15 附图说明" style="min-height:46px"></textarea>
+          </div>
+        `).join('')}
+      </div>
+    </div>` : '';
+
   openModal(`<h3>上传新方案（第 ${v.no + 1} 版）</h3>
-    <label class="f">📝 方案修改说明（必填：改了什么、为什么改）</label>
-    <textarea id="v_note" placeholder="如：按所总意见，北侧道路红线退让由 5m 调整为 8m"></textarea>
+    <label class="f">📝 方案修改总说明（必填：改了什么、为什么改）</label>
+    <textarea id="v_note" placeholder="如：按校对意见修正指标表地下面积；北侧道路红线退让由 5m 调整为 8m"></textarea>
+    ${resHtml}
     ${contentFields(p.category, v)}
     ${btns(`doVersion('${pid}')`, '上传新方案')}`);
 }
+
 function doVersion(pid) {
   const note = $('#v_note').value.trim();
   if (!note) return toast('请填写修改说明');
   const c = readContent();
   if (!c.imgs.a.length && !c.imgs.b.length && !c.text) return toast('请上传方案图片或填写内容');
-  addVersion(P(pid), { note, ...c });
+
+  const resolutions = [];
+  $$('.res-item-reply').forEach((el, idx) => {
+    const reply = el.value.trim();
+    if (reply) {
+      resolutions.push({
+        id: 'res_' + Date.now() + '_' + idx,
+        reviewerUid: el.dataset.uid,
+        reviewerRole: el.dataset.role,
+        stage: el.dataset.stage,
+        feedbackSummary: el.dataset.summary,
+        reply,
+        resolved: false,
+        resolvedBy: '',
+        resolvedAt: '',
+      });
+    }
+  });
+
+  addVersion(P(pid), { note, ...c, resolutions });
 }
 
 // ---- 修改项目基本信息 ----
