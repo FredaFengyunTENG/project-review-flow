@@ -40,6 +40,11 @@ function statusTag(it) {
   return '<span class="tag orange">待接收</span>';
 }
 
+function catTag(cat) {
+  const cls = cat === '正向优化' ? 'green' : cat === '技术修正' ? 'blue' : cat === '控规优化调整' ? 'purple' : cat === '控规修改' ? 'orange' : '';
+  return `<span class="tag ${cls}">${esc(cat)}</span>`;
+}
+
 // ===== 王院长专属看板 =====
 function viewDeanBoard() {
   const totalProjects = DB.projects.length;
@@ -79,11 +84,11 @@ function viewDeanBoard() {
         <div class="stat-lbl">分院总项目数</div>
       </div>
       <div class="stat-item">
-        <div class="stat-num" style="color:#0969da">${catCounts['控规修改'] || 0}</div>
-        <div class="stat-lbl">控规修改类</div>
+        <div class="stat-num" style="color:#1a7f37">${(catCounts['正向优化'] || 0) + (catCounts['技术修正'] || 0)}</div>
+        <div class="stat-lbl">正向优化/技术修正</div>
       </div>
       <div class="stat-item">
-        <div class="stat-num" style="color:#1a7f37">${catCounts['控规优化调整'] || 0}</div>
+        <div class="stat-num" style="color:#0969da">${catCounts['控规优化调整'] || 0}</div>
         <div class="stat-lbl">控规优化调整</div>
       </div>
     </div>
@@ -92,7 +97,10 @@ function viewDeanBoard() {
       <span class="tag">${DEPTS[0]}：<b>${deptCounts[DEPTS[0]] || 0}</b> 项</span>
       <span class="tag">${DEPTS[1]}：<b>${deptCounts[DEPTS[1]] || 0}</b> 项</span>
       <span class="tag">${DEPTS[2]}：<b>${deptCounts[DEPTS[2]] || 0}</b> 项</span>
-      <span class="tag">控规新编：<b>${catCounts['控规'] || 0}</b> 项</span>
+      <span class="tag green">正向优化：<b>${catCounts['正向优化'] || 0}</b></span>
+      <span class="tag blue">技术修正：<b>${catCounts['技术修正'] || 0}</b></span>
+      <span class="tag orange">控规修改：<b>${catCounts['控规修改'] || 0}</b></span>
+      <span class="tag">控规新编：<b>${catCounts['控规'] || 0}</b></span>
     </div>
   </div>`;
 
@@ -625,7 +633,7 @@ function viewChiefEngineerReviews() {
         <b>${esc(p.alias || p.name)}</b>
         ${statusTag(it)}
       </div>
-      <div class="muted" style="margin-top:2px">${p.dept || '规划一所'} · ${STAGES[r.stage].name} · ${uname(p.leader)} 送审</div>
+      <div class="muted" style="margin-top:2px">${p.dept || '规划一所'} · ${stageMeta(p, r.stage).name} · ${uname(p.leader)} 送审</div>
       <div class="muted" style="margin-top:2px">成果形式：${esc(r.form)} · ${r.paper ? '纸质册子' : '电子档'}</div>
       <div style="margin-top:8px;color:#1f6feb;font-size:13px;font-weight:500">
         ${it.status === 'pending' ? '👉 点此接收' + (r.paper ? '并约送册时间' : '') : '👉 点此录入技术审查把关意见'}
@@ -691,7 +699,7 @@ function viewChiefEngineerUpcoming() {
           <span class="tag purple">${p.dept || '规划一所'}</span>
         </div>
         <div class="muted" style="margin-top:4px;font-size:12.5px">
-          当前阶段：<b>${STAGES[curStage(p)] ? STAGES[curStage(p)].name : ''}</b> · 负责人：${uname(p.leader)}
+          当前阶段：<b>${curStage(p) ? stageMeta(p, curStage(p)).name : ''}</b> · 负责人：${uname(p.leader)}
         </div>
         <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
           <span class="muted" style="font-size:12px">预计近期流转至院总</span>
@@ -800,7 +808,7 @@ function viewDirectorBoard() {
   // 阶段分布
   const s1Count = dProjects.filter((p) => curStage(p) === 's1').length;
   const s2Count = dProjects.filter((p) => curStage(p) === 's2').length;
-  const s3PlusCount = dProjects.filter((p) => ['s3', 's4', 's5', 's6', 's7', 's8', 's9'].includes(curStage(p))).length;
+  const s3PlusCount = dProjects.filter((p) => !finished(p) && !['s1', 's2'].includes(curStage(p))).length;
   const doneCount = dProjects.filter((p) => finished(p)).length;
 
   // 待我把关的任务
@@ -819,7 +827,7 @@ function viewDirectorBoard() {
               <span class="tag blue">${esc(r.form)}</span>
             </div>
             <div class="muted" style="font-size:12px;margin-top:4px">
-              送审节点：<b>${STAGES[r.stage].name}</b> · 负责人：<b>${uname(p.leader)}</b>
+              送审节点：<b>${stageMeta(p, r.stage).name}</b> · 负责人：<b>${uname(p.leader)}</b>
             </div>
             <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
               <button class="btn sm" onclick="go('project','${p.id}')">查看项目</button>
@@ -914,7 +922,7 @@ function viewDirectorBoard() {
     ${!dProjects.length ? '<div class="empty">本所暂无在编项目</div>' :
       dProjects.map((p) => {
         const curK = curStage(p);
-        const curDef = STAGES[curK] || {};
+        const curDef = stageMeta(p, curK);
         const isFin = finished(p);
         const latestV = latest(p);
         const resCount = (latestV.resolutions || []).length;
@@ -928,7 +936,7 @@ function viewDirectorBoard() {
             <div class="muted" style="font-size:12.5px;margin-top:4px">${esc(p.name)}</div>
             <div class="row" style="margin-top:6px;font-size:12.5px">
               <span class="muted">负责人：<b>${uname(p.leader)}</b></span>
-              <span class="muted">类别：<span class="tag">${p.category}</span></span>
+              <span class="muted">类别：${catTag(p.category)}</span>
             </div>
             ${resCount ? `
               <div style="margin-top:6px;padding:4px 8px;background:#f8fafc;border-radius:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center">
@@ -994,7 +1002,7 @@ function viewTodo() {
   h += tasks.length ? tasks.map(({ p, r, it }) => `
     <div class="card click" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
       <div class="row"><b>${esc(p.alias || p.name)}</b>${statusTag(it)}</div>
-      <div class="muted" style="margin-top:4px">${p.dept || '规划一所'} · ${STAGES[r.stage].name} · ${uname(p.leader)} 送审</div>
+      <div class="muted" style="margin-top:4px">${p.dept || '规划一所'} · ${stageMeta(p, r.stage).name} · ${uname(p.leader)} 送审</div>
       ${r.parallel ? `<span class="tag red">同时审查：${esc(r.reason)}</span>` : ''}
       <div style="margin-top:8px;color:#1f6feb;font-size:13px;font-weight:500">${it.status === 'pending' ? '👉 点此接收' + (r.paper ? '并约送册时间' : '') : '👉 点此填写审查意见'}</div>
     </div>`).join('') : '<div class="empty">暂无待审查事项 ☕</div>';
@@ -1008,7 +1016,7 @@ function viewTodo() {
     const items = p.reviews.filter((r) => r.stage === curK).flatMap((r) => r.items);
     const appts = items.filter((i) => i.status === 'accepted' && i.appointment);
     const back = items.filter((i) => i.status === 'done');
-    const curName = STAGES[curK] ? STAGES[curK].name : '已完成';
+    const curName = curK ? stageMeta(p, curK).name : '已完成';
 
     let applyBadge = '';
     if (sCur.apply) {
@@ -1020,7 +1028,7 @@ function viewTodo() {
     }
 
     return `<div class="card click" onclick="go('project','${p.id}')">
-      <div class="row"><b>${esc(p.alias || p.name)}</b><span class="tag">${p.category}</span></div>
+      <div class="row"><b>${esc(p.alias || p.name)}</b>${catTag(p.category)}</div>
       <div class="muted" style="margin-top:4px">${p.dept || '规划一所'} · 当前阶段：${curName}</div>
       ${applyBadge}
       ${appts.map((i) => `<div class="tag blue">📅 ${uname(i.uid)} 约 ${fmtAppt(i.appointment)} 送册</div>`).join('')}
@@ -1081,6 +1089,7 @@ function viewTechnicalBulletin() {
       <span class="chip ${bulletinFilter.tag === '审查新需求' ? 'on' : ''}" onclick="bulletinFilter.tag='审查新需求';render()">审查新需求</span>
       <span class="chip ${bulletinFilter.tag === '共性问题通报' ? 'on' : ''}" onclick="bulletinFilter.tag='共性问题通报';render()">共性问题通报</span>
       <span class="chip ${bulletinFilter.tag === '送审清单' ? 'on' : ''}" onclick="bulletinFilter.tag='送审清单';render()">送审清单</span>
+      <span class="chip ${bulletinFilter.tag === '规范更新' ? 'on' : ''}" onclick="bulletinFilter.tag='规范更新';render()">规范更新</span>
     </div>
   </div>
 
@@ -1135,9 +1144,9 @@ function viewProjects() {
   const list = DB.projects.filter((p) => canSee(p, me));
   return `<h2>我能看到的项目（${list.length}）</h2>` + (list.length ? list.map((p) => `
     <div class="card click" onclick="go('project','${p.id}')">
-      <div class="row"><b>${esc(p.alias || p.name)}</b><span class="tag">${p.category}</span></div>
+      <div class="row"><b>${esc(p.alias || p.name)}</b>${catTag(p.category)}</div>
       <div class="muted" style="margin-top:2px">${esc(p.name)}</div>
-      <div class="muted" style="margin-top:4px">负责人 ${uname(p.leader)} · ${finished(p) ? '✅ 已完成' : '当前：' + (STAGES[curStage(p)] ? STAGES[curStage(p)].name : '—')}</div>
+      <div class="muted" style="margin-top:4px">负责人 ${uname(p.leader)} · ${finished(p) ? '✅ 已完成' : '当前：' + (curStage(p) ? stageMeta(p, curStage(p)).name : '—')}</div>
     </div>`).join('') : '<div class="empty">暂无</div>') +
     `<button class="btn gray block" onclick="resetDemo()">重置示例数据</button>`;
 }
@@ -1208,36 +1217,156 @@ function visibleFieldHtml(vis = []) {
   ).join('');
 }
 
+// 各类别流程政策速览横幅（新建项目时直观引导）
+const CAT_POLICY_GUIDE = {
+  '正向优化': {
+    color: '#1a7f37', bg: '#f0fdf4', border: '#86efac',
+    title: '⚡ 正向优化 · 独立快速通道（市局审定）',
+    desc: '符合《正向优化清单（试行）》即视为符合详规，无需走调整程序。流程：院内审查 → 详细规划联审会 → 公示（≥10日，涉密或不改红线/等级道路免公示）→ 局长办公会审核 → 市资源规划局审定盖章纳入“一张图”。',
+  },
+  '技术修正': {
+    color: '#0969da', bg: '#f0f7ff', border: '#93c5fd',
+    title: '🛠 技术修正 · 常态化微调更正（市局入库）',
+    desc: '不改变详规总体要求（边界微调、四线微调、指标勘误、坐标转换等）。流程：院内审查 → 详细规划联审会 →（仅涉及相邻权益人影响时公示≥10日）→ 盖章直接纳入“一张图”系统。',
+  },
+  '控规优化调整': {
+    color: '#6b21a8', bg: '#faf5ff', border: '#d8b4fe',
+    title: '🔗 控规优化调整 · 论证与新编控规一块走 + 仅合并公示一次',
+    desc: '原“控规修改论证 + 新编控规方案”合并同步走流程！经详细规划联审会研究同意后，只公示一次（≥10日，优化调整论证与新编控规方案内容一并公示），随后上报市政府规划联审联批会审核及市政府批复入库。',
+  },
+  '控规修改': {
+    color: '#b45309', bg: '#fffbeb', border: '#fcd34d',
+    title: '📋 控规修改（规划修改）· 重大变更严格程序',
+    desc: '除正向优化、动态维护外的重大变更。修改必要性论证与修改后新编方案分开两轮进行，两次公示均严格执行不少于30日。',
+  },
+  '控规': {
+    color: '#334155', bg: '#f8fafc', border: '#cbd5e1',
+    title: '📐 新编控规 · 详细规划编制全流程',
+    desc: '前期审理 → 分院技术审查会 → 评审方案审查 → 联审会 → 批前公示 → 市长会(可选) → 市政府规划联审联批会 → 成果报批 → 批后公告。',
+  },
+};
+
+function clauseDescHtml(cat, clause) {
+  const desc = (CLAUSE_DESC[cat] && CLAUSE_DESC[cat][clause]) || '';
+  return `<div id="c_clause_desc" style="display:${desc ? 'block' : 'none'};margin-top:6px;padding:8px 10px;background:#f8fafc;border-left:3px solid #1f6feb;border-radius:0 6px 6px 0;font-size:12.5px;color:#334155;line-height:1.5">${esc(desc)}</div>`;
+}
+
+function updateClauseHint(box) {
+  const cat = box.closest('[data-cat]')?.dataset.cat || '';
+  const cl = picked('#c_clause')[0] || '';
+  const desc = (CLAUSE_DESC[cat] && CLAUSE_DESC[cat][cl]) || '';
+  const el = $('#c_clause_desc');
+  if (el) {
+    el.textContent = desc;
+    el.style.display = desc ? 'block' : 'none';
+  }
+}
+
 // 方案内容表单
 function contentFields(cat, v = {}) {
   if (cat === '其他（待开发）') {
     return `<div class="empty" style="padding:20px 0">🚧 专项规划等其他类型项目流程正在开发中，敬请期待...</div>`;
   }
-  if (cat === '控规') return `<label class="f">用地图</label>${uploader('c_a')}
-    <label class="f">指标表（地上地下）</label>${uploader('c_b')}`;
-  
+  const imgsA = (v.imgs && v.imgs.a) || [];
+  const imgsB = (v.imgs && v.imgs.b) || [];
+  const imgsC = (v.imgs && v.imgs.c) || [];
   const clauses = CLAUSES[cat] || [];
-  return `<label class="f">${cat === '控规修改' ? '修改' : '优化调整'}内容（图片为主）</label>${uploader('c_a')}
+  const selClause = v.clause || (clauses[0] || '');
+
+  if (cat === '正向优化') {
+    return `<div data-cat="${esc(cat)}">
+      <label class="f">适用情形：${BASIS[cat]}</label>
+      ${chips('c_clause', clauses.map((x) => [x, x]), selClause ? [selClause] : [], true)}
+      ${clauseDescHtml(cat, selClause)}
+    </div>
+    <label class="f">正向优化后地块图则 / 线性设施优化图（含地块示意图、已批指标与优化后控制指标）</label>
+    ${uploader('c_a', imgsA)}
+    <label class="f">原详规地块图则 / 论证报告要点截图（选填）</label>
+    ${uploader('c_b', imgsB)}
+    <label class="f">对照《正向优化清单》条目及指标优化说明（选填）</label>
+    <textarea id="c_text" placeholder="如：符合《清单》工业混合研发情形，容积率 1.8 → 2.6" style="margin-top:4px">${esc(v.text || '')}</textarea>`;
+  }
+
+  if (cat === '技术修正') {
+    const nb = v.neighbor !== undefined ? String(v.neighbor) : '0';
+    return `<div data-cat="${esc(cat)}">
+      <label class="f">法规依据：${BASIS[cat]}（共 ${clauses.length} 种情形，自动匹配提交成果要求）</label>
+      ${chips('c_clause', clauses.map((x) => [x, x]), selClause ? [selClause] : [], true)}
+      ${clauseDescHtml(cat, selClause)}
+    </div>
+    <label class="f">是否涉及对相邻权益人造成影响（决定联审会后是否需公示≥10日）</label>
+    ${chips('c_neighbor', [['0', '不涉及相邻权益（免公示）'], ['1', '涉及相邻权益人影响（需公示≥10日）']], [nb], true)}
+    <label class="f">技术修正后地块图则（2000坐标系）/ 全套成果关键图件</label>
+    ${uploader('c_a', imgsA)}
+    <label class="f">技术修正具体内容简述（选填）</label>
+    <textarea id="c_text" placeholder="如：依据不动产权籍调查微调东侧边界0.8m，54坐标已转换2000坐标系" style="margin-top:4px">${esc(v.text || '')}</textarea>`;
+  }
+
+  if (cat === '控规优化调整') {
+    return `<div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#581c87;margin-bottom:8px;line-height:1.45">
+      🔗 <b>合并同步编制：</b>请同时上传【优化调整论证内容】与【调整后新编控规方案】，联审会后<b>只公示一次（≥10日）</b>，两部分内容一并公示。
+    </div>
+    <div data-cat="${esc(cat)}">
+      <label class="f">① 法规依据：${BASIS[cat]}（共 ${clauses.length} 种情形）</label>
+      ${chips('c_clause', clauses.map((x) => [x, x]), selClause ? [selClause] : [], true)}
+      ${clauseDescHtml(cat, selClause)}
+    </div>
+    <label class="f">① 优化调整论证内容图/表（拍照/粘贴截图）</label>
+    ${uploader('c_a', imgsA)}
+    <textarea id="c_text" placeholder="一句话概括优化调整及新编方案要点（注：街坊号按规则顺延编写，如 16-095-K01 → 16-095-K02）" style="margin-top:6px">${esc(v.text || '')}</textarea>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #cbd5e1">
+      <div style="font-size:13px;font-weight:600;color:#0969da">📐 同步编制的新编控规方案成果（一块走流程、合并公示）</div>
+      <label class="f">② 调整后新编控规用地图 & 地块图则</label>
+      ${uploader('c_b', imgsB)}
+      <label class="f">③ 调整后指标表（地上地下）</label>
+      ${uploader('c_c', imgsC)}
+    </div>`;
+  }
+
+  if (cat === '控规') {
+    return `<label class="f">用地图</label>${uploader('c_a', imgsA)}
+      <label class="f">指标表（地上地下）</label>${uploader('c_b', imgsB)}
+      <label class="f">地块图则（选填）</label>${uploader('c_c', imgsC)}
+      <label class="f">规划概况说明（选填）</label>
+      <textarea id="c_text" placeholder="一句话概括规划范围与主导功能">${esc(v.text || '')}</textarea>`;
+  }
+
+  // 控规修改（规划修改）
+  return `<label class="f">修改内容（图片为主）</label>${uploader('c_a', imgsA)}
     <textarea id="c_text" placeholder="文字选填，一句话概括" style="margin-top:6px">${esc(v.text || '')}</textarea>
-    <label class="f">法规依据：${BASIS[cat] || ''}（共 ${clauses.length} 种情形）</label>
-    ${chips('c_clause', clauses.map((x) => [x, x]), v.clause ? [v.clause] : [], true)}`;
+    <div data-cat="${esc(cat)}">
+      <label class="f">法规依据：${BASIS[cat] || ''}（共 ${clauses.length} 种情形）</label>
+      ${chips('c_clause', clauses.map((x) => [x, x]), v.clause ? [v.clause] : (selClause ? [selClause] : []), true)}
+      ${clauseDescHtml(cat, v.clause || selClause)}
+    </div>`;
 }
 
 function readContent() {
-  return { text: $('#c_text')?.value.trim() || '', clause: picked('#c_clause')[0] || '', imgs: { a: [...(UPL.c_a || [])], b: [...(UPL.c_b || [])] } };
+  const out = {
+    text: $('#c_text')?.value.trim() || '',
+    clause: picked('#c_clause')[0] || '',
+    imgs: {
+      a: [...(UPL.c_a || [])],
+      b: [...(UPL.c_b || [])],
+      c: [...(UPL.c_c || [])],
+    },
+  };
+  if ($('#c_neighbor')) out.neighbor = picked('#c_neighbor')[0] || '0';
+  return out;
 }
 
 function viewNew() {
   return `<h2>新建项目</h2><div class="card">
     <label class="f">项目类别</label>
-    ${chips('n_cat', CATEGORIES.map((c) => [c, c]), ['控规修改'], true)}
-    <div id="n_pubBox"><label class="f">公示时间</label>
+    ${chips('n_cat', CATEGORIES.map((c) => [c, c]), ['控规优化调整'], true)}
+    <div id="n_policyGuide" style="margin-top:8px"></div>
+    <div id="n_pubBox" style="display:none"><label class="f">公示时间（控规修改）</label>
       ${chips('n_pub', [['after', '联审会后（常用）'], ['before', '联审会前']], ['after'], true)}</div>
     <div id="n_nameBox">
       <label class="f">正式名称</label>
       <input type="text" id="n_name" data-upl="n_nameImg" placeholder="输入文字，或在下方拍照 / 粘贴截图">
       <div style="margin-top:6px">${uploader('n_nameImg')}</div>
-      <label class="f">俗称</label><input type="text" id="n_alias" placeholder="如：东湖地块">
+      <label class="f">俗称</label><input type="text" id="n_alias" placeholder="如：滨江商务区 / 金水科创地块">
     </div>
   </div>
   <div id="n_rest">
@@ -1255,16 +1384,21 @@ function viewNew() {
 function bindNew() {
   renderMemberBadges();
   const upd = () => {
-    const cat = picked('#n_cat')[0] || '控规修改';
+    const cat = picked('#n_cat')[0] || '控规优化调整';
     const isOther = cat === '其他（待开发）';
-    $('#n_pubBox').style.display = (cat === '控规' || isOther) ? 'none' : '';
+    const guide = CAT_POLICY_GUIDE[cat];
+    $('#n_policyGuide').innerHTML = guide ? `
+      <div style="background:${guide.bg};border:1.5px solid ${guide.border};border-radius:8px;padding:9px 11px;font-size:12.5px;line-height:1.5">
+        <div style="font-weight:700;color:${guide.color}">${esc(guide.title)}</div>
+        <div style="color:#334155;margin-top:2px">${esc(guide.desc)}</div>
+      </div>` : '';
+    $('#n_pubBox').style.display = cat === '控规修改' ? '' : 'none';
     $('#n_content').innerHTML = contentFields(cat);
     $('#n_nameBox').style.display = isOther ? 'none' : '';
     $('#n_rest').style.display = isOther ? 'none' : '';
+    $('#other_tip')?.remove();
     if (isOther) {
-      $('#n_pubBox').insertAdjacentHTML('afterend', '<div class="card empty" id="other_tip">🚧 专项规划等其他类型项目流程正在开发中，敬请期待...</div>');
-    } else {
-      $('#other_tip')?.remove();
+      $('#n_policyGuide').insertAdjacentHTML('afterend', '<div class="card empty" id="other_tip" style="margin-top:10px">🚧 专项规划等其他类型项目流程正在开发中，敬请期待...</div>');
     }
   };
   $('#n_cat').addEventListener('change', upd);
@@ -1373,7 +1507,6 @@ function renderSchemeCard(p) {
   const vs = p.versions;
   const isMulti = vs.length > 1;
   const cur = vs[vs.length - 1];
-  const two = p.category === '控规';
 
   const resHtml = (v) => {
     if (!v.resolutions || !v.resolutions.length) return '';
@@ -1412,16 +1545,55 @@ function renderSchemeCard(p) {
       </div>`;
   };
 
+  const mediaHtml = (v, isOld) => {
+    const imgs = v.imgs || {};
+    const cDesc = v.clause && CLAUSE_DESC[p.category] && CLAUSE_DESC[p.category][v.clause];
+    const tags = [];
+    if (v.clause) tags.push(`<span class="tag blue">📜 ${esc((BASIS[p.category] ? BASIS[p.category] + ' · ' : '') + v.clause)}</span>`);
+    if (p.category === '技术修正') {
+      tags.push(v.neighbor === '1'
+        ? '<span class="tag orange">⚠️ 涉及相邻权益 · 需公示≥10日</span>'
+        : '<span class="tag green">✔ 不涉及相邻权益 · 免公示</span>');
+    }
+    if (p.category === '控规优化调整') {
+      tags.push('<span class="tag purple">🔗 优化调整论证+新编控规合一 · 仅合并公示一次(≥10日)</span>');
+    }
+
+    let imgsSection = '';
+    if (p.category === '控规优化调整') {
+      imgsSection = `
+        <div class="muted" style="margin-top:6px">① 优化调整论证内容</div>${imgsHtml(imgs.a) || '<span class="muted">—</span>'}
+        <div class="muted" style="margin-top:6px">② 调整后新编控规用地图与街坊图则</div>${imgsHtml(imgs.b) || '<span class="muted">—</span>'}
+        <div class="muted" style="margin-top:6px">③ 调整后地上地下指标表</div>${imgsHtml(imgs.c) || '<span class="muted">—</span>'}`;
+    } else if (p.category === '正向优化') {
+      imgsSection = `
+        <div class="muted" style="margin-top:6px">正向优化后地块图则 / 线性设施优化图（含已批与优化后指标对比）</div>${imgsHtml(imgs.a) || '<span class="muted">—</span>'}
+        ${imgs.b && imgs.b.length ? `<div class="muted" style="margin-top:6px">原详规图则 / 论证报告要点</div>${imgsHtml(imgs.b)}` : ''}`;
+    } else if (p.category === '技术修正') {
+      imgsSection = `
+        <div class="muted" style="margin-top:6px">修正后地块图则（2000坐标系）/ 全套成果关键图件</div>${imgsHtml(imgs.a) || '<span class="muted">—</span>'}`;
+    } else if (p.category === '控规') {
+      imgsSection = `
+        <div class="muted" style="margin-top:6px">用地图</div>${imgsHtml(imgs.a) || '<span class="muted">—</span>'}
+        <div class="muted" style="margin-top:4px">指标表</div>${imgsHtml(imgs.b) || '<span class="muted">—</span>'}
+        ${imgs.c && imgs.c.length ? `<div class="muted" style="margin-top:4px">地块图则</div>${imgsHtml(imgs.c)}` : ''}`;
+    } else {
+      imgsSection = `<div>${imgsHtml(imgs.a)}</div>`;
+    }
+
+    return `
+      ${tags.length ? `<div style="margin:6px 0;display:flex;flex-wrap:wrap;gap:6px">${tags.join('')}</div>` : ''}
+      ${!isOld && cDesc ? `<div style="font-size:12px;color:#475569;background:#f8fafc;border-left:3px solid #93c5fd;padding:5px 8px;border-radius:0 4px 4px 0;margin:4px 0 6px;line-height:1.45">${esc(cDesc)}</div>` : ''}
+      ${imgsSection}`;
+  };
+
   const bodyHtml = (v, isOld) => `
     <div class="ver ${!isMulti ? 'single' : isOld ? 'old' : ''}">
       ${isMulti ? `<div class="row"><b>第 ${v.no} 版</b><span class="muted">🕒 ${v.at} · ${uname(v.by)}</span></div>` : ''}
       ${isMulti && v.note ? `<div class="note">📝 ${esc(v.note)}</div>` : ''}
       ${resHtml(v)}
       ${v.text ? `<div style="margin:4px 0">${esc(v.text)}</div>` : ''}
-      ${v.clause ? `<span class="tag">${BASIS[p.category] || ''}${v.clause}</span>` : ''}
-      ${two ? `<div class="muted" style="margin-top:6px">用地图</div>${imgsHtml(v.imgs.a) || '<span class="muted">—</span>'}
-               <div class="muted" style="margin-top:4px">指标表</div>${imgsHtml(v.imgs.b) || '<span class="muted">—</span>'}`
-            : `<div>${imgsHtml(v.imgs.a)}</div>`}
+      ${mediaHtml(v, isOld)}
     </div>`;
 
   return `<div class="card">
@@ -1433,7 +1605,7 @@ function renderSchemeCard(p) {
 function viewProject(p) {
   if (!p) return '<div class="empty">项目不存在</div>';
   if (!canSee(p, me)) return '<div class="empty">🔒 你不在该项目的公开范围内</div>';
-  const keys = path(p), cur = curStage(p), def = STAGES[cur] || {}, team = isTeam(p);
+  const keys = path(p), cur = curStage(p), def = stageMeta(p, cur), team = isTeam(p);
   const sCur = p.stages[cur] || {};
   const isDean = U(me).role === '院长';
   const hasApply = !!sCur.apply;
@@ -1446,7 +1618,7 @@ function viewProject(p) {
     deanCard = `<div class="card" style="border:1.5px solid #8250df;background:#faf8ff">
       <div class="row">
         <b>🔔 报会排期待审批</b>
-        <span class="tag purple">${def.name}</span>
+        <span class="tag purple">${esc(def.name)}</span>
       </div>
       <div class="muted" style="margin-top:6px">
         申请人：<b>${uname(sCur.apply.applicant || p.leader)}</b> · 期望时间：<b>${esc(sCur.apply.prefQuick || fmtAppt(sCur.apply.prefTime) || '尽快安排')}</b>
@@ -1463,10 +1635,10 @@ function viewProject(p) {
     if (finished(p)) {
       act = `<div class="card" style="border:1.5px solid #1a7f37;background:#f6fbf7">
         <div class="row">
-          <b style="color:#1a7f37;font-size:15px">🎉 全部审查流程已圆满完成</b>
+          <b style="color:#1a7f37;font-size:15px">🎉 全部审查及入库流程已圆满完成</b>
           <span class="tag green">已结项归档</span>
         </div>
-        <div class="muted" style="margin-top:6px">所有审查意见均已销项，法定程序已完备。</div>
+        <div class="muted" style="margin-top:6px">所有审查意见均已销项，法定程序及“一张图”入库手续已完备。</div>
         <div style="margin-top:10px">${revertBtn}</div>
       </div>`;
     } else {
@@ -1483,6 +1655,9 @@ function viewProject(p) {
             heroBadge = '<span class="tag purple">分院会节点</span>';
             heroDesc = '前期初方案自审成熟，请一键申请报会直报王院长排定审查会日程，免去纸质流转。';
             heroAction = `<button class="btn purple block" style="font-size:15px;padding:10px" onclick="applyMeetingModal('${p.id}','${cur}')">📅 申请报会（直报王院长排期）</button>`;
+            if (def.optional) {
+              altAction = `<button class="btn ghost sm block" style="margin-top:6px" onclick="completeStage(P('${p.id}'),true)">⏭ ${esc(def.skipLabel || '跳过本阶段（非必选）')}</button>`;
+            }
           } else if (isAppliedPending) {
             heroTitle = '等待王院长审批排期';
             heroBadge = '<span class="tag orange">审批排期中</span>';
@@ -1495,21 +1670,42 @@ function viewProject(p) {
             heroAction = `<button class="btn purple block" style="font-size:15px;padding:10px" onclick="meetingModal('${p.id}','${cur}')">📝 录入审查会纪要与落实情况</button>`;
             altAction = `<button class="btn green block" style="margin-top:6px" onclick="completeStage(P('${p.id}'))">✔ 会议要求已落实，推进至下一阶段 →</button>`;
           }
+        } else if (sCur.meeting) {
+          heroTitle = '会议纪要已录入，推进至下一阶段';
+          heroBadge = '<span class="tag green">纪要已录</span>';
+          heroDesc = `「${esc(def.name)}」纪要已保存，确认会议审议意见落实后可推进至下一流程节点。`;
+          heroAction = `<button class="btn green block" style="font-size:15px;padding:10px" onclick="completeStage(P('${p.id}'))">✔ 完成「${esc(def.name)}」，进入下一阶段 →</button>`;
+          altAction = `<button class="btn ghost sm" style="margin-top:6px" onclick="meetingModal('${p.id}','${cur}')">✏️ 修改会议纪要</button>`;
         } else {
-          heroTitle = '录入会议信息与纪要';
+          heroTitle = `录入「${def.name}」信息与纪要`;
           heroBadge = '<span class="tag blue">会议节点</span>';
-          heroDesc = `请录入「${def.name}」的召开时间、地点与审查结论。`;
-          heroAction = `<button class="btn block" onclick="meetingModal('${p.id}')">📝 录入会议信息</button>`;
-          altAction = `<button class="btn green block" style="margin-top:6px" onclick="completeStage(P('${p.id}'))">✔ 完成本阶段会议，进入下一阶段 →</button>`;
+          heroDesc = `请录入「${esc(def.name)}」的召开时间、地点与研究审查结论。`;
+          heroAction = `<button class="btn block" style="font-size:15px;padding:10px" onclick="meetingModal('${p.id}','${cur}')">📝 录入「${esc(def.name)}」纪要</button>`;
+          altAction = `<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+            ${def.preReview ? `<button class="btn ghost sm" style="flex:1" onclick="reviewModal('${p.id}')">📤 会前预审（指标/图则核对）</button>` : ''}
+            <button class="btn ghost green sm" style="flex:1" onclick="completeStage(P('${p.id}'))">✔ 完成本阶段会议 →</button>
+          </div>`;
         }
       } else {
         // review node
         const stageReviews = p.reviews.filter((r) => r.stage === cur);
+        const curVer = latest(p) || {};
         if (!stageReviews.length) {
-          heroTitle = `发起「${def.forms ? def.forms[0] : '成果'}」送审`;
-          heroBadge = '<span class="tag orange">待送审</span>';
-          heroDesc = `当前处于「${def.name}」，请上传成果材料，选择校对/组长/所总等相关人员发起把关审查。`;
-          heroAction = `<button class="btn block" style="font-size:15px;padding:10px" onclick="reviewModal('${p.id}')">📤 发起送审「${(def.forms && def.forms[0]) || '成果材料'}」</button>`;
+          if (p.category === '技术修正' && cur === 's5' && String(curVer.neighbor || '0') === '0') {
+            heroTitle = '不涉相邻权益，可免公示直接进入入库审查';
+            heroBadge = '<span class="tag green">免公示建议</span>';
+            heroDesc = '本项目已标记为<b>不涉及对相邻权益人造成影响</b>，依据《实施办法》第十条免予规划公示，可直接跳过进入成果入库审查。';
+            heroAction = `<button class="btn green block" style="font-size:15px;padding:10px" onclick="completeStage(P('${p.id}'),true)">⏭ ${esc(def.skipLabel || '免公示跳过（不涉相邻权益影响）')} →</button>`;
+            altAction = `<button class="btn ghost sm block" style="margin-top:6px" onclick="reviewModal('${p.id}')">📤 仍需发起公示文件送审</button>`;
+          } else {
+            heroTitle = `发起「${def.forms ? def.forms[0] : '成果'}」送审`;
+            heroBadge = '<span class="tag orange">待送审</span>';
+            heroDesc = `当前处于「${esc(def.name)}」，请上传成果材料，选择校对/组长/所总/院总等相关人员发起把关审查。`;
+            heroAction = `<button class="btn block" style="font-size:15px;padding:10px" onclick="reviewModal('${p.id}')">📤 发起送审「${esc((def.forms && def.forms[0]) || '成果材料')}」</button>`;
+            if (def.optional) {
+              altAction = `<button class="btn ghost sm block" style="margin-top:6px" onclick="completeStage(P('${p.id}'),true)">⏭ ${esc(def.skipLabel || '跳过本阶段（非必选）')}</button>`;
+            }
+          }
         } else {
           const allDone = stageReviews.every((r) => r.items.every((it) => it.status === 'done'));
           const pendingItems = stageReviews.flatMap((r) => r.items.filter((it) => it.status !== 'done'));
@@ -1517,15 +1713,15 @@ function viewProject(p) {
             heroTitle = `本阶段审查已全部完成！`;
             heroBadge = '<span class="tag green">审查全部通过</span>';
             heroDesc = `本阶段所有审查人员已完成意见反馈及销项核对，可推进至下一流程节点。`;
-            heroAction = `<button class="btn green block" style="font-size:15px;padding:10px" onclick="completeStage(P('${p.id}'))">✔ 完成「${def.name}」，推进至下一阶段 →</button>`;
+            heroAction = `<button class="btn green block" style="font-size:15px;padding:10px" onclick="completeStage(P('${p.id}'))">✔ 完成「${esc(def.name)}」，推进至下一阶段 →</button>`;
             altAction = `<button class="btn ghost sm" style="margin-top:8px" onclick="reviewModal('${p.id}')">＋ 追加送审其他人</button>`;
           } else {
             heroTitle = `等待审查人员反馈意见`;
             heroBadge = '<span class="tag blue">审查进行中</span>';
             heroDesc = `正在等待 <b>${pendingItems.map((i) => uname(i.uid)).join('、')}</b> 审查把关反馈。`;
             heroAction = `<button class="btn block" onclick="reviewModal('${p.id}')">📤 追加送审其他审查人</button>`;
-            altAction = `<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end">
-              ${def.optional ? `<button class="btn sm gray" onclick="completeStage(P('${p.id}'),true)">跳过（非必选）</button>` : ''}
+            altAction = `<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end;flex-wrap:wrap">
+              ${def.optional ? `<button class="btn sm gray" onclick="completeStage(P('${p.id}'),true)">⏭ ${esc(def.skipLabel || '跳过（非必选）')}</button>` : ''}
               <button class="btn sm ghost green" onclick="completeStage(P('${p.id}'))">强制进入下一阶段</button>
             </div>`;
           }
@@ -1536,11 +1732,12 @@ function viewProject(p) {
         <div class="row">
           <div style="display:flex;align-items:center;gap:6px">
             <span style="font-size:16px">🎯</span>
-            <b style="font-size:14.5px;color:#0969da">下一步核心行动：${heroTitle}</b>
+            <b style="font-size:14.5px;color:#0969da">下一步核心行动：${esc(heroTitle)}</b>
           </div>
           ${heroBadge}
         </div>
         <div class="muted" style="margin-top:6px;font-size:13px;line-height:1.4">${heroDesc}</div>
+        ${def.hint ? `<div style="margin-top:6px;padding:6px 9px;background:#fff;border:1px solid #dbeafe;border-radius:6px;font-size:12px;color:#1e40af;line-height:1.45">📌 <b>本节点政策要点：</b>${esc(def.hint)}</div>` : ''}
         <div style="margin-top:10px">${heroAction}</div>
         ${altAction ? `<div>${altAction}</div>` : ''}
         
@@ -1600,9 +1797,9 @@ function viewProject(p) {
   return `<div class="card">
     <div class="row">
       <b style="font-size:17px">${esc(p.alias || p.name)}</b>
-      <div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
         <span class="tag purple">${p.dept || '规划一所'}</span>
-        <span class="tag">${p.category}</span>
+        ${catTag(p.category)}
       </div>
     </div>
     <div class="muted" style="margin-top:4px">${esc(p.name)}</div>
@@ -1659,11 +1856,14 @@ function viewProject(p) {
     <ul class="timeline">
       ${keys.map((k, i) => {
         const s = p.stages[k] || {};
+        const m = stageMeta(p, k);
         const cls = s.skipped ? 'skip' : i < p.stageIdx ? 'done' : i === p.stageIdx ? 'cur' : '';
         return `<li class="${cls}">
-          <span class="sname">${STAGES[k].name}</span>
-          ${STAGES[k].optional ? '<span class="tag">可选</span>' : ''}
-          <span class="tag">${STAGES[k].type === 'review' ? '审查' : '会议'}</span>
+          <span class="sname">${esc(m.name)}</span>
+          ${m.optional ? '<span class="tag">可选</span>' : ''}
+          ${p.category === '控规优化调整' && k === 's5' ? '<span class="tag purple">优化调整+新编控规合并公示</span>' : ''}
+          <span class="tag">${m.type === 'review' ? '审查' : '会议'}</span>
+          ${i === p.stageIdx && m.hint ? `<div style="font-size:12px;color:#475569;margin-top:4px;line-height:1.45">${esc(m.hint)}</div>` : ''}
           ${stageDetail(p, k)}
         </li>`;
       }).join('')}

@@ -14,17 +14,27 @@ function historyModal(pid) {
 
 // ---- 送审 ----
 function reviewModal(pid) {
-  const p = P(pid), def = STAGES[curStage(p)];
+  const p = P(pid), cur = curStage(p), def = stageMeta(p, cur);
   const forms = def.forms || ['预审材料（主要审查指标）'];
+  let defaultForm = forms[0];
+  // 技术修正按适用条款自动预选对应成果载体（第4/5款默认全套成果，第1~3款默认地块图则）
+  if (p.category === '技术修正') {
+    const cl = (latest(p) && latest(p).clause) || '';
+    if (['第(四)款', '第(五)款'].includes(cl)) {
+      const fullForm = forms.find((f) => f.includes('全套成果'));
+      if (fullForm) defaultForm = fullForm;
+    }
+  }
   const people = reviewerPool(p).map((u) => [u, `${uname(u)}·${U(u).role}`]);
   const next = suggestNext(p);
   openModal(`<h3>送审 · ${def.name}</h3>
-    <label class="f">成果形式</label>${chips('m_form', forms.map((f) => [f, f]), [forms[0]], true)}
-    <label class="f">提交方式</label>${chips('m_paper', [['0', '电子档（单独发送，不在本系统上传）'], ['1', '纸质册子']], [curStage(p) === 's1' ? '0' : '1'], true)}
+    ${def.hint ? `<div style="background:#f0f7ff;border-left:3px solid #1f6feb;padding:7px 10px;border-radius:0 6px 6px 0;font-size:12.5px;color:#1e40af;margin-bottom:8px;line-height:1.45">${esc(def.hint)}</div>` : ''}
+    <label class="f">成果形式</label>${chips('m_form', forms.map((f) => [f, f]), [defaultForm], true)}
+    <label class="f">提交方式</label>${chips('m_paper', [['0', '电子档（单独发送，不在本系统上传）'], ['1', '纸质册子']], [cur === 's1' ? '0' : '1'], true)}
     <label class="f">审查方式</label>${chips('m_mode', [['seq', '逐级审查'], ['par', '同时审查']], ['seq'], true)}
     <label class="f" id="m_whoLabel">送给谁（逐级：选一位，改完再送上一级）</label>
     <div id="m_whoBox">${chips('m_who', people, next ? [next] : [], true)}</div>
-    ${curStage(p) === 's1' ? '<div class="muted" style="margin-top:4px">前期阶段电子档，无需送院总审查</div>' : ''}
+    ${cur === 's1' ? '<div class="muted" style="margin-top:4px">前期阶段电子档，无需送院总审查</div>' : ''}
     <div id="m_reasonBox" style="display:none"><label class="f">同时审查原因（必填，提交即生效）</label>
       <input type="text" id="m_reason" placeholder="例如：明天评审"></div>
     ${btns(`doReview('${pid}')`, '发送送审')}`);
@@ -58,7 +68,7 @@ function acceptModal(pid, rid) {
   const { p, r } = findItem(pid, rid);
   const q = (label, v) => `<button class="btn ghost" onclick="doAccept('${pid}','${rid}','${v}')">${label}</button>`;
   openModal(`<h3>${uname(p.leader)} 请你审查</h3>
-    <div class="card"><b>${esc(p.alias || p.name)}</b><div class="muted">${STAGES[r.stage].name} · ${esc(r.form)} · ${r.paper ? '纸质册子' : '电子档'}</div>
+    <div class="card"><b>${esc(p.alias || p.name)}</b><div class="muted">${stageMeta(p, r.stage).name} · ${esc(r.form)} · ${r.paper ? '纸质册子' : '电子档'}</div>
     ${r.parallel ? `<span class="tag red">同时审查：${esc(r.reason)}</span>` : ''}</div>
     ${r.paper ? `<label class="f">什么时候方便送册子过来？点一下即可</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -86,7 +96,7 @@ function feedbackModal(pid, rid) {
     <button onclick="bump('${k}',-1)">−</button><b id="c_${k}">${fbCount[k]}</b><button onclick="bump('${k}',1)">＋</button></div></div>`;
   
   openModal(`<h3>${it.status === 'done' ? '修改' : ''}审查意见 · ${esc(p.alias || p.name)}</h3>
-    <div class="muted">${STAGES[r.stage].name} · ${esc(r.form)}</div>
+    <div class="muted">${stageMeta(p, r.stage).name} · ${esc(r.form)}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
       <button class="btn green" onclick="doFeedback('${pid}','${rid}','已阅，无意见')">已阅，无意见</button>
       <button class="btn green" onclick="doFeedback('${pid}','${rid}','意见见纸质批注')">意见见纸质批注</button>
@@ -192,7 +202,7 @@ function applyMeetingModal(pid, key) {
   ];
   const curQuick = old.prefQuick || '尽快安排';
 
-  openModal(`<h3>📅 申请报会（直报院长）· ${STAGES[key].name}</h3>
+  openModal(`<h3>📅 申请报会（直报院长）· ${stageMeta(p, key).name}</h3>
     <div class="card" style="border:1.5px solid #8250df;background:#faf8ff;padding:10px 12px">
       <div class="row">
         <b>直报领导：👑 王院长（院长）</b>
@@ -260,7 +270,7 @@ function deanScheduleModal(pid, key) {
     ['钉钉视频会议', '钉钉视频会议'],
   ];
 
-  openModal(`<h3>🗓 院长审批并排期 · ${STAGES[key].name}</h3>
+  openModal(`<h3>🗓 院长审批并排期 · ${stageMeta(p, key).name}</h3>
     <div class="card" style="background:#faf8ff;border:1px solid #d8b4fe">
       <div class="row">
         <b>${esc(p.alias || p.name)}</b>
@@ -321,8 +331,10 @@ function doDeanReject(pid, key) {
 // ---- 会议信息（新填或修改）----
 function meetingModal(pid, key) {
   const p = P(pid); key = key || curStage(p);
+  const meta = stageMeta(p, key);
   const s = p.stages[key] || {};
   const ap = s.apply || {};
+  const defaultLoc = key === 's2' ? '三楼大会议室' : key === 's7' ? '市政府会议室' : '市资源规划局会议室';
   const m = s.meeting || {
     time: ap.scheduledTime || '',
     location: ap.location || '',
@@ -334,13 +346,14 @@ function meetingModal(pid, key) {
   const people = projectPeople(p).map((u) => [u, `${uname(u)}·${U(u).role}`]);
   const isScheduled = ap.status === 'scheduled';
 
-  openModal(`<h3>${STAGES[key].name} · 会议信息与纪要</h3>
+  openModal(`<h3>${meta.name} · 会议信息与纪要</h3>
+    ${meta.hint ? `<div style="background:#f5f3ff;border-left:3px solid #8250df;padding:7px 10px;border-radius:0 6px 6px 0;font-size:12.5px;color:#581c87;margin-bottom:8px;line-height:1.45">${esc(meta.hint)}</div>` : ''}
     ${isScheduled ? `<div class="card" style="background:#faf8ff;border:1px solid #d8b4fe;padding:8px 12px;margin-bottom:10px">
       <div style="font-size:13px;color:#8250df"><b>✅ 院长已排期：</b>${fmtAppt(ap.scheduledTime)} · ${esc(ap.location || '三楼大会议室')}</div>
       ${ap.deanOpinion ? `<div class="muted" style="margin-top:2px;font-size:12px">院长批示：${esc(ap.deanOpinion)}</div>` : ''}
     </div>` : ''}
     <label class="f">上会时间</label><input type="datetime-local" id="g_time" value="${m.time}">
-    <label class="f">会议地点</label><input type="text" id="g_loc" value="${esc(m.location || ap.location || '三楼大会议室')}" placeholder="如：三楼大会议室">
+    <label class="f">会议地点</label><input type="text" id="g_loc" value="${esc(m.location || ap.location || defaultLoc)}" placeholder="如：${defaultLoc}">
     <label class="f">参会人员（仅本项目相关人员）</label>${chips('g_att', people, m.attendees.length ? m.attendees : (ap.attendees || []))}
     <label class="f">会议意见 / 纪要</label><textarea id="g_op">${esc(m.opinion)}</textarea>
     <label class="f">纪要照片 / 截图</label>${uploader('g_photos', m.photos || [])}
@@ -377,7 +390,7 @@ function versionModal(pid) {
             uid: it.uid,
             role: U(it.uid).role,
             stage: r.stage,
-            stageName: (STAGES[r.stage] && STAGES[r.stage].name) || '审查阶段',
+            stageName: stageMeta(p, r.stage).name || '审查阶段',
             form: r.form,
             desc,
           });
@@ -424,7 +437,7 @@ function doVersion(pid) {
   const note = $('#v_note').value.trim();
   if (!note) return toast('请填写修改说明');
   const c = readContent();
-  if (!c.imgs.a.length && !c.imgs.b.length && !c.text) return toast('请上传方案图片或填写内容');
+  if (!c.imgs.a.length && !c.imgs.b.length && !(c.imgs.c && c.imgs.c.length) && !c.text) return toast('请上传方案图片或填写内容');
 
   const resolutions = [];
   $$('.res-item-reply').forEach((el, idx) => {

@@ -1,7 +1,7 @@
 // ===== 状态与通用工具 =====
-const KEY = 'review-proto-v9';
+const KEY = 'review-proto-v10';
 let DB = JSON.parse(localStorage.getItem(KEY) || 'null') || { projects: seedProjects(), commonIssues: seedCommonIssues(), bulletins: seedBulletins() };
-if (!DB.projects.find((p) => p.id === 'p5') || !DB.bulletins || !DB.bulletins.length) {
+if (!DB.projects.find((p) => p.id === 'p7') || !DB.bulletins || !DB.bulletins.find((b) => b.id === 'b0')) {
   DB = { projects: seedProjects(), commonIssues: seedCommonIssues(), bulletins: seedBulletins() };
   try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) {}
 }
@@ -68,6 +68,7 @@ document.addEventListener('click', (e) => {
   if (box.dataset.single) box.querySelectorAll('.chip').forEach((x) => x !== c && x.classList.remove('on'));
   c.classList.toggle('on');
   box.dispatchEvent(new Event('change'));
+  if (box.id === 'c_clause' && typeof updateClauseHint === 'function') updateClauseHint(box);
 });
 function picked(sel) { return $$(`${sel} .chip.on`).map((c) => c.dataset.v); }
 function chips(id, items, selected = [], single = false) {
@@ -129,13 +130,15 @@ function viewImg(src) {
 
 // ===== 业务动作 =====
 function createProject(d) {
+  const leaderDept = U(d.leader).dept;
+  const dept = d.dept || (DEPTS.includes(leaderDept) ? leaderDept : '规划一所');
   const p = {
-    id: 'p' + Date.now(), category: d.category, name: d.name, alias: d.alias, publicity: d.publicity,
+    id: 'p' + Date.now(), category: d.category, name: d.name, alias: d.alias, dept, publicity: d.publicity,
     leader: d.leader, members: uniq([d.leader, ...d.members]), visible: d.visible, nameImgs: d.nameImgs,
     versions: [{ no: 1, at: now(), by: me, note: '初始方案', ...d.version }],
-    stageIdx: 0, stages: {}, reviews: [], deanCalls: [], log: [],
+    stageIdx: 0, stages: {}, reviews: [], deanNotes: [], log: [],
   };
-  log(p, `${uname(me)} 创建项目`);
+  log(p, `${uname(me)} 创建项目（${d.category}）`);
   DB.projects.unshift(p); save();
   toast('✅ 项目已创建（不会通知任何人，送审时才通知审查人）', 4000);
   go('project', p.id);
@@ -216,7 +219,7 @@ function acceptReview(p, r, item, appt) {
 function submitFeedback(p, r, item, fb, alsoNotify = [], msg = '', commonIssueData = null) {
   const isEdit = item.status === 'done';
   item.feedback = fb; item.status = 'done'; item.at = now();
-  log(p, `${uname(item.uid)} ${isEdit ? '修改了' : '反馈'}「${STAGES[r.stage].name}」审查意见`, isEdit);
+  log(p, `${uname(item.uid)} ${isEdit ? '修改了' : '反馈'}「${stageMeta(p, r.stage).name}」审查意见`, isEdit);
 
   if (commonIssueData) {
     DB.commonIssues = DB.commonIssues || [];
@@ -241,19 +244,21 @@ function notifyOthers(p, uids, msg) {
 
 function completeStage(p, skipped = false) {
   const key = curStage(p);
-  if (!confirm(`确认${skipped ? '跳过' : '完成'}「${STAGES[key].name}」，进入下一阶段？\n（点错了可以用「撤回上一阶段」恢复）`)) return;
+  const sName = stageMeta(p, key).name;
+  if (!confirm(`确认${skipped ? '跳过' : '完成'}「${sName}」，进入下一阶段？\n（点错了可以用「撤回上一阶段」恢复）`)) return;
   st(p, key)[skipped ? 'skipped' : 'done'] = now();
-  log(p, `${uname(me)} ${skipped ? '跳过' : '完成'}阶段「${STAGES[key].name}」`);
+  log(p, `${uname(me)} ${skipped ? '跳过' : '完成'}阶段「${sName}」`);
   p.stageIdx++; save(); render();
-  toast(finished(p) ? '🎉 项目全部阶段已完成' : `进入阶段：${STAGES[curStage(p)].name}`);
+  toast(finished(p) ? '🎉 项目全部阶段已完成' : `进入阶段：${stageMeta(p, curStage(p)).name}`);
 }
 
 function revertStage(p) {
   if (p.stageIdx <= 0) return;
   const back = path(p)[p.stageIdx - 1];
-  if (!confirm(`撤回到「${STAGES[back].name}」？\n已填写的意见和会议信息都会保留。`)) return;
+  const backName = stageMeta(p, back).name;
+  if (!confirm(`撤回到「${backName}」？\n已填写的意见和会议信息都会保留。`)) return;
   p.stageIdx--; delete st(p, back).done; delete st(p, back).skipped;
-  log(p, `${uname(me)} 撤回到阶段「${STAGES[back].name}」`, true);
+  log(p, `${uname(me)} 撤回到阶段「${backName}」`, true);
   save(); render();
 }
 
@@ -261,7 +266,7 @@ function saveMeeting(p, m, key) {
   key = key || curStage(p);
   const isEdit = !!(p.stages[key] || {}).meeting;
   st(p, key).meeting = m;
-  log(p, `${uname(me)} ${isEdit ? '修改了' : '填写了'}「${STAGES[key].name}」会议信息`, isEdit);
+  log(p, `${uname(me)} ${isEdit ? '修改了' : '填写了'}「${stageMeta(p, key).name}」会议信息`, isEdit);
   save(); closeModal(); render();
 }
 
@@ -281,7 +286,7 @@ function applyMeeting(p, d, key) {
     status: 'pending',
   };
   const timeDesc = d.prefQuick || fmtAppt(d.prefTime) || '尽快安排';
-  log(p, `${uname(me)} ${isEdit ? '修改了' : '提交了'}「${STAGES[key].name}」报会申请（直报王院长）：期望 ${timeDesc}`, isEdit);
+  log(p, `${uname(me)} ${isEdit ? '修改了' : '提交了'}「${stageMeta(p, key).name}」报会申请（直报王院长）：期望 ${timeDesc}`, isEdit);
   save(); closeModal(); render();
   notify([d.targetLeader || 'u1'], `${uname(me)} 提交了「${p.alias || p.name}」分院技术审查会报会申请，请审批排期`);
   toast('✅ 报会申请已直报王院长！请等待排期通知。可切换到「王院长」身份模拟审批', 5000);
@@ -306,10 +311,11 @@ function deanSchedule(p, d, key) {
   s.meeting.attendees = d.attendees;
   s.meeting.deanOpinion = d.deanOpinion;
 
-  log(p, `王院长 批准并排期「${STAGES[key].name}」：${fmtAppt(d.time)}（${d.location}）${d.deanOpinion ? '，批示：' + d.deanOpinion : ''}`);
+  const sName = stageMeta(p, key).name;
+  log(p, `王院长 批准并排期「${sName}」：${fmtAppt(d.time)}（${d.location}）${d.deanOpinion ? '，批示：' + d.deanOpinion : ''}`);
   save(); closeModal(); render();
   const notifyList = uniq([...(d.attendees || []), p.leader, ...(p.members || [])]);
-  notify(notifyList, `王院长已排定「${p.alias || p.name}」${STAGES[key].name}：${fmtAppt(d.time)}（${d.location}）`);
+  notify(notifyList, `王院长已排定「${p.alias || p.name}」${sName}：${fmtAppt(d.time)}（${d.location}）`);
   toast('🎉 已成功排期！系统已同步通知全体参会人员', 5000);
 }
 
