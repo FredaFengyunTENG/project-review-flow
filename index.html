@@ -3,24 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>规划流转小工具（原型）</title>
+<title>规划流转</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="phone">
   <header id="topbar">
-    <span id="title">规划流转</span>
-    <a href="report.html" class="topbar-doc">📖 流程说明</a>
-    <label class="who">当前身份
-      <select id="userSwitch"></select>
-    </label>
+    <div class="brand">
+      <span id="title" onclick="go('todo')" style="cursor:pointer">规划流转</span>
+      <a href="report.html" class="help-dot" title="使用说明">?</a>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="top-pill" id="btnRules" onclick="rulesModal()">
+        新规<span class="badge-dot hidden" id="ruleBadge">0</span>
+      </button>
+      <button type="button" class="top-pill" id="btnDirect" onclick="openDirectChannel()">
+        直通车<span class="badge-dot hidden" id="directBadge">0</span>
+      </button>
+      <select id="userSwitch" aria-label="当前身份"></select>
+    </div>
   </header>
   <main id="view"></main>
   <nav id="tabbar">
-    <button data-go="todo">📋 待办</button>
-    <button data-go="bulletin">📢 公告</button>
-    <button data-go="projects">📁 项目</button>
-    <button data-go="new">➕ 新建</button>
+    <button data-go="todo">待办</button>
+    <button data-go="projects">项目</button>
+    <button data-go="new">＋ 新建</button>
   </nav>
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="sheet"></div></div>
