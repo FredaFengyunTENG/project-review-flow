@@ -12,7 +12,7 @@ const USERS = [
   { id: 'u6', name: '刘所总', role: '所总', dept: '规划二所', py: 'lsz' },
   { id: 'u7', name: '周组长', role: '组长', dept: '规划一所', py: 'zzz' },
   { id: 'u8', name: '吴组长', role: '组长', dept: '规划二所', py: 'wzz' },
-  { id: 'u9', name: '郑校对', role: '校对', dept: '规划一所', py: 'zjd' },
+  { id: 'u9', name: '郑工', role: '成员', dept: '规划一所', py: 'zg' },
   { id: 'u10', name: '孙工', role: '成员', dept: '规划一所', py: 'sg' },
   { id: 'u11', name: '钱工', role: '成员', dept: '规划二所', py: 'qg' },
   { id: 'u12', name: '冯工', role: '成员', dept: '规划三所', py: 'fg' },
@@ -26,7 +26,7 @@ const USERS = [
   { id: 'u20', name: '许工', role: '成员', dept: '规划三所', py: 'xg' },
 ];
 
-const VIS_ROLES = ['校对', '组长', '所总', '所长', '院总', '院长'];
+const VIS_ROLES = ['组长/所总', '所长', '院总', '院长'];
 
 const CATEGORIES = ['正向优化', '技术修正', '控规优化调整', '控规修改', '控规', '其他（待开发）'];
 
@@ -219,7 +219,7 @@ function seedProjects() {
       publicity: 'after',
       leader: 'u10',
       members: ['u10', 'u15'],
-      visible: ['u9', 'u7', 'u5', 'u3', 'u2', 'u1'],
+      visible: ['u7', 'u5', 'u3', 'u2', 'u1'],
       nameImgs: [],
       versions: [
         {
@@ -239,9 +239,8 @@ function seedProjects() {
         id: 'r1', stage: 's1', form: '汇报演示稿', paper: false, parallel: false, reason: '',
         createdAt: '2026-10-10 10:00',
         items: [
-          { uid: 'u9', status: 'done', appointment: '', feedback: { quick: '', dataErr: 2, textErr: 1, key: '地下商业面积口径需核对', other: '', photos: [] }, at: '2026-10-11 11:20' },
           { uid: 'u7', status: 'accepted', appointment: '', feedback: null, at: '' },
-          { uid: 'u5', status: 'pending', appointment: '', feedback: null, at: '' },
+          { uid: 'u3', status: 'pending', appointment: '', feedback: null, at: '' },
         ],
       }],
       deanNotes: [{
@@ -271,7 +270,7 @@ function seedProjects() {
       publicity: 'after',
       leader: 'u10',
       members: ['u10', 'u18'],
-      visible: ['u9', 'u7', 'u5', 'u3', 'u2', 'u1'],
+      visible: ['u7', 'u5', 'u3', 'u2', 'u1'],
       nameImgs: [],
       versions: [{
         no: 1, at: '2026-10-14 10:00', by: 'u10', note: '初始方案',
@@ -287,9 +286,8 @@ function seedProjects() {
         id: 'r10', stage: 's1', form: '汇报演示稿', paper: false, parallel: false, reason: '',
         createdAt: '2026-10-14 10:15',
         items: [
-          { uid: 'u9', status: 'done', appointment: '', feedback: { quick: '已阅，无意见' }, at: '2026-10-14 14:00' },
           { uid: 'u7', status: 'done', appointment: '', feedback: { quick: '已阅，无意见' }, at: '2026-10-15 09:30' },
-          { uid: 'u5', status: 'done', appointment: '', feedback: { quick: '已阅，无意见' }, at: '2026-10-15 17:00' },
+          { uid: 'u3', status: 'known', appointment: '', feedback: null, at: '2026-10-15 17:00' },
         ],
       }],
       deanNotes: [],
@@ -308,7 +306,7 @@ function seedProjects() {
       publicity: 'after',
       leader: 'u11',
       members: ['u11', 'u10'],
-      visible: ['u9', 'u7', 'u5', 'u3', 'u2', 'u1'],
+      visible: ['u8', 'u6', 'u4', 'u2', 'u1'],
       nameImgs: [],
       versions: [{
         no: 1, at: '2026-10-12 09:00', by: 'u11', note: '初始方案',
@@ -327,8 +325,8 @@ function seedProjects() {
         id: 'r20', stage: 's1', form: '汇报演示稿', paper: false, parallel: false, reason: '',
         createdAt: '2026-10-13 10:00',
         items: [
-          { uid: 'u9', status: 'done', appointment: '', feedback: { quick: '已阅，无意见' }, at: '2026-10-13 15:00' },
-          { uid: 'u5', status: 'done', appointment: '', feedback: { quick: '已阅，无意见' }, at: '2026-10-14 15:30' },
+          { uid: 'u6', status: 'done', appointment: '', feedback: { quick: '已阅，无意见' }, at: '2026-10-14 15:30' },
+          { uid: 'u4', status: 'known', appointment: '', feedback: null, at: '2026-10-14 16:00' },
         ],
       }],
       deanNotes: [],
@@ -347,7 +345,7 @@ function seedProjects() {
       publicity: 'after',
       leader: 'u12',
       members: ['u12', 'u13'],
-      visible: ['u9', 'u8', 'u6', 'u4', 'u2', 'u1'],
+      visible: ['u8', 'u6', 'u4', 'u2', 'u1'],
       nameImgs: [],
       versions: [{
         no: 1, at: '2026-10-10 14:00', by: 'u12', note: '初始方案',
@@ -381,7 +379,7 @@ function seedProjects() {
       publicity: 'after',
       leader: 'u13',
       members: ['u13', 'u14'],
-      visible: ['u9', 'u8', 'u6', 'u4', 'u2', 'u1'],
+      visible: ['u8', 'u6', 'u4', 'u2', 'u1'],
       nameImgs: [],
       versions: [{
         no: 1, at: '2026-10-15 09:00', by: 'u13', note: '初始方案',
@@ -416,7 +414,7 @@ function seedProjects() {
       publicity: 'after',
       leader: 'u10',
       members: ['u10', 'u15'],
-      visible: ['u9', 'u7', 'u5', 'u3', 'u2', 'u1'],
+      visible: ['u7', 'u5', 'u3', 'u2', 'u1'],
       nameImgs: [],
       versions: [{
         no: 1, at: '2026-10-21 10:00', by: 'u10', note: '初始方案',
@@ -435,13 +433,15 @@ function seedProjects() {
         id: 'r61', stage: 's3', form: '正向优化申报成果', paper: true, parallel: false, reason: '',
         createdAt: '2026-10-23 09:30',
         items: [
+          { uid: 'u7', status: 'done', appointment: 'any', feedback: { quick: '已阅，无意见' }, at: '2026-10-23 10:30' },
           { uid: 'u3', status: 'pending', appointment: '', feedback: null, at: '' },
         ],
       }],
       deanNotes: [],
       log: [
         { t: '2026-10-21 10:00', text: '孙工 创建项目（正向优化）' },
-        { t: '2026-10-23 09:30', text: '孙工 送审「正向优化申报成果」给 张所长' },
+        { t: '2026-10-23 09:30', text: '孙工 送审「正向优化申报成果」给 周组长，同步知晓 张所长' },
+        { t: '2026-10-23 10:30', text: '周组长 审查校对通过（已阅，无意见）' },
       ],
     },
     {

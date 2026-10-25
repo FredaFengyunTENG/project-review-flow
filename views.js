@@ -40,9 +40,11 @@ function render() {
 }
 
 function statusTag(it) {
-  if (it.status === 'done') return '<span class="tag green">已审</span>';
+  if (it.status === 'done') return '<span class="tag green">已通过</span>';
+  if (it.status === 'known') return '<span class="tag green">已阅知</span>';
+  if (it.status === 'holding') return '<span class="tag orange">待把关</span>';
   if (it.status === 'accepted') return `<span class="tag blue">已接收${it.appointment ? ' · 约' + fmtAppt(it.appointment) : ''}</span>`;
-  return '<span class="tag orange">待审</span>';
+  return '<span class="tag orange">待审查</span>';
 }
 
 function catTag(cat) {
@@ -248,7 +250,7 @@ function doCreate() {
   const name = $('#n_name')?.value.trim() || (nameImgs.length ? '（见名称截图）' : '');
   if (!name) return toast('请填写名称或粘贴截图');
   if (!memberState.length) return toast('请添加至少一位成员');
-  const visible = VIS_ROLES.flatMap((r) => picked('#n_v_' + r));
+  const visible = VIS_ROLES.flatMap((r) => picked('#n_v_' + (ROLE_KEYS[r] || r)));
   createProject({
     category,
     name,
@@ -373,18 +375,67 @@ function viewProject(p) {
           <button class="btn block" style="margin-top:0;font-size:15px" onclick="reviewModal('${p.id}')">📤 送审「${def.forms ? def.forms[0] : '成果'}」</button>
           ${def.optional ? `<button class="btn ghost sm block" style="margin-top:6px" onclick="completeStage(P('${p.id}'), true)">${esc(def.skipLabel || '跳过此阶段 →')}</button>` : ''}`;
       } else {
-        const allDone = stageReviews.every((r) => r.items.every((it) => it.status === 'done'));
-        const pendingItems = stageReviews.flatMap((r) => r.items.filter((it) => it.status !== 'done'));
+        // 判定放行：
+        // 1. 所有审查项均为 done 或 known
+        // 2. 所长若为 pending 且非 holding，只要技术审查人（组长/所总/院总）全部完成，不卡放行
+        const allDone = stageReviews.every((r) => r.items.every((it) => {
+          if (it.status === 'done' || it.status === 'known') return true;
+          if (U(it.uid).role === '所长' && it.status !== 'holding') {
+            const techItems = r.items.filter((x) => U(x.uid).role !== '所长');
+            return !techItems.length || techItems.every((x) => x.status === 'done');
+          }
+          return false;
+        }));
+
+        const statusBadges = stageReviews.flatMap((r) => r.items.map((it) => {
+          const u = U(it.uid);
+          if (u.role === '所长') {
+            if (it.status === 'known') return `<span class="tag green">✔ ${uname(it.uid)}（已阅知）</span>`;
+            if (it.status === 'holding') return `<span class="tag orange">⏳ ${uname(it.uid)}（待所长把关中）</span>`;
+            if (it.status === 'done') return `<span class="tag green">✔ ${uname(it.uid)}（把关完成）</span>`;
+            return `<span class="tag gray">${uname(it.uid)}（知晓中）</span>`;
+          }
+          if (it.status === 'done') return `<span class="tag green">✔ ${uname(it.uid)}（${u.role === '组长' || u.role === '所总' ? '审查校对通过' : '审查通过'}）</span>`;
+          if (it.status === 'accepted') return `<span class="tag blue">📅 ${uname(it.uid)}（已约送册）</span>`;
+          return `<span class="tag orange">⏳ ${uname(it.uid)}（审查中）</span>`;
+        }));
+
+        let directorQuickActions = '';
+        if (U(me).role === '所长') {
+          const curReview = stageReviews[stageReviews.length - 1];
+          const myItem = curReview?.items.find((i) => i.uid === me);
+          if (myItem?.status !== 'done') {
+            directorQuickActions = `
+              <div style="margin-top:8px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:12.5px;font-weight:600;color:#0369a1">所长把关选择：</span>
+                  <div style="display:flex;gap:6px">
+                    <button class="btn sm green" onclick="directorAcknowledge('${p.id}','${curReview.id}')" title="知晓直接放行，不卡后续流程">🟢 一键阅知</button>
+                    <button class="btn sm orange" onclick="directorHold('${p.id}','${curReview.id}')" title="设为待我把关，亲自审查提意见">🟡 待我把关</button>
+                  </div>
+                </div>
+              </div>`;
+          }
+        }
 
         if (allDone) {
           reviewAction = `
-            <div style="color:#15803d;font-weight:600;font-size:13px;margin-bottom:6px">✔ 审查意见已全部反馈完成</div>
-            <button class="btn green block" style="margin-top:0" onclick="completeStage(P('${p.id}'))">进入下一阶段 →</button>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">${statusBadges.join('')}</div>
+            <div style="color:#15803d;font-weight:600;font-size:13px;margin-bottom:6px">✔ 审查流程已满足进入下一阶段条件</div>
+            ${directorQuickActions}
+            <button class="btn green block" style="margin-top:6px" onclick="completeStage(P('${p.id}'))">进入下一阶段 →</button>
             <button class="btn ghost sm" style="margin-top:6px" onclick="reviewModal('${p.id}')">＋ 追加送审其他人</button>`;
         } else {
+          const waitingNames = stageReviews.flatMap((r) => r.items.filter((it) => {
+            if (it.status === 'done' || it.status === 'known') return false;
+            return true;
+          })).map((i) => uname(i.uid));
+
           reviewAction = `
-            <div class="muted" style="font-size:13px;margin-bottom:8px">正在等待：<b>${pendingItems.map((i) => uname(i.uid)).join('、')}</b> 审查反馈</div>
-            <div class="row">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">${statusBadges.join('')}</div>
+            <div class="muted" style="font-size:13px;margin-bottom:6px">正在等待：<b>${waitingNames.join('、')}</b> 把关</div>
+            ${directorQuickActions}
+            <div class="row" style="margin-top:8px">
               <button class="btn sm ghost" onclick="reviewModal('${p.id}')">＋ 追加送审</button>
               <button class="btn sm green" onclick="completeStage(P('${p.id}'))">直接进入下一阶段 →</button>
             </div>`;
@@ -671,7 +722,7 @@ function viewChiefEngineerIssues() {
 function viewDirectorBoard() {
   const dept = U(me).dept || '规划一所';
   const dProjects = deptProjects(dept);
-  const myReviews = myReviewTasks();
+  const dirReviews = directorPendingReviews(dept);
   const applies = deptMeetingApplies(dept);
 
   return `
@@ -682,13 +733,73 @@ function viewDirectorBoard() {
       </div>
     </div>
 
-    ${myReviews.length ? `
-      <h2>待我把关 (${myReviews.length})</h2>
-      ${myReviews.map(({ p, r, it }) => `
-        <div class="card click" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
-          <div class="row"><b>${esc(p.alias || p.name)}</b>${statusTag(it)}</div>
-          <div class="muted" style="margin-top:2px">${stageMeta(p, r.stage).name} · ${uname(p.leader)} 送审</div>
-        </div>`).join('')}` : ''}
+    ${dirReviews.length ? `
+      <h2>本所审查与把关 (${dirReviews.length})</h2>
+      <div class="muted" style="margin:-4px 0 8px;font-size:12px;color:#64748b">
+        💡 组长/所总负责技术审查与校对；所长可自主点选<b>「一键阅知」</b>放行或<b>「待我把关」</b>亲自把关。
+      </div>
+      ${dirReviews.map(({ p, r, it, items }) => {
+        const curStatus = it ? it.status : 'pending';
+        const techReviewers = items.filter((x) => U(x.uid).role === '组长' || U(x.uid).role === '所总');
+        const techSummary = techReviewers.length
+          ? techReviewers.map((x) => `${uname(x.uid)}（${x.status === 'done' ? '✔ 审查校对通过' : '审查中'}）`).join('、')
+          : '由组长/所总负责审查校对';
+
+        let actionArea = '';
+        if (curStatus === 'known') {
+          actionArea = `
+            <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;align-items:center">
+              <span class="tag green">✔ 我已阅知（放行推进）</span>
+              <div style="display:flex;gap:6px">
+                <button class="btn xs ghost" onclick="directorHold('${p.id}','${r.id}')">改为亲自把关</button>
+                <button class="btn xs ghost" onclick="go('project','${p.id}')">查看方案 →</button>
+              </div>
+            </div>`;
+        } else if (curStatus === 'holding') {
+          actionArea = `
+            <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;align-items:center">
+              <div>
+                <span class="tag orange">⏳ 待我把关中</span>
+                <button class="btn sm blue" onclick="feedbackModal('${p.id}','${r.id}')" style="margin-left:6px;padding:3px 9px">✏️ 填写把关意见</button>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button class="btn xs ghost" onclick="directorAcknowledge('${p.id}','${r.id}')">转为一键阅知放行</button>
+                <button class="btn xs ghost" onclick="go('project','${p.id}')">查看方案 →</button>
+              </div>
+            </div>`;
+        } else if (curStatus === 'done') {
+          actionArea = `
+            <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;align-items:center">
+              <span class="tag green">✔ 我已完成把关</span>
+              <button class="btn xs ghost" onclick="go('project','${p.id}')">查看方案 →</button>
+            </div>`;
+        } else {
+          // 未操作：两个清晰的选择
+          actionArea = `
+            <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;align-items:center">
+              <div style="display:flex;gap:6px">
+                <button class="btn sm green" onclick="directorAcknowledge('${p.id}','${r.id}')" title="知晓后直接放行，不卡后续流程">🟢 一键阅知</button>
+                <button class="btn sm orange" onclick="directorHold('${p.id}','${r.id}')" title="重点项目设为待我把关，亲自审查">🟡 待我把关</button>
+              </div>
+              <button class="btn sm ghost" onclick="go('project','${p.id}')">查看图件 →</button>
+            </div>`;
+        }
+
+        return `
+          <div class="card" style="border:1px solid #e2e8f0">
+            <div class="row">
+              <b>${esc(p.alias || p.name)}</b>
+              <span class="tag blue">${stageMeta(p, r.stage).name}</span>
+            </div>
+            <div class="muted" style="margin-top:3px;font-size:12px">
+              负责人：${uname(p.leader)} · ${esc(r.form)} · ${r.paper ? '纸质册子' : '电子档'}
+            </div>
+            <div style="font-size:12px;margin-top:6px;padding:5px 8px;background:#f8fafc;border-radius:6px;color:#334155">
+              <b>技术把关：</b>${techSummary}
+            </div>
+            ${actionArea}
+          </div>`;
+      }).join('')}` : ''}
 
     ${applies.length ? `
       <h2>本所报会追踪 (${applies.length})</h2>
@@ -715,7 +826,17 @@ function viewDirectorBoard() {
 }
 
 // ===== 成员管理组件 =====
-function peopleOf(role) { return USERS.filter((u) => u.role === role).map((u) => [u.id, u.name]); }
+const ROLE_KEYS = {
+  '组长/所总': 'lead',
+  '所长': 'director',
+  '院总': 'chief_eng',
+  '院长': 'dean',
+};
+
+function peopleOf(role) {
+  if (role === '组长/所总') return USERS.filter((u) => u.role === '组长' || u.role === '所总').map((u) => [u.id, `${u.name}·${u.role}`]);
+  return USERS.filter((u) => u.role === role).map((u) => [u.id, u.name]);
+}
 
 function renderMemberBadges() {
   const box = $('#m_badges');
@@ -770,9 +891,10 @@ function memberFieldHtml(initMembers) {
 }
 
 function visibleFieldHtml(vis = []) {
-  return VIS_ROLES.slice().reverse().map((r) =>
-    `<label class="f">${r}</label>${chips('n_v_' + r, peopleOf(r), vis)}`
-  ).join('');
+  return VIS_ROLES.slice().reverse().map((r) => {
+    const key = ROLE_KEYS[r] || r;
+    return `<label class="f">${r}</label>${chips('n_v_' + key, peopleOf(r), vis)}`;
+  }).join('');
 }
 
 // ===== 启动初始化 =====

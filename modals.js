@@ -16,7 +16,13 @@ function historyModal(pid) {
 function reviewModal(pid) {
   const p = P(pid), cur = curStage(p), def = stageMeta(p, cur);
   const forms = def.forms || ['成果材料'];
-  const people = reviewerPool(p).map((u) => [u, `${uname(u)}·${U(u).role}`]);
+  const pool = reviewerPool(p);
+  const people = pool.map((u) => {
+    const role = U(u).role;
+    const isTech = role === '组长' || role === '所总';
+    const tag = isTech ? `${role}·审查校对` : role;
+    return [u, `${uname(u)}·${tag}`];
+  });
   const next = suggestNext(p);
   const quickReasons = ['急赶上会', '局里急调', '节点急件', '其他'];
 
@@ -32,6 +38,9 @@ function reviewModal(pid) {
 
     <label class="f" id="m_whoLabel">送给谁</label>
     <div id="m_whoBox">${chips('m_who', people, next ? [next] : [], true)}</div>
+    <div class="muted" style="margin-top:6px;font-size:12px;color:#1e40af">
+      💡 组长/所总负责成果审查与校对；送审后同步知晓所长，所长可自主选择一键阅知或亲自把关。
+    </div>
 
     <div id="m_reasonBox" style="display:none">
       <label class="f">同时审查原因（点选）</label>
@@ -402,7 +411,7 @@ function doEditProject(pid) {
   const name = $('#e_name').value.trim();
   if (!name) return toast('请填写名称');
   if (!memberState.length) return toast('请保留至少一位成员');
-  const visible = VIS_ROLES.flatMap((r) => picked('#n_v_' + r));
+  const visible = VIS_ROLES.flatMap((r) => picked('#n_v_' + (ROLE_KEYS[r] || r)));
   editProject(P(pid), { name, alias: $('#e_alias').value.trim(), members: memberState, visible });
 }
 

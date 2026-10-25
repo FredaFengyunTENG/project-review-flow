@@ -1,5 +1,5 @@
 // ===== 状态与通用工具 =====
-const KEY = 'review-proto-v11';
+const KEY = 'review-proto-v12';
 let DB = JSON.parse(localStorage.getItem(KEY) || 'null') || {
   projects: seedProjects(),
   commonIssues: seedCommonIssues(),
@@ -225,16 +225,68 @@ function editProject(p, d) {
 }
 
 function submitReview(p, d) {
+  const cur = curStage(p);
+  const items = d.reviewers.map((uid) => ({ uid, status: 'pending', appointment: '', feedback: null, at: '' }));
+
+  // 如果送审中包含组长或所总，且公开范围包含本所所长，但未手动多选所长，自动同步抄送所长知晓
+  const hasLead = d.reviewers.some((uid) => U(uid).role === '组长' || U(uid).role === '所总');
+  const dirUid = p.visible.find((uid) => U(uid).role === '所长' && (U(uid).dept === p.dept || !U(uid).dept));
+  if (hasLead && dirUid && !d.reviewers.includes(dirUid)) {
+    items.push({ uid: dirUid, status: 'pending', appointment: '', feedback: null, at: '', isCc: true });
+  }
+
   const r = {
-    id: 'r' + Date.now(), stage: curStage(p), form: d.form, parallel: d.parallel, reason: d.reason,
+    id: 'r' + Date.now(), stage: cur, form: d.form, parallel: d.parallel, reason: d.reason,
     paper: d.paper, createdAt: now(),
-    items: d.reviewers.map((uid) => ({ uid, status: 'pending', appointment: '', feedback: null, at: '' })),
+    items,
   };
   p.reviews.push(r);
-  log(p, `${uname(me)} 送审「${d.form}」给 ${d.reviewers.map(uname).join('、')}${d.parallel ? `（同时审查：${d.reason}）` : ''}`);
+  const ccText = dirUid && !d.reviewers.includes(dirUid) ? `（同步知晓：${uname(dirUid)}）` : '';
+  log(p, `${uname(me)} 送审「${d.form}」给 ${d.reviewers.map(uname).join('、')}${ccText}${d.parallel ? `（同时审查：${d.reason}）` : ''}`);
   save(); closeModal();
   notify(d.reviewers, `请审查「${p.alias || p.name}」${d.form}`);
+  if (dirUid && !d.reviewers.includes(dirUid)) {
+    notify([dirUid], `「${p.alias || p.name}」已送审成果，请知晓`);
+  }
   render();
+}
+
+// ---- 所长专属：一键阅知（免审查放行） vs 待我把关（亲自审查）----
+function directorAcknowledge(pid, rid) {
+  const p = P(pid);
+  if (!p) return;
+  const r = p.reviews.find((x) => x.id === rid) || p.reviews[p.reviews.length - 1];
+  if (!r) return;
+  let it = r.items.find((i) => i.uid === me);
+  if (!it) {
+    it = { uid: me, status: 'known', appointment: '', feedback: null, at: now() };
+    r.items.push(it);
+  } else {
+    it.status = 'known';
+    it.at = now();
+  }
+  log(p, `${uname(me)} 一键阅知「${stageMeta(p, r.stage).name}」成果（免技术审查放行）`);
+  save(); render();
+  toast('✅ 已阅知，项目顺畅推进');
+  notify([p.leader], `${uname(me)} 已阅知「${p.alias || p.name}」成果`);
+}
+
+function directorHold(pid, rid) {
+  const p = P(pid);
+  if (!p) return;
+  const r = p.reviews.find((x) => x.id === rid) || p.reviews[p.reviews.length - 1];
+  if (!r) return;
+  let it = r.items.find((i) => i.uid === me);
+  if (!it) {
+    it = { uid: me, status: 'holding', appointment: '', feedback: null, at: now() };
+    r.items.push(it);
+  } else {
+    it.status = 'holding';
+    it.at = now();
+  }
+  log(p, `${uname(me)} 设为「待我把关」（亲自审查）`);
+  save(); render();
+  toast('📌 已设为待我把关');
 }
 
 function acceptReview(p, r, item, appt) {
@@ -503,8 +555,8 @@ function deleteBulletin(id) {
 // ===== 查询辅助 =====
 function myReviewTasks() {
   const out = [];
-  DB.projects.forEach((p) => p.reviews.forEach((r) => r.items.forEach((it) => {
-    if (it.uid === me && it.status !== 'done') out.push({ p, r, it });
+  DB.projects.forEach((p) => (p.reviews || []).forEach((r) => (r.items || []).forEach((it) => {
+    if (it.uid === me && it.status !== 'done' && it.status !== 'known') out.push({ p, r, it });
   })));
   return out;
 }
@@ -517,18 +569,44 @@ function searchUsers(q) {
 
 function subordinateReviewers(p) {
   if (U(me).role !== '院总') return [];
-  return p.visible.filter((u) => ['校对', '组长', '所总', '所长'].includes(U(u).role));
+  return p.visible.filter((u) => ['组长', '所总', '所长'].includes(U(u).role));
+}
+
+// 审查层级权重：组长与所总平级（负责审查和校对）< 所长（知晓/把关）< 院总（院级审查）< 院长（大盘/排期，不作技术审查）
+function roleLevel(role) {
+  if (role === '组长' || role === '所总' || role === '组长/所总') return 1;
+  if (role === '所长') return 2;
+  if (role === '院总') return 3;
+  if (role === '院长') return 4;
+  return 0;
 }
 
 function reviewerPool(p) {
-  return p.visible.filter((u) => U(u).role !== '院长' && !(curStage(p) === 's1' && U(u).role === '院总'))
-    .sort((a, b) => VIS_ROLES.indexOf(U(a).role) - VIS_ROLES.indexOf(U(b).role));
+  return p.visible.filter((u) => {
+    const r = U(u).role;
+    if (r === '院长') return false; // 院长绝对不作技术审查
+    if (curStage(p) === 's1' && r === '院总') return false; // 初步方案不扰动院总
+    return ['组长', '所总', '所长', '院总'].includes(r);
+  }).sort((a, b) => roleLevel(U(a).role) - roleLevel(U(b).role));
 }
 
 function suggestNext(p) {
-  const done = p.reviews.filter((r) => r.stage === curStage(p)).flatMap((r) => r.items.map((i) => i.uid));
-  const lastRole = done.length ? Math.max(...done.map((u) => VIS_ROLES.indexOf(U(u).role))) : -1;
-  return reviewerPool(p).find((u) => VIS_ROLES.indexOf(U(u).role) > lastRole);
+  const done = (p.reviews || []).filter((r) => r.stage === curStage(p)).flatMap((r) => r.items.map((i) => i.uid));
+  const lastLevel = done.length ? Math.max(...done.map((u) => roleLevel(U(u).role))) : -1;
+  return reviewerPool(p).find((u) => roleLevel(U(u).role) > lastLevel);
+}
+
+// 所长专属：查询本所正在进行的审查
+function directorPendingReviews(dept) {
+  const out = [];
+  deptProjects(dept).forEach((p) => {
+    const cur = curStage(p);
+    (p.reviews || []).filter((r) => r.stage === cur).forEach((r) => {
+      const myItem = r.items.find((i) => i.uid === me);
+      out.push({ p, r, it: myItem, items: r.items });
+    });
+  });
+  return out;
 }
 
 function deptProjects(dept) {

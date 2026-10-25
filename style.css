@@ -203,6 +203,7 @@ button.btn.ghost.purple { background: #fff; color: #7c3aed; border: 1px solid #d
 button.btn.ghost.green { background: #fff; color: #16a34a; border: 1px solid #bbf7d0; }
 button.btn.block { width: 100%; margin-top: 10px; }
 button.btn.sm { padding: 5px 11px; font-size: 12.5px; border-radius: 8px; }
+button.btn.xs { padding: 3px 8px; font-size: 11.5px; border-radius: 6px; }
 
 /* 更多操作省略号按钮 (⋯) */
 .icon-more-btn {
