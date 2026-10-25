@@ -204,6 +204,27 @@ button.btn.ghost.green { background: #fff; color: #16a34a; border: 1px solid #bb
 button.btn.block { width: 100%; margin-top: 10px; }
 button.btn.sm { padding: 5px 11px; font-size: 12.5px; border-radius: 8px; }
 
+/* 更多操作省略号按钮 (⋯) */
+.icon-more-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid #dbe2ea;
+  background: #fff;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: bold;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .14s;
+  padding: 0;
+}
+.icon-more-btn:hover { background: #f8fafc; color: #1e293b; border-color: #cbd5e1; }
+.icon-more-btn:active { transform: scale(0.95); }
+
 label.f { display: block; margin: 12px 0 6px; font-size: 13px; font-weight: 600; color: #334155; }
 input[type=text], input[type=datetime-local], input[type=number], select, textarea {
   width: 100%;

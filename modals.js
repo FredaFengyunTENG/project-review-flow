@@ -346,6 +346,46 @@ function doVersion(pid) {
   addVersion(P(pid), { note, ...c });
 }
 
+// ---- 阶段更多操作（省略号 ⋯ 收纳：退回上一步、修改信息、查看流水、未来扩展）----
+function stageMoreMenuModal(pid) {
+  const p = P(pid);
+  if (!p) return;
+  const canRevert = p.stageIdx > 0;
+  const backStageName = canRevert ? stageMeta(p, path(p)[p.stageIdx - 1]).name : '';
+
+  openModal(`
+    <div class="row" style="margin-bottom:12px">
+      <h3 style="margin:0">更多操作</h3>
+      <span class="muted" style="font-size:12px">${esc(p.alias || p.name)}</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${canRevert ? `
+        <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();revertStage(P('${p.id}'))">
+          <span style="font-weight:600;color:#0f172a">↩ 退回上一阶段</span>
+          <span class="muted" style="font-size:12px">退回至：${esc(backStageName)}</span>
+        </button>
+      ` : ''}
+
+      <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();editProjectModal('${p.id}')">
+        <span style="font-weight:600;color:#0f172a">✏️ 修改项目信息</span>
+        <span class="muted" style="font-size:12px">名称、成员、公开范围</span>
+      </button>
+
+      <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();historyModal('${p.id}')">
+        <span style="font-weight:600;color:#0f172a">📜 查看操作记录</span>
+        <span class="muted" style="font-size:12px">共 ${p.log.length} 条记录</span>
+      </button>
+
+      <div style="border-top:1px dashed #e2e8f0;margin:4px 0 2px;padding-top:4px">
+        <div class="muted" style="font-size:11.5px;text-align:center;padding:4px 0">可在此预留接入：导出清单、归档结项等</div>
+      </div>
+    </div>
+
+    <button class="btn gray block" onclick="closeModal()" style="margin-top:8px">取消</button>
+  `);
+}
+
 // ---- 修改项目基本信息 ----
 function editProjectModal(pid) {
   const p = P(pid);

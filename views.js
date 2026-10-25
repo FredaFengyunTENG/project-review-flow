@@ -306,15 +306,14 @@ function viewProject(p) {
   // 当前阶段动作卡片（无AI用语，直接呈现动作按钮）
   let stageCard = '';
   if (team) {
-    const revertBtn = p.stageIdx > 0 ? `<button class="btn sm gray" onclick="revertStage(P('${p.id}'))">↩ 退回上一步</button>` : '';
+    const moreBtn = `<button class="icon-more-btn" onclick="stageMoreMenuModal('${p.id}')" title="更多操作">⋯</button>`;
 
     if (finished(p)) {
       stageCard = `<div class="card" style="border:1.5px solid #16a34a;background:#f7fcf9">
         <div class="row">
           <b style="color:#15803d;font-size:15px">🎉 全部审查及入库流程已结项</b>
-          <span class="tag green">已办结</span>
+          ${moreBtn}
         </div>
-        <div style="margin-top:10px">${revertBtn}</div>
       </div>`;
     } else if (cur === 's2' || def.name.includes('技术审查会')) {
       // 分院技术审查会：一键报会、绝不阻塞，随时可推进评审审查
@@ -344,7 +343,7 @@ function viewProject(p) {
 
         <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
           <button class="btn sm ghost" onclick="versionModal('${p.id}')">＋ 传新版方案</button>
-          <div>${revertBtn}</div>
+          ${moreBtn}
         </div>
       </div>`;
     } else if (def.type === 'meeting') {
@@ -361,7 +360,7 @@ function viewProject(p) {
         </div>
         <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
           <button class="btn sm ghost" onclick="versionModal('${p.id}')">＋ 传新版方案</button>
-          <div>${revertBtn}</div>
+          ${moreBtn}
         </div>
       </div>`;
     } else {
@@ -400,7 +399,7 @@ function viewProject(p) {
         <div style="margin-top:10px">${reviewAction}</div>
         <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
           <button class="btn sm ghost" onclick="versionModal('${p.id}')">＋ 传新版方案</button>
-          <div>${revertBtn}</div>
+          ${moreBtn}
         </div>
       </div>`;
     }
@@ -411,9 +410,10 @@ function viewProject(p) {
   return `<div class="card">
     <div class="row">
       <b style="font-size:16px">${esc(p.alias || p.name)}</b>
-      <div>
+      <div style="display:flex;align-items:center;gap:6px">
         <span class="tag purple">${p.dept || '规划一所'}</span>
         ${catTag(p.category)}
+        ${team ? `<button class="icon-more-btn" onclick="stageMoreMenuModal('${p.id}')" title="更多操作" style="width:24px;height:24px;font-size:13px;border-radius:6px">⋯</button>` : ''}
       </div>
     </div>
     ${p.alias && p.alias !== p.name ? `<div class="muted" style="margin-top:2px">${esc(p.name)}</div>` : ''}
@@ -422,7 +422,6 @@ function viewProject(p) {
       负责人：<b>${uname(p.leader)}</b>${otherMembers.length ? ' · 成员：' + otherMembers.map(uname).join('、') : ''}
     </div>
     <div class="muted" style="margin-top:2px">公开：${p.visible.map(uname).join('、')}</div>
-    ${team ? `<div style="text-align:right;margin-top:6px"><span class="edit-link" onclick="editProjectModal('${p.id}')">修改信息</span></div>` : ''}
   </div>
 
   ${stageCard}
