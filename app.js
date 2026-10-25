@@ -1,5 +1,5 @@
 // ===== 状态与通用工具 =====
-const KEY = 'review-proto-v12';
+const KEY = 'review-proto-v13';
 let DB = JSON.parse(localStorage.getItem(KEY) || 'null') || {
   projects: seedProjects(),
   commonIssues: seedCommonIssues(),
@@ -225,7 +225,8 @@ function editProject(p, d) {
 }
 
 function submitReview(p, d) {
-  const cur = curStage(p);
+  const cur = d.stage || curStage(p);
+  const isAdvance = d.stage && d.stage !== curStage(p);
   const items = d.reviewers.map((uid) => ({ uid, status: 'pending', appointment: '', feedback: null, at: '' }));
 
   // 如果送审中包含组长或所总，且公开范围包含本所所长，但未手动多选所长，自动同步抄送所长知晓
@@ -242,7 +243,8 @@ function submitReview(p, d) {
   };
   p.reviews.push(r);
   const ccText = dirUid && !d.reviewers.includes(dirUid) ? `（同步知晓：${uname(dirUid)}）` : '';
-  log(p, `${uname(me)} 送审「${d.form}」给 ${d.reviewers.map(uname).join('、')}${ccText}${d.parallel ? `（同时审查：${d.reason}）` : ''}`);
+  const advText = isAdvance ? `【提前送审下一阶段·${stageMeta(p, cur).name}】` : '';
+  log(p, `${uname(me)} ${advText}送审「${d.form}」给 ${d.reviewers.map(uname).join('、')}${ccText}${d.parallel ? `（同时审查：${d.reason}）` : ''}`);
   save(); closeModal();
   notify(d.reviewers, `请审查「${p.alias || p.name}」${d.form}`);
   if (dirUid && !d.reviewers.includes(dirUid)) {

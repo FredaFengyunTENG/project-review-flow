@@ -225,12 +225,12 @@ function seedProjects() {
         {
           no: 1, at: '2026-10-10 09:30', by: 'u10', note: '初始方案',
           clause: '第十五条第(一)款',
-          imgs: { a: [{ name: '用地图_v1.jpg', src: '' }], b: [{ name: '指标表_v1.jpg', src: '' }] },
+          imgs: { a: [{ name: '修改前用地图.jpg', src: '' }], b: [{ name: '修改后用地图(含指标).jpg', src: '' }] },
         },
         {
           no: 2, at: '2026-10-12 16:40', by: 'u10', note: '按审查意见修改指标表',
           clause: '第十五条第(一)款',
-          imgs: { a: [{ name: '用地图_v2.jpg', src: '' }], b: [{ name: '指标表_v2.jpg', src: '' }] },
+          imgs: { a: [{ name: '修改前用地图.jpg', src: '' }], b: [{ name: '修改后用地图_v2.jpg', src: '' }] },
         },
       ],
       stageIdx: 0,
@@ -312,8 +312,9 @@ function seedProjects() {
         no: 1, at: '2026-10-12 09:00', by: 'u11', note: '初始方案',
         clause: '第十二条第(二)款',
         imgs: {
-          a: [{ name: '优化调整后用地图.jpg', src: '' }],
-          b: [{ name: '优化调整后指标表.jpg', src: '' }],
+          a: [{ name: '调整前用地图.jpg', src: '' }],
+          b: [{ name: '调整后(新编控规)用地图.jpg', src: '' }],
+          c: [{ name: '新编控规指标表.jpg', src: '' }],
         },
       }],
       stageIdx: 1,
@@ -384,7 +385,7 @@ function seedProjects() {
       versions: [{
         no: 1, at: '2026-10-15 09:00', by: 'u13', note: '初始方案',
         clause: '第十五条第(三)款',
-        imgs: { a: [{ name: '用地图.jpg', src: '' }], b: [{ name: '指标表.jpg', src: '' }] },
+        imgs: { a: [{ name: '修改前用地图.jpg', src: '' }], b: [{ name: '修改后用地图(可+指标表).jpg', src: '' }] },
       }],
       stageIdx: 2,
       stages: {
@@ -420,8 +421,8 @@ function seedProjects() {
         no: 1, at: '2026-10-21 10:00', by: 'u10', note: '初始方案',
         clause: '第四条第(二)项',
         imgs: {
-          a: [{ name: '用地图.jpg', src: '' }],
-          b: [{ name: '指标表.jpg', src: '' }],
+          a: [{ name: '优化前用地图.jpg', src: '' }],
+          b: [{ name: '优化后用地图(可+指标表).jpg', src: '' }],
         },
       }],
       stageIdx: 2,
@@ -459,8 +460,8 @@ function seedProjects() {
         no: 1, at: '2026-10-19 09:20', by: 'u11', note: '初始方案',
         clause: '第九条第(一)款',
         imgs: {
-          a: [{ name: '用地图.jpg', src: '' }],
-          b: [{ name: '指标表.jpg', src: '' }],
+          a: [{ name: '修正前用地图.jpg', src: '' }],
+          b: [{ name: '修正后用地图(可+指标表).jpg', src: '' }],
         },
       }],
       stageIdx: 4, // s5: 规划公示（可一键免公示跳过）

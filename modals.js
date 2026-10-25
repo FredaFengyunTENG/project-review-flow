@@ -13,8 +13,9 @@ function historyModal(pid) {
 }
 
 // ---- 送审（全点选）----
-function reviewModal(pid) {
-  const p = P(pid), cur = curStage(p), def = stageMeta(p, cur);
+function reviewModal(pid, targetStageKey) {
+  const p = P(pid), cur = targetStageKey || curStage(p), def = stageMeta(p, cur);
+  const isAdvance = targetStageKey && targetStageKey !== curStage(p);
   const forms = def.forms || ['成果材料'];
   const pool = reviewerPool(p);
   const people = pool.map((u) => {
@@ -26,7 +27,8 @@ function reviewModal(pid) {
   const next = suggestNext(p);
   const quickReasons = ['急赶上会', '局里急调', '节点急件', '其他'];
 
-  openModal(`<h3>送审 · ${esc(def.name)}</h3>
+  openModal(`<h3>${isAdvance ? '⚡ 提前送审' : '送审'} · ${esc(def.name)}</h3>
+    ${isAdvance ? `<div class="tag green" style="margin-bottom:8px">并联推进：当前在等开会，提前把关下一阶段材料</div>` : ''}
     <label class="f">成果形式</label>
     ${chips('m_form', forms.map((f) => [f, f]), [forms[0]], true)}
 
@@ -47,7 +49,7 @@ function reviewModal(pid) {
       ${chips('m_rchip', quickReasons.map((r) => [r, r]), ['急赶上会'], true)}
       <input type="text" id="m_reason" placeholder="选填补充说明" style="margin-top:6px">
     </div>
-    ${btns(`doReview('${pid}')`, '发送送审')}`);
+    ${btns(`doReview('${pid}', '${targetStageKey || ''}')`, '发送送审')}`);
 
   $('#m_mode')?.addEventListener('change', () => {
     const par = picked('#m_mode')[0] === 'par';
@@ -57,12 +59,13 @@ function reviewModal(pid) {
   });
 }
 
-function doReview(pid) {
+function doReview(pid, targetStageKey) {
   const parallel = picked('#m_mode')[0] === 'par';
   const reviewers = picked('#m_who');
   if (!reviewers.length) return toast('请选择审查人');
   const reason = parallel ? ($('#m_reason')?.value.trim() || picked('#m_rchip')[0] || '急赶上会') : '';
   submitReview(P(pid), {
+    stage: targetStageKey || undefined,
     form: picked('#m_form')[0] || '成果材料',
     paper: picked('#m_paper')[0] === '1',
     parallel,
@@ -351,16 +354,21 @@ function versionModal(pid) {
 function doVersion(pid) {
   const note = [picked('#v_rchip')[0], $('#v_note')?.value.trim()].filter(Boolean).join(' · ') || '更新方案';
   const c = readContent();
-  if (!c.imgs.a.length && !c.imgs.b.length && !c.clause) return toast('请上传用地图或指标表');
+  const hasImgs = c.imgs.a.length || c.imgs.b.length || (c.imgs.c && c.imgs.c.length);
+  if (!hasImgs && !c.clause) return toast('请上传方案图件或指标表');
   addVersion(P(pid), { note, ...c });
 }
 
-// ---- 阶段更多操作（省略号 ⋯ 收纳：退回上一步、修改信息、查看流水、未来扩展）----
+// ---- 阶段更多操作（省略号 ⋯ 收纳：撤销上一级、修改信息、修改会议纪要、取消报会、查看流水）----
 function stageMoreMenuModal(pid) {
   const p = P(pid);
   if (!p) return;
   const canRevert = p.stageIdx > 0;
   const backStageName = canRevert ? stageMeta(p, path(p)[p.stageIdx - 1]).name : '';
+  const cur = curStage(p);
+  const sCur = p.stages[cur] || {};
+  const hasMeeting = !!sCur.meeting;
+  const isApplied = !!sCur.apply;
 
   openModal(`
     <div class="row" style="margin-bottom:12px">
@@ -371,24 +379,34 @@ function stageMoreMenuModal(pid) {
     <div style="display:flex;flex-direction:column;gap:8px">
       ${canRevert ? `
         <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();revertStage(P('${p.id}'))">
-          <span style="font-weight:600;color:#0f172a">↩ 退回上一阶段</span>
+          <span style="font-weight:600;color:#0f172a">↩ 撤销上一级（退回）</span>
           <span class="muted" style="font-size:12px">退回至：${esc(backStageName)}</span>
         </button>
       ` : ''}
 
       <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();editProjectModal('${p.id}')">
         <span style="font-weight:600;color:#0f172a">✏️ 修改项目信息</span>
-        <span class="muted" style="font-size:12px">名称、成员、公开范围</span>
+        <span class="muted" style="font-size:12px">名称、俗称、成员、公开范围</span>
       </button>
+
+      ${hasMeeting ? `
+        <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();meetingModal('${p.id}','${cur}')">
+          <span style="font-weight:600;color:#0f172a">📝 修改本阶段会议信息</span>
+          <span class="muted" style="font-size:12px">开会时间、纪要、成果照片</span>
+        </button>
+      ` : ''}
+
+      ${isApplied ? `
+        <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();cancelApplyMeeting('${p.id}','${cur}')">
+          <span style="font-weight:600;color:#dc2626">❌ 取消本次报会</span>
+          <span class="muted" style="font-size:12px">撤回排期申请</span>
+        </button>
+      ` : ''}
 
       <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();historyModal('${p.id}')">
         <span style="font-weight:600;color:#0f172a">📜 查看操作记录</span>
         <span class="muted" style="font-size:12px">共 ${p.log.length} 条记录</span>
       </button>
-
-      <div style="border-top:1px dashed #e2e8f0;margin:4px 0 2px;padding-top:4px">
-        <div class="muted" style="font-size:11.5px;text-align:center;padding:4px 0">可在此预留接入：导出清单、归档结项等</div>
-      </div>
     </div>
 
     <button class="btn gray block" onclick="closeModal()" style="margin-top:8px">取消</button>

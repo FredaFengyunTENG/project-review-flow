@@ -52,7 +52,26 @@ function catTag(cat) {
   return `<span class="tag ${cls}">${esc(cat)}</span>`;
 }
 
-// ===== 待办主页（规划师一线视角：极简、只看待审和我参与的项目）=====
+// 流程精简直观步进指示（显眼位置呈现）
+function miniFlowHtml(p) {
+  const keys = path(p);
+  const curIdx = p.stageIdx;
+  return `
+    <div class="mini-flow">
+      ${keys.map((k, i) => {
+        const meta = stageMeta(p, k);
+        const isDone = i < curIdx;
+        const isCur = i === curIdx;
+        const isMeeting = meta.type === 'meeting';
+        const cls = isDone ? 'done' : isCur ? (isMeeting ? 'wait' : 'cur') : '';
+        const icon = isDone ? '✔ ' : isCur ? (isMeeting ? '⏳ ' : '● ') : '';
+        const arrow = i < keys.length - 1 ? '<span class="mini-step-arrow">›</span>' : '';
+        return `<span class="mini-step ${cls}">${icon}${esc(meta.name)}</span>${arrow}`;
+      }).join('')}
+    </div>`;
+}
+
+// ===== 待办主页（规划师一线视角：聚焦当前行动、显眼流程、等会并联提醒）=====
 function viewTodo() {
   let h = '';
 
@@ -69,51 +88,113 @@ function viewTodo() {
       ${r.parallel ? `<div class="tag red" style="margin-top:4px">加急：${esc(r.reason)}</div>` : ''}
     </div>`).join('') : '<div class="card empty" style="padding:14px 0">暂无待审事项 ☕</div>';
 
-  // 2. 我参与的项目
+  // 2. 我参与的进行中项目（显眼展示流程与并联推进）
   const mine = DB.projects.filter((p) => p.members.includes(me) && !finished(p));
-  h += `<h2>我参与的项目 (${mine.length})</h2>`;
+  h += `<h2>进行中的项目 (${mine.length})</h2>`;
   h += mine.length ? mine.map((p) => {
     const curK = curStage(p);
+    const def = stageMeta(p, curK);
     const sCur = p.stages[curK] || {};
-    const curName = curK ? stageMeta(p, curK).name : '已结项';
 
     let meetingBadge = '';
     if (sCur.apply) {
       if (sCur.apply.status === 'scheduled') {
         meetingBadge = `<span class="tag green">🗓 开会：${fmtAppt(sCur.apply.scheduledTime)}</span>`;
       } else {
-        meetingBadge = `<span class="tag purple">已报会</span>`;
+        meetingBadge = `<span class="tag purple">已报会 · 等开会</span>`;
+      }
+    }
+
+    // 等上会时的下一阶段成果审查提醒
+    let parallelTip = '';
+    if (def && def.type === 'meeting') {
+      const nextKey = path(p)[p.stageIdx + 1];
+      if (nextKey) {
+        const nextDef = stageMeta(p, nextKey);
+        if (nextDef && nextDef.type === 'review') {
+          const nextReviews = (p.reviews || []).filter((r) => r.stage === nextKey);
+          const nextDone = nextReviews.length && nextReviews.every((r) => r.items.every((it) => it.status === 'done' || it.status === 'known'));
+          if (nextDone) {
+            parallelTip = `<div style="font-size:11.5px;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;padding:3px 8px;border-radius:6px;margin-top:5px">⚡ 下一阶段【${esc(nextDef.name)}】成果已提前审查就绪</div>`;
+          } else if (nextReviews.length) {
+            parallelTip = `<div style="font-size:11.5px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:3px 8px;border-radius:6px;margin-top:5px">⚡ 正在提前审查下一阶段【${esc(nextDef.name)}】成果</div>`;
+          } else {
+            parallelTip = `<div style="font-size:11.5px;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;padding:3px 8px;border-radius:6px;margin-top:5px">⚡ 等会不等人：可同步送审下一阶段【${esc(nextDef.name)}】成果</div>`;
+          }
+        }
       }
     }
 
     return `<div class="card click" onclick="go('project','${p.id}')">
       <div class="row">
         <b>${esc(p.alias || p.name)}</b>
-        ${catTag(p.category)}
+        <div style="display:flex;align-items:center;gap:6px">
+          ${catTag(p.category)}
+          ${meetingBadge}
+        </div>
       </div>
-      <div class="muted" style="margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span>当前：<b>${curName}</b></span>
-        ${meetingBadge}
-      </div>
+      <!-- 显眼流程条 -->
+      ${miniFlowHtml(p)}
+      ${parallelTip}
     </div>`;
   }).join('') : '<div class="card empty" style="padding:14px 0">暂无进行中的项目</div>';
 
   return h;
 }
 
-// ===== 项目列表 =====
+// ===== 项目列表（全院台账库：支持分类筛选）=====
+let projectFilterCat = 'all';
+function setProjectFilter(cat) {
+  projectFilterCat = cat;
+  render();
+}
+
 function viewProjects() {
-  const list = DB.projects.filter((p) => canSee(p, me));
-  return `<h2>全部项目 (${list.length})</h2>` + (list.length ? list.map((p) => `
-    <div class="card click" onclick="go('project','${p.id}')">
-      <div class="row">
-        <b>${esc(p.alias || p.name)}</b>
-        ${catTag(p.category)}
-      </div>
-      <div class="muted" style="margin-top:3px">${esc(p.name)}</div>
-      <div class="muted" style="margin-top:4px">负责人 ${uname(p.leader)} · ${finished(p) ? '✅ 已结项' : '当前：' + (curStage(p) ? stageMeta(p, curStage(p)).name : '—')}</div>
-    </div>`).join('') : '<div class="empty">暂无项目</div>') +
-    `<button class="btn gray block" onclick="resetDemo()" style="margin-top:16px">重置示例数据</button>`;
+  const allList = DB.projects.filter((p) => canSee(p, me));
+  const filterCats = ['all', '正向优化', '技术修正', '控规优化调整', '控规修改', '控规', 'finished'];
+  const labels = {
+    all: '全部',
+    '正向优化': '正向优化',
+    '技术修正': '技术修正',
+    '控规优化调整': '优化调整',
+    '控规修改': '控规修改',
+    '控规': '控规',
+    finished: '已结项'
+  };
+
+  const list = allList.filter((p) => {
+    if (projectFilterCat === 'all') return true;
+    if (projectFilterCat === 'finished') return finished(p);
+    return p.category === projectFilterCat && !finished(p);
+  });
+
+  return `
+    <div class="row">
+      <h2>项目台账 (${allList.length})</h2>
+    </div>
+    
+    <!-- 分类筛选轻量标签栏 -->
+    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px">
+      ${filterCats.map((c) => {
+        const count = allList.filter((p) => c === 'all' ? true : c === 'finished' ? finished(p) : p.category === c && !finished(p)).length;
+        const act = projectFilterCat === c ? 'primary' : 'ghost';
+        return `<button class="btn sm ${act}" style="flex-shrink:0;padding:4px 10px;font-size:12px" onclick="setProjectFilter('${c}')">${labels[c]} (${count})</button>`;
+      }).join('')}
+    </div>
+
+    ${list.length ? list.map((p) => `
+      <div class="card click" onclick="go('project','${p.id}')">
+        <div class="row">
+          <b>${esc(p.alias || p.name)}</b>
+          ${catTag(p.category)}
+        </div>
+        <div class="muted" style="margin-top:2px">${esc(p.name)}</div>
+        <!-- 显眼流程条 -->
+        ${miniFlowHtml(p)}
+        <div class="muted" style="margin-top:3px;font-size:12px">负责人：${uname(p.leader)} · ${finished(p) ? '✅ 已结项' : '当前：' + (curStage(p) ? stageMeta(p, curStage(p)).name : '—')}</div>
+      </div>`).join('') : '<div class="card empty">暂无该分类项目</div>'}
+    <button class="btn gray block" onclick="resetDemo()" style="margin-top:16px">重置示例数据</button>
+  `;
 }
 
 // ===== 修改依据选择器（选时看条款内容，选完只显第几条第几款）=====
@@ -157,20 +238,57 @@ function selectClause(code, cat) {
   if (c) c.outerHTML = clausePickerHtml(cat, code).replace('<label class="f">修改依据</label>', '');
 }
 
-// 方案内容表单：只传用地图 + 指标表（双栏紧凑），内容不多、会上说
+// 针对不同类别的图件与指标栏位规则：
+// 正向优化：优化前用地图（可+指标表）、优化后用地图（可+指标表）
+// 技术修正：修正前用地图（可+指标表）、修正后用地图（可+指标表）
+// 控规修改：修改前用地图（可+指标表）、修改后用地图（可+指标表）
+// 控规优化调整：调整前用地图（可+指标表）、调整后（新编控规）用地图、新编控规指标表
+// 控规新编：用地图、指标表
+function categorySchemeLabels(cat) {
+  if (cat === '正向优化') {
+    return [
+      { key: 'a', title: '优化前用地图（可+指标表）' },
+      { key: 'b', title: '优化后用地图（可+指标表）' },
+    ];
+  }
+  if (cat === '技术修正') {
+    return [
+      { key: 'a', title: '修正前用地图（可+指标表）' },
+      { key: 'b', title: '修正后用地图（可+指标表）' },
+    ];
+  }
+  if (cat === '控规修改') {
+    return [
+      { key: 'a', title: '修改前用地图（可+指标表）' },
+      { key: 'b', title: '修改后用地图（可+指标表）' },
+    ];
+  }
+  if (cat === '控规优化调整') {
+    return [
+      { key: 'a', title: '调整前用地图（可+指标表）' },
+      { key: 'b', title: '调整后（新编控规）用地图' },
+      { key: 'c', title: '新编控规指标表' },
+    ];
+  }
+  return [
+    { key: 'a', title: '用地图' },
+    { key: 'b', title: '指标表' },
+  ];
+}
+
 function contentFields(cat, v = {}) {
   if (cat === '其他（待开发）') {
     return `<div class="empty" style="padding:16px 0">专项规划等其他类型正在开发中...</div>`;
   }
-  const imgsA = (v.imgs && v.imgs.a) || [];
-  const imgsB = (v.imgs && v.imgs.b) || [];
+  const imgs = v.imgs || {};
   const curClause = v.clause || '';
+  const labels = categorySchemeLabels(cat);
+  const is3 = labels.length === 3;
 
   return `
     ${clausePickerHtml(cat, curClause)}
-    <div class="upl-grid">
-      ${uploader('c_a', imgsA, '用地图')}
-      ${uploader('c_b', imgsB, '指标表')}
+    <div class="upl-grid ${is3 ? 'cols-3' : ''}">
+      ${labels.map((item) => uploader('c_' + item.key, imgs[item.key] || [], item.title)).join('')}
     </div>`;
 }
 
@@ -180,6 +298,7 @@ function readContent() {
     imgs: {
       a: [...(UPL.c_a || [])],
       b: [...(UPL.c_b || [])],
+      c: [...(UPL.c_c || [])],
     },
   };
 }
@@ -264,11 +383,13 @@ function doCreate() {
   });
 }
 
-// ===== 方案内容卡片（极简：只显示条文代码 + 用地图 + 指标表）=====
+// ===== 方案内容卡片（极简：展示条文代码 + 分类用地图与指标）=====
 function renderSchemeCard(p) {
   const vs = p.versions;
   const isMulti = vs.length > 1;
   const cur = vs[vs.length - 1];
+  const labels = categorySchemeLabels(p.category);
+  const is3 = labels.length === 3;
 
   const bodyHtml = (v, isOld) => {
     const imgs = v.imgs || {};
@@ -277,15 +398,13 @@ function renderSchemeCard(p) {
         ${isMulti ? `<div class="row"><b>第 ${v.no} 版</b><span class="muted">${v.at} · ${uname(v.by)}</span></div>` : ''}
         ${isMulti && v.note ? `<div class="note">${esc(v.note)}</div>` : ''}
         ${v.clause ? `<div style="margin:4px 0"><span class="tag blue">📜 ${esc(v.clause)}</span></div>` : ''}
-        <div class="scheme-pair">
-          <div class="scheme-box">
-            <div class="lbl">用地图</div>
-            ${imgsHtml(imgs.a) || '<span class="muted">—</span>'}
-          </div>
-          <div class="scheme-box">
-            <div class="lbl">指标表</div>
-            ${imgsHtml(imgs.b) || '<span class="muted">—</span>'}
-          </div>
+        <div class="scheme-pair ${is3 ? 'cols-3' : ''}">
+          ${labels.map((item) => `
+            <div class="scheme-box">
+              <div class="lbl">${esc(item.title)}</div>
+              ${imgsHtml(imgs[item.key]) || '<span class="muted">—</span>'}
+            </div>
+          `).join('')}
         </div>
       </div>`;
   };
@@ -294,6 +413,53 @@ function renderSchemeCard(p) {
     ${bodyHtml(cur, false)}
     ${isMulti ? `<details><summary>历史方案 (${vs.length - 1} 个早期版本)</summary>${vs.slice(0, -1).reverse().map((v) => bodyHtml(v, true)).join('')}</details>` : ''}
   </div>`;
+}
+
+// 等上会时：并联推进下一阶段成果审查（例如：等联审会可提前审查批前公示，等市长会可提前审查报批成果）
+function renderParallelAdvance(p, cur) {
+  const nextKey = path(p)[p.stageIdx + 1];
+  if (!nextKey) return '';
+  const nextDef = stageMeta(p, nextKey);
+  if (!nextDef || nextDef.type !== 'review') return '';
+
+  const nextReviews = (p.reviews || []).filter((r) => r.stage === nextKey);
+  const isDone = nextReviews.length && nextReviews.every((r) => r.items.every((it) => it.status === 'done' || it.status === 'known'));
+
+  if (isDone) {
+    return `
+      <div style="margin-top:10px;padding:9px 12px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px">
+        <div class="row">
+          <b style="color:#15803d;font-size:13px">⚡ 下一阶段「${esc(nextDef.name)}」成果已提前把关通过！</b>
+          <span class="tag green">已就绪</span>
+        </div>
+        <div class="muted" style="font-size:12px;color:#166534;margin-top:3px">会后记录结果即可直接进入公示/入库，省去重复等待周期。</div>
+      </div>`;
+  }
+  if (nextReviews.length) {
+    return `
+      <div style="margin-top:10px;padding:9px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px">
+        <div class="row">
+          <b style="color:#1e40af;font-size:13px">⚡ 下一阶段「${esc(nextDef.name)}」正在提前把关中...</b>
+          <span class="tag blue">并联把关中</span>
+        </div>
+        <div class="muted" style="font-size:12px;color:#1e3a8a;margin-top:3px">
+          正在把关：${nextReviews[0].items.map((i) => uname(i.uid) + '(' + (i.status === 'done' || i.status === 'known' ? '✔已过' : '审查中') + ')').join('、')}
+        </div>
+      </div>`;
+  }
+  return `
+    <div style="margin-top:10px;padding:9px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px">
+      <div class="row">
+        <b style="color:#15803d;font-size:13px">⚡ 并联提效 · 等会不等人</b>
+        <span class="tag green">建议推进</span>
+      </div>
+      <div class="muted" style="margin-top:3px;font-size:12px;color:#166534">
+        当前在等开会排期。建议同步准备并提前送审下一阶段<b>【${esc(nextDef.name)}】</b>（${nextDef.forms ? nextDef.forms.join('、') : '成果材料'}），开完会即可直接放行！
+      </div>
+      <div style="margin-top:8px">
+        <button class="btn sm green" onclick="reviewModal('${p.id}','${nextKey}')">📤 提前送审「${esc(nextDef.name)}」成果</button>
+      </div>
+    </div>`;
 }
 
 // ===== 项目详情页（精简、去AI腔调、报会不阻塞、少打字）=====
@@ -336,12 +502,11 @@ function viewProject(p) {
             <button class="btn ghost block" style="margin-top:0" onclick="completeStage(P('${p.id}'), true)">不上会，直接进入评审审查 →</button>
           ` : `
             <button class="btn green block" style="margin-top:0;font-size:15px" onclick="completeStage(P('${p.id}'))">进入评审审查（不等开会直接推）→</button>
-            <div class="row" style="margin-top:2px">
-              <button class="btn sm ghost purple" onclick="meetingModal('${p.id}','${cur}')">📝 记会议结果</button>
-              <span class="edit-link" onclick="cancelApplyMeeting('${p.id}','${cur}')" style="color:#94a3b8">取消报会</span>
-            </div>
+            <button class="btn sm ghost purple" onclick="meetingModal('${p.id}','${cur}')">📝 记会议结果</button>
           `}
         </div>
+
+        ${renderParallelAdvance(p, cur)}
 
         <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
           <button class="btn sm ghost" onclick="versionModal('${p.id}')">＋ 传新版方案</button>
@@ -360,6 +525,9 @@ function viewProject(p) {
           <button class="btn block" style="margin-top:0" onclick="meetingModal('${p.id}','${cur}')">📝 记录会议信息</button>
           <button class="btn green block" style="margin-top:0" onclick="completeStage(P('${p.id}'))">完成本阶段，进入下一步 →</button>
         </div>
+
+        ${renderParallelAdvance(p, cur)}
+
         <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
           <button class="btn sm ghost" onclick="versionModal('${p.id}')">＋ 传新版方案</button>
           ${moreBtn}
@@ -523,7 +691,6 @@ function stageDetail(p, key) {
     h += `<div class="opinion meeting">
       <div class="row">
         <span>🗓 <b>${fmtAppt(m.time) || '已开会'}</b> · ${esc(m.opinion || '原则通过')}</span>
-        ${isTeam(p) ? `<span class="edit-link" onclick="meetingModal('${p.id}','${key}')">修改</span>` : ''}
       </div>
       ${m.location ? `<div class="muted" style="margin-top:2px">地点：${esc(m.location)}</div>` : ''}
       ${m.implement ? `<div style="margin-top:2px;font-size:12.5px">${esc(m.implement)}</div>` : ''}
@@ -533,14 +700,12 @@ function stageDetail(p, key) {
 
   p.reviews.filter((r) => r.stage === key).forEach((r) => {
     r.items.forEach((it) => {
-      const mineDone = it.uid === me && it.status === 'done';
       h += `<div class="stage-item">
         <div class="row">
           <span><b>${uname(it.uid)}</b> <small class="muted">(${U(it.uid).role})</small></span>
           ${statusTag(it)}
         </div>
         ${fbSummary(it.feedback)}
-        ${mineDone ? `<div style="text-align:right;margin-top:2px"><span class="edit-link" onclick="feedbackModal('${p.id}','${r.id}')">修改意见</span></div>` : ''}
       </div>`;
     });
   });
