@@ -462,6 +462,9 @@ function viewProject(p) {
 
   // 当前阶段动作卡片（无AI用语，直接呈现动作按钮；每张卡只一个主按钮）
   let stageCard = '';
+  const techBar = techMeetingPending(p)
+    ? `<div class="info-box wait row nowrap"><span class="hstack tight">${icon('clock', 'i-sm')}分院技术审查会 · 并行待上会</span><button class="btn sm text" onclick="meetingModal('${p.id}','s2')">记会议结果</button></div>`
+    : '';
   if (team) {
     const moreBtn = `<button class="icon-more-btn" onclick="stageMoreMenuModal('${p.id}')" title="更多操作" aria-label="更多操作">${icon('more', 'i-lg')}</button>`;
     const cardFoot = `<div class="card-foot">
@@ -477,7 +480,8 @@ function viewProject(p) {
         </div>
       </div>`;
     } else if (cur === 's2' || def.name.includes('技术审查会')) {
-      // 分院技术审查会：一键报会、绝不阻塞，随时可推进评审审查
+      // 分院技术审查会：必须上，但不卡流程；可先推进下一阶段，会议并行照常开
+      const nextName = keys[p.stageIdx + 1] ? stageMeta(p, keys[p.stageIdx + 1]).name : '下一阶段';
       stageCard = `<div class="card stage-card is-wait">
         <div class="row nowrap">
           <span class="stage-name">${esc(def.name)}</span>
@@ -490,9 +494,9 @@ function viewProject(p) {
         <div class="stage-actions">
           ${!isApplied ? `
             <button class="btn block" onclick="oneTapApplyMeeting('${p.id}','${cur}')">${icon('calendar')}一键报会（报给院长凑会）</button>
-            <button class="btn text block" onclick="completeStage(P('${p.id}'), true)">不上会，直接进入评审审查${icon('arrow-right')}</button>
+            <button class="btn text block" onclick="completeStage(P('${p.id}'))">先推进「${esc(nextName)}」（会照常上）${icon('arrow-right')}</button>
           ` : `
-            <button class="btn block" onclick="completeStage(P('${p.id}'))">进入评审审查（不等开会直接推）${icon('arrow-right')}</button>
+            <button class="btn block" onclick="completeStage(P('${p.id}'))">先推进「${esc(nextName)}」（会照常上）${icon('arrow-right')}</button>
             <button class="btn ghost block" onclick="meetingModal('${p.id}','${cur}')">${icon('file-text')}记会议结果</button>
           `}
         </div>
@@ -508,6 +512,7 @@ function viewProject(p) {
           <span class="stage-name">${esc(def.name)}</span>
           <span class="tag wait">会议节点</span>
         </div>
+        ${techBar}
         <div class="stage-actions">
           <button class="btn ${hasMeeting ? 'ghost' : ''} block" onclick="meetingModal('${p.id}','${cur}')">${icon('file-text')}记录会议信息</button>
           <button class="btn ${hasMeeting ? '' : 'ghost'} block" onclick="completeStage(P('${p.id}'))">完成本阶段，进入下一步${icon('arrow-right')}</button>
@@ -525,6 +530,7 @@ function viewProject(p) {
       if (!stageReviews.length) {
         reviewAction = `
           <button class="btn block" onclick="reviewModal('${p.id}')">${icon('send')}送审「${def.dual ? '两套成果' : (def.forms ? def.forms[0] : '成果')}」</button>
+          ${def.pub ? `<button class="btn text block" onclick="noPubModal('${p.id}')">不公示${icon('arrow-right')}</button>` : ''}
           ${def.optional ? `<button class="btn text block" onclick="completeStage(P('${p.id}'), true)">${esc(def.skipLabel || '跳过此阶段')}${icon('arrow-right')}</button>` : ''}`;
       } else {
         // 判定放行：
@@ -599,6 +605,7 @@ function viewProject(p) {
           <span class="stage-name">${esc(def.name)}</span>
           <span class="tag progress">审查节点</span>
         </div>
+        ${techBar}
         <div class="stage-actions">${reviewAction}</div>
         ${cardFoot}
       </div>`;
@@ -636,6 +643,8 @@ function viewProject(p) {
         return `<li class="${cls}">
           <span class="sname">${esc(m.name)}</span>
           ${m.optional ? '<span class="tag">可选</span>' : ''}
+          ${s.noPub ? `<span class="tag">不公示 · ${esc(s.noPub.reason)}</span>` : ''}
+          ${s.parallel && !s.meeting ? '<span class="tag wait">并行 · 待上会</span>' : ''}
           ${stageDetail(p, k)}
         </li>`;
       }).join('')}

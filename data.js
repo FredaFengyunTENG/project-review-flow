@@ -30,20 +30,20 @@ const VIS_ROLES = ['组长/所总', '所长', '院总', '院长'];
 
 const CATEGORIES = ['正向优化', '技术修正', '控规优化调整', '控规修改', '控规', '其他（待开发）'];
 
-// 阶段模板：s2 分院技术审查会默认非卡点（可一键报会，也可不等开会直接推进评审成果审查）
+// 阶段模板：s2 分院技术审查会必须上，但不卡流程（可先推进下一阶段，会议并行照常开）；s5 各类公示均可选择不公示
 const STAGES = {
   s1: { name: '前期审理和初步方案', type: 'review', forms: ['汇报演示稿'] },
-  s2: { name: '分院技术审查会', type: 'meeting', optional: true },
+  s2: { name: '分院技术审查会', type: 'meeting' },
   s3: { name: '评审方案审查', type: 'review', forms: ['汇报演示稿', '评审成果'] },
   s4: { name: '控规方案联审会', type: 'meeting' },
-  s5: { name: '批前公示', type: 'review', forms: ['批前公示文件'] },
+  s5: { name: '批前公示', type: 'review', pub: true, forms: ['批前公示文件'] },
   s6: { name: '市长会审查', type: 'review', forms: ['汇报演示稿'], optional: true },
   s7: { name: '市政府规划联审联批会', type: 'meeting', preReview: true, forms: ['会前指标预审'] },
   s8: { name: '成果报批审查', type: 'review', forms: ['报批成果'] },
   s9: { name: '批后公告', type: 'review', forms: ['批后公告文件'] },
-  s_jzbgh: { name: '局长办公会审核', type: 'meeting', preReview: true, forms: ['上会材料预审'] },
-  s_zxrk: { name: '市局审定与入库', type: 'review', forms: ['盖章入库成果'] },
-  s_jsrk: { name: '成果入库审查', type: 'review', forms: ['盖章入库成果'] },
+  s_jzbgh: { name: '上局长业务会', type: 'meeting', preReview: true, forms: ['上会材料预审'] },
+  s_zxrk: { name: '提交成果报局', type: 'review', forms: ['报局成果'] },
+  s_jsrk: { name: '提交成果（报局）', type: 'review', forms: ['报局成果'] },
 };
 
 function stagePath(category, publicity) {
@@ -69,12 +69,12 @@ const STAGE_OVERRIDES = {
   '正向优化': {
     s3: { name: '申报成果审查', forms: ['正向优化申报成果', '汇报演示稿'] },
     s4: { name: '详细规划联审会' },
-    s5: { name: '批前公示（≥10日）', optional: true, skipLabel: '免公示跳过', forms: ['公示文件'] },
+    s5: { name: '批前公示（≥10日）', forms: ['公示文件'] },
   },
   '技术修正': {
     s3: { name: '申报成果审查', forms: ['技术修正成果', '汇报演示稿'] },
     s4: { name: '详细规划联审会' },
-    s5: { name: '规划公示（≥10日）', optional: true, skipLabel: '免公示跳过', forms: ['公示文件'] },
+    s5: { name: '规划公示（≥10日）', forms: ['公示文件'] },
   },
   '控规优化调整': {
     // 标（新编控规）的阶段只送新编控规；其余阶段优化调整 + 新编控规两套成果都要送
@@ -90,6 +90,13 @@ const STAGE_OVERRIDES = {
   '控规修改': {
     s5: { name: '批前公示（≥30日）', forms: ['修改公示文件'] },
   },
+};
+
+// 不公示理由（只给短选项；补充说明点开才填）
+const NO_PUB_REASONS = {
+  '正向优化': ['涉密', '不改道路红线及等级', '其他'],
+  '技术修正': ['不涉及相邻权益人', '其他'],
+  default: ['涉密', '其他'],
 };
 
 function stageMeta(pOrCat, key) {
@@ -407,7 +414,7 @@ function seedProjects() {
       stageIdx: 2,
       stages: {
         s1: { done: '2026-10-14 17:00' },
-        s2: { skipped: '2026-10-15 15:00' }, // 着急上专家会，直接跳过技术审查会进入评审方案审查
+        s2: { parallel: '2026-10-15 15:00' }, // 着急上专家会，先推进评审方案审查，技术审查会并行照常上
       },
       reviews: [{
         id: 'r50', stage: 's3', form: '汇报演示稿', paper: false, parallel: true, reason: '急赶上会',
@@ -445,7 +452,7 @@ function seedProjects() {
       stageIdx: 2,
       stages: {
         s1: { done: '2026-10-22 11:00' },
-        s2: { skipped: '2026-10-22 11:05' },
+        s2: { parallel: '2026-10-22 11:05' },
       },
       reviews: [{
         id: 'r61', stage: 's3', form: '正向优化申报成果', paper: true, parallel: false, reason: '',
@@ -484,7 +491,7 @@ function seedProjects() {
       stageIdx: 4, // s5: 规划公示（可一键免公示跳过）
       stages: {
         s1: { done: '2026-10-19 17:00' },
-        s2: { skipped: '2026-10-19 17:05' },
+        s2: { parallel: '2026-10-19 17:05' },
         s3: { done: '2026-10-21 16:00' },
         s4: { done: '2026-10-23 15:30', meeting: { time: '2026-10-23 09:30', location: '市资源规划局', attendees: ['u4', 'u6', 'u11'], opinion: '原则通过', implement: '', photos: [] } },
       },

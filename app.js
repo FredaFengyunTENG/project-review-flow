@@ -330,11 +330,37 @@ function completeStage(p, skipped = false) {
   if (!p || finished(p)) return;
   const key = curStage(p);
   const sName = stageMeta(p, key).name;
-  st(p, key)[skipped ? 'skipped' : 'done'] = now();
-  log(p, `${uname(me)} ${skipped ? '跳过' : '完成'}阶段「${sName}」`);
+  if (key === 's2' && !skipped && !st(p, key).meeting) {
+    // 分院技术审查会必须上，但不卡流程：先推进下一阶段，会议并行照常开
+    st(p, key).parallel = now();
+    log(p, `${uname(me)} 先推进下一阶段，「${sName}」并行待上会`);
+  } else {
+    st(p, key)[skipped ? 'skipped' : 'done'] = now();
+    log(p, `${uname(me)} ${skipped ? '跳过' : '完成'}阶段「${sName}」`);
+  }
   p.stageIdx++;
   save(); render();
   toast(finished(p) ? '全部阶段已完成' : `已进入：${stageMeta(p, curStage(p)).name}`);
+}
+
+// 不公示：点选理由，补充说明选填
+function noPublish(p, reason, note) {
+  if (!p || finished(p)) return;
+  const key = curStage(p);
+  const sName = stageMeta(p, key).name;
+  st(p, key).noPub = { reason, note, at: now() };
+  st(p, key).skipped = now();
+  log(p, `${uname(me)}「${sName}」不公示（${reason}${note ? '：' + note : ''}）`);
+  p.stageIdx++;
+  save(); closeModal(); render();
+  toast(finished(p) ? '全部阶段已完成' : `已进入：${stageMeta(p, curStage(p)).name}`);
+}
+
+// 分院技术审查会已先推进、但会议还没记录
+function techMeetingPending(p) {
+  const i = path(p).indexOf('s2');
+  const s = p.stages.s2 || {};
+  return i >= 0 && i < p.stageIdx && !s.meeting && !s.skipped;
 }
 
 function revertStage(p) {
@@ -344,6 +370,8 @@ function revertStage(p) {
   p.stageIdx--;
   delete st(p, back).done;
   delete st(p, back).skipped;
+  delete st(p, back).parallel;
+  delete st(p, back).noPub;
   log(p, `${uname(me)} 撤回上一阶段，回到「${backName}」`, true);
   save(); render();
   toast(`已撤回：${backName}`);

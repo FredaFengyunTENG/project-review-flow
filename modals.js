@@ -334,6 +334,21 @@ function meetingModal(pid, key) {
     ${btns(`doMeeting('${pid}','${key}')`, '保存')}`);
 }
 
+// ---- 不公示：理由点选，补充说明点开才显示 ----
+function noPubModal(pid) {
+  const p = P(pid), def = stageMeta(p, curStage(p));
+  const reasons = NO_PUB_REASONS[p.category] || NO_PUB_REASONS.default;
+  openModal(`<div class="sheet-head"><h3>不公示 · ${esc(def.name)}</h3></div>
+    <label class="f">理由</label>
+    ${chips('np_r', reasons.map((r) => [r, r]), [reasons[0]], true)}
+    <div id="np_more" class="hidden"><input type="text" id="np_note" class="input-gap" placeholder="选填"></div>
+    <button type="button" class="btn sm text" onclick="$('#np_more').classList.remove('hidden');this.remove()">${icon('plus', 'i-sm')}补充说明</button>
+    <div class="sheet-actions">
+      <button class="btn block" onclick="noPublish(P('${pid}'), picked('#np_r')[0] || '其他', $('#np_note')?.value.trim() || '')">确认不公示</button>
+      <button class="btn text neutral block" onclick="closeModal()">取消</button>
+    </div>`);
+}
+
 function doMeeting(pid, key) {
   const res = picked('#g_res')[0] || '';
   const extra = $('#g_note')?.value.trim() || '';
