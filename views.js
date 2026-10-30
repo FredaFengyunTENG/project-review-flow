@@ -2,7 +2,6 @@
 
 let memberState = [];
 let pickedClauseState = ''; // 当前选中的条款代码，如 '第十二条第(二)款'
-let clausePickerOpen = false;
 
 function render() {
   updateTopBadges();
@@ -199,45 +198,36 @@ function viewProjects() {
   `;
 }
 
-// ===== 修改依据选择器（选时看条款内容，选完只显第几条第几款）=====
+// ===== 修改依据选择器：只点选第几款，界面不写具体情形（条文原文在「查看原文」里看）=====
+function clauseShort(code) {
+  const m = /第(\([一二三四五六七八九十]+\))[款项]$/.exec(code || '');
+  return m ? m[1] : code;
+}
+
 function clausePickerHtml(cat, curVal = '') {
   const items = CLAUSE_ITEMS[cat];
   if (!items || !items.length) return '';
-
-  const picked = curVal || pickedClauseState || items[0][0];
+  const codes = items.map(([code]) => code);
+  const cand = curVal || pickedClauseState;
+  const picked = codes.includes(cand) ? cand : codes[0];
   pickedClauseState = picked;
+  const src = CLAUSE_SOURCE[cat] || {};
 
   return `
-    <label class="f">修改依据</label>
     <div id="clause_container">
-      <div class="clause-picked-bar">
-        <span class="tag progress">${icon('bookmark', 'i-sm')}${esc(picked)}</span>
-        <button type="button" class="btn sm text" onclick="toggleClausePicker('${esc(cat)}')">${clausePickerOpen ? '收起' : '更换依据'}</button>
+      <label class="f">修改依据 <span class="faint">${esc(src.short || '')}</span></label>
+      <div class="chips clause-chips">
+        ${codes.map((code) => `<span class="chip ${code === picked ? 'on' : ''}" onclick="selectClause('${esc(code)}','${esc(cat)}')">${esc(clauseShort(code))}</span>`).join('')}
       </div>
       <input type="hidden" id="c_clause_val" value="${esc(picked)}">
-      <div class="clause-list ${clausePickerOpen ? '' : 'hidden'}" id="clause_list">
-        ${items.map(([code, desc]) => `
-          <div class="clause-opt ${code === picked ? 'on' : ''}" onclick="selectClause('${esc(code)}','${esc(cat)}')">
-            <b>${esc(code)}</b>
-            <span>${esc(desc)}</span>
-          </div>`).join('')}
-      </div>
+      ${src.pdf ? `<a class="btn sm text clause-src" href="${esc(src.pdf)}" target="_blank" rel="noopener">${icon('file-text', 'i-sm')}查看原文</a>` : ''}
     </div>`;
-}
-
-function toggleClausePicker(cat) {
-  clausePickerOpen = !clausePickerOpen;
-  const list = $('#clause_list');
-  if (list) list.classList.toggle('hidden', !clausePickerOpen);
-  const btn = $('#clause_container button');
-  if (btn) btn.textContent = clausePickerOpen ? '收起' : '更换依据';
 }
 
 function selectClause(code, cat) {
   pickedClauseState = code;
-  clausePickerOpen = false;
   const c = $('#clause_container');
-  if (c) c.outerHTML = clausePickerHtml(cat, code).replace('<label class="f">修改依据</label>', '');
+  if (c) c.outerHTML = clausePickerHtml(cat, code);
 }
 
 // 针对不同类别的图件与指标栏位规则：
@@ -353,7 +343,6 @@ function bindNew() {
   const upd = () => {
     const cat = picked('#n_cat')[0] || '控规优化调整';
     const isOther = cat === '其他（待开发）';
-    clausePickerOpen = false;
     pickedClauseState = '';
     $('#n_catTip').textContent = tips[cat] || '';
     $('#n_pubBox').classList.toggle('hidden', cat !== '控规修改');
