@@ -59,9 +59,10 @@ function stagePath(category, publicity) {
     return ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9'];
   }
   if (category === '控规') return ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9'];
+  // 控规修改：不上市长会，无批后公告
   return publicity === 'before'
-    ? ['s1', 's2', 's3', 's5', 's4', 's8', 's9']
-    : ['s1', 's2', 's3', 's4', 's5', 's8', 's9'];
+    ? ['s1', 's2', 's3', 's5', 's4', 's8']
+    : ['s1', 's2', 's3', 's4', 's5', 's8'];
 }
 
 const STAGE_OVERRIDES = {
