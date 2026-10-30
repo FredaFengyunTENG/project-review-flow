@@ -30,11 +30,11 @@ function reviewModal(pid, targetStageKey) {
 
   openModal(`<div class="sheet-head"><h3>${isAdvance ? icon('zap') + '提前送审' : '送审'} · ${esc(def.name)}</h3></div>
     ${isAdvance ? `<div class="mb-3"><span class="tag parallel">${icon('zap', 'i-sm')}并联推进：在等开会，提前把关下一阶段材料</span></div>` : ''}
-    <label class="f">成果形式</label>
-    ${chips('m_form', forms.map((f) => [f, f]), [forms[0]], true)}
+    <label class="f">成果形式 <span class="faint">${def.dual ? '优化调整 + 新编控规两套都要送' : '可多选'}</span></label>
+    ${chips('m_form', forms.map((f) => [f, f]), def.dual ? forms.filter((f) => f !== '汇报演示稿') : [forms[0]])}
 
-    <label class="f">提交方式</label>
-    ${chips('m_paper', [['0', '电子档'], ['1', '纸质册子']], [cur === 's1' ? '0' : '1'], true)}
+    <label class="f">提交方式 <span class="faint">可都选</span></label>
+    ${chips('m_paper', [['0', '电子档'], ['1', '纸质文件']], cur === 's1' ? ['0'] : ['0', '1'])}
 
     <label class="f">审查方式</label>
     ${chips('m_mode', [['seq', '逐级审查'], ['par', '同时审查']], ['seq'], true)}
@@ -62,11 +62,16 @@ function doReview(pid, targetStageKey) {
   const parallel = picked('#m_mode')[0] === 'par';
   const reviewers = picked('#m_who');
   if (!reviewers.length) return toast('请选择审查人');
+  const formsPicked = picked('#m_form');
+  if (!formsPicked.length) return toast('请选择成果形式');
+  const ways = picked('#m_paper');
+  if (!ways.length) return toast('请选择电子档或纸质文件');
   const reason = parallel ? ($('#m_reason')?.value.trim() || picked('#m_rchip')[0] || '急赶上会') : '';
   submitReview(P(pid), {
     stage: targetStageKey || undefined,
-    form: picked('#m_form')[0] || '成果材料',
-    paper: picked('#m_paper')[0] === '1',
+    form: formsPicked.join('、'),
+    paper: ways.includes('1'),
+    digital: ways.includes('0'),
     parallel,
     reason,
     reviewers,
@@ -89,7 +94,7 @@ function acceptModal(pid, rid) {
   openModal(`<h3>${uname(p.leader)} 请你审查</h3>
     <div class="card flat">
       <b>${esc(p.alias || p.name)}</b>
-      <div class="muted mt-1">${esc(stageMeta(p, r.stage).name)} · ${esc(r.form)} · ${r.paper ? '纸质册子' : '电子档'}</div>
+      <div class="muted mt-1">${esc(stageMeta(p, r.stage).name)} · ${esc(r.form)} · ${wayText(r)}</div>
       ${r.parallel ? `<div class="mt-2"><span class="tag danger">同时审查：${esc(r.reason)}</span></div>` : ''}
     </div>
     ${r.paper ? `

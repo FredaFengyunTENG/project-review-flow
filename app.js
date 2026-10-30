@@ -125,6 +125,12 @@ document.addEventListener('click', (e) => {
   box.dispatchEvent(new Event('change'));
 });
 function picked(sel) { return $$(`${sel} .chip.on`).map((c) => c.dataset.v); }
+// 提交方式：电子档 / 纸质文件可同时选
+function wayText(r) {
+  const digital = r.digital !== undefined ? r.digital : !r.paper;
+  return [digital ? '电子档' : '', r.paper ? '纸质文件' : ''].filter(Boolean).join(' + ') || '电子档';
+}
+
 function chips(id, items, selected = [], single = false) {
   return `<div class="chips" id="${id}" ${single ? 'data-single="1"' : ''}>` +
     items.map(([v, label]) => `<span class="chip ${selected.includes(v) ? 'on' : ''}" data-v="${esc(v)}">${esc(label)}</span>`).join('') +
@@ -238,7 +244,7 @@ function submitReview(p, d) {
 
   const r = {
     id: 'r' + Date.now(), stage: cur, form: d.form, parallel: d.parallel, reason: d.reason,
-    paper: d.paper, createdAt: now(),
+    paper: d.paper, digital: d.digital, createdAt: now(),
     items,
   };
   p.reviews.push(r);

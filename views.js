@@ -524,7 +524,7 @@ function viewProject(p) {
 
       if (!stageReviews.length) {
         reviewAction = `
-          <button class="btn block" onclick="reviewModal('${p.id}')">${icon('send')}送审「${def.forms ? def.forms[0] : '成果'}」</button>
+          <button class="btn block" onclick="reviewModal('${p.id}')">${icon('send')}送审「${def.dual ? '两套成果' : (def.forms ? def.forms[0] : '成果')}」</button>
           ${def.optional ? `<button class="btn text block" onclick="completeStage(P('${p.id}'), true)">${esc(def.skipLabel || '跳过此阶段')}${icon('arrow-right')}</button>` : ''}`;
       } else {
         // 判定放行：
@@ -919,7 +919,7 @@ function viewDirectorBoard() {
               <span class="tag progress">${stageMeta(p, r.stage).name}</span>
             </div>
             <div class="muted card-meta">
-              负责人：${uname(p.leader)} · ${esc(r.form)} · ${r.paper ? '纸质册子' : '电子档'}
+              负责人：${uname(p.leader)} · ${esc(r.form)} · ${wayText(r)}
             </div>
             <div class="info-box">
               <b>技术把关：</b>${techSummary}
