@@ -10,8 +10,8 @@
 <div id="phone">
   <header id="topbar">
     <div class="brand">
-      <span id="title" onclick="go('todo')" style="cursor:pointer">规划流转</span>
-      <a href="report.html" class="help-dot" title="使用说明">?</a>
+      <span id="title" onclick="go('todo')">规划流转</span>
+      <a href="report.html" class="help-dot" title="使用说明" aria-label="使用说明"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></a>
     </div>
     <div class="top-actions">
       <button type="button" class="top-pill" id="btnRules" onclick="rulesModal()">
@@ -27,12 +27,13 @@
   <nav id="tabbar">
     <button data-go="todo">待办</button>
     <button data-go="projects">项目</button>
-    <button data-go="new">＋ 新建</button>
+    <button data-go="new"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>新建</button>
   </nav>
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="sheet"></div></div>
 <div id="toasts"></div>
 <script src="data.js"></script>
+<script src="icons.js"></script>
 <script src="app.js"></script>
 <script src="modals.js"></script>
 <script src="views.js"></script>

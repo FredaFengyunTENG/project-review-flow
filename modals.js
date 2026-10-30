@@ -1,15 +1,16 @@
 // ===== 弹窗组件（少打字、多点选、零负担）=====
-const btns = (okFn, okText) => `<button class="btn block" onclick="${okFn}">${okText}</button><button class="btn gray block" onclick="closeModal()" style="margin-top:6px">取消</button>`;
+const btns = (okFn, okText) => `<div class="sheet-actions"><button class="btn block" onclick="${okFn}">${okText}</button><button class="btn text neutral block" onclick="closeModal()">取消</button></div>`;
+const closeBtn = (label = '关闭', fn = 'closeModal()') => `<div class="sheet-actions"><button class="btn gray block" onclick="${fn}">${label}</button></div>`;
 
 // ---- 操作记录 ----
 function historyModal(pid) {
   const p = P(pid);
   openModal(`<h3>操作记录</h3>
-    <div class="muted" style="margin-bottom:8px">${esc(p.alias || p.name)}</div>
-    <div style="max-height:58vh;overflow-y:auto">
+    <div class="muted sheet-sub">${esc(p.alias || p.name)}</div>
+    <div class="scroll-box">
       ${p.log.slice().reverse().map((l) => `<div class="log ${l.edit ? 'edit' : ''}"><b>${l.t}</b>${esc(l.text)}</div>`).join('')}
     </div>
-    <button class="btn gray block" onclick="closeModal()" style="margin-top:12px">关闭</button>`);
+    ${closeBtn()}`);
 }
 
 // ---- 送审（全点选）----
@@ -27,8 +28,8 @@ function reviewModal(pid, targetStageKey) {
   const next = suggestNext(p);
   const quickReasons = ['急赶上会', '局里急调', '节点急件', '其他'];
 
-  openModal(`<h3>${isAdvance ? '⚡ 提前送审' : '送审'} · ${esc(def.name)}</h3>
-    ${isAdvance ? `<div class="tag green" style="margin-bottom:8px">并联推进：当前在等开会，提前把关下一阶段材料</div>` : ''}
+  openModal(`<div class="sheet-head"><h3>${isAdvance ? icon('zap') + '提前送审' : '送审'} · ${esc(def.name)}</h3></div>
+    ${isAdvance ? `<div class="mb-3"><span class="tag parallel">${icon('zap', 'i-sm')}并联推进：在等开会，提前把关下一阶段材料</span></div>` : ''}
     <label class="f">成果形式</label>
     ${chips('m_form', forms.map((f) => [f, f]), [forms[0]], true)}
 
@@ -40,14 +41,12 @@ function reviewModal(pid, targetStageKey) {
 
     <label class="f" id="m_whoLabel">送给谁</label>
     <div id="m_whoBox">${chips('m_who', people, next ? [next] : [], true)}</div>
-    <div class="muted" style="margin-top:6px;font-size:12px;color:#1e40af">
-      💡 组长/所总负责成果审查与校对；送审后同步知晓所长，所长可自主选择一键阅知或亲自把关。
-    </div>
+    <div class="hint">${icon('info', 'i-sm')}<span>组长/所总负责成果审查与校对；送审后同步知晓所长，所长可自主选择一键阅知或亲自把关。</span></div>
 
-    <div id="m_reasonBox" style="display:none">
+    <div id="m_reasonBox" class="hidden">
       <label class="f">同时审查原因（点选）</label>
       ${chips('m_rchip', quickReasons.map((r) => [r, r]), ['急赶上会'], true)}
-      <input type="text" id="m_reason" placeholder="选填补充说明" style="margin-top:6px">
+      <input type="text" id="m_reason" class="input-gap" placeholder="选填补充说明">
     </div>
     ${btns(`doReview('${pid}', '${targetStageKey || ''}')`, '发送送审')}`);
 
@@ -55,7 +54,7 @@ function reviewModal(pid, targetStageKey) {
     const par = picked('#m_mode')[0] === 'par';
     $('#m_whoBox').innerHTML = chips('m_who', people, picked('#m_who'), !par);
     $('#m_whoLabel').textContent = par ? '送给谁（可多选）' : '送给谁';
-    $('#m_reasonBox').style.display = par ? '' : 'none';
+    $('#m_reasonBox').classList.toggle('hidden', !par);
   });
 }
 
@@ -88,14 +87,14 @@ function acceptModal(pid, rid) {
   const { p, r } = findItem(pid, rid);
   const q = (label, v) => `<button class="btn ghost" onclick="doAccept('${pid}','${rid}','${v}')">${label}</button>`;
   openModal(`<h3>${uname(p.leader)} 请你审查</h3>
-    <div class="card" style="background:#f8fafc">
+    <div class="card flat">
       <b>${esc(p.alias || p.name)}</b>
-      <div class="muted" style="margin-top:2px">${esc(stageMeta(p, r.stage).name)} · ${esc(r.form)} · ${r.paper ? '纸质册子' : '电子档'}</div>
-      ${r.parallel ? `<span class="tag red" style="margin-top:4px">同时审查：${esc(r.reason)}</span>` : ''}
+      <div class="muted mt-1">${esc(stageMeta(p, r.stage).name)} · ${esc(r.form)} · ${r.paper ? '纸质册子' : '电子档'}</div>
+      ${r.parallel ? `<div class="mt-2"><span class="tag danger">同时审查：${esc(r.reason)}</span></div>` : ''}
     </div>
     ${r.paper ? `
       <label class="f">什么时候方便送册过来？点一下即可</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="grid-2">
         ${q('随时可送', 'any')}
         ${q('今天 15:00', quickTime(0, 15))}
         ${q('明天 09:00', quickTime(1, 9))}
@@ -103,8 +102,11 @@ function acceptModal(pid, rid) {
       </div>
       <label class="f">或自选时间</label>
       <input type="datetime-local" id="m_appt" onchange="doAccept('${pid}','${rid}',this.value)">
-    ` : `<button class="btn block" onclick="doAccept('${pid}','${rid}','');feedbackModal('${pid}','${rid}')">已收到，去填意见</button>`}
-    <button class="btn gray block" onclick="closeModal()" style="margin-top:6px">稍后</button>`);
+      <div class="sheet-actions"><button class="btn text neutral block" onclick="closeModal()">稍后</button></div>
+    ` : `<div class="sheet-actions">
+      <button class="btn block" onclick="doAccept('${pid}','${rid}','');feedbackModal('${pid}','${rid}')">已收到，去填意见</button>
+      <button class="btn text neutral block" onclick="closeModal()">稍后</button>
+    </div>`}`);
 }
 function doAccept(pid, rid, appt) { const { p, r, it } = findItem(pid, rid); acceptReview(p, r, it, appt); }
 
@@ -120,16 +122,16 @@ function feedbackModal(pid, rid) {
   const subReviewers = subordinateReviewers(p);
   const quickTags = ['指标需核对', '红线退让需核', '用地性质表述', '图面表达修改'];
 
-  const counter = (k, label) => `<div class="row" style="margin:6px 0"><span>${label}</span><div class="counter">
-    <button type="button" onclick="bump('${k}',-1)">−</button><b id="c_${k}">${fbCount[k]}</b><button type="button" onclick="bump('${k}',1)">＋</button></div></div>`;
+  const counter = (k, label) => `<div class="counter-row"><span>${label}</span><div class="counter">
+    <button type="button" onclick="bump('${k}',-1)" aria-label="减少">${icon('minus', 'i-sm')}</button><b id="c_${k}">${fbCount[k]}</b><button type="button" onclick="bump('${k}',1)" aria-label="增加">${icon('plus', 'i-sm')}</button></div></div>`;
 
   openModal(`<h3>审查意见 · ${esc(p.alias || p.name)}</h3>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
-      <button class="btn green" onclick="doFeedback('${pid}','${rid}','已阅，无意见')">✅ 已阅，无意见</button>
-      <button class="btn green" onclick="doFeedback('${pid}','${rid}','意见见纸质批注')">✅ 意见见纸质批注</button>
+    <div class="grid-2">
+      <button class="btn ghost" onclick="doFeedback('${pid}','${rid}','已阅，无意见')">${icon('check')}已阅，无意见</button>
+      <button class="btn ghost" onclick="doFeedback('${pid}','${rid}','意见见纸质批注')">${icon('check')}意见见纸质批注</button>
     </div>
 
-    <div class="muted" style="margin:12px 0 4px;text-align:center">— 或点选 / 拍批注页 —</div>
+    <div class="faint center mt-4 mb-3">或点选 / 拍批注页</div>
     ${chips('f_qtags', quickTags.map((t) => [t, t]), [])}
     ${counter('dataErr', '数据错误（处）')}
     ${counter('textErr', '文字错误（处）')}
@@ -143,8 +145,8 @@ function feedbackModal(pid, rid) {
       ${chips('f_notify', subReviewers.map((u) => [u, uname(u)]))}` : ''}
 
     ${isYuanZong ? `
-      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#6d28d9;cursor:pointer">
-        <input type="checkbox" id="f_to_common" style="width:auto"> 💡 同步记入共性问题库
+      <label class="check-line">
+        <input type="checkbox" id="f_to_common"> 同步记入共性问题库
       </label>` : ''}
 
     ${btns(`doFeedback('${pid}','${rid}')`, '提交意见')}`);
@@ -194,7 +196,7 @@ function notifyModal(pid) {
   openModal(`<h3>提醒所内审查人员</h3>
     <label class="f">选择人员</label>
     ${chips('n_who', subs.map((u) => [u, `${uname(u)}·${U(u).role}`]), subs)}
-    <input type="text" id="n_msg" placeholder="选填一句话提醒" style="margin-top:8px">
+    <input type="text" id="n_msg" class="input-gap" placeholder="选填一句话提醒">
     ${btns(`doNotify('${pid}')`, '发送提醒')}`);
 }
 function doNotify(pid) {
@@ -202,6 +204,9 @@ function doNotify(pid) {
   if (!who.length) return toast('请选择人员');
   closeModal(); notifyOthers(P(pid), who, $('#n_msg')?.value.trim() || '');
 }
+
+// 快捷时间按钮
+const quickTimeBtn = (target, label, v) => `<button type="button" class="btn ghost sm" onclick="$('#${target}').value='${v}'">${label}</button>`;
 
 // ---- 王院长排期开会（极简点选：定时间 + 定地点 + 通知参会人）----
 function deanScheduleModal(pid, key = 's2') {
@@ -214,11 +219,11 @@ function deanScheduleModal(pid, key = 's2') {
 
   openModal(`<h3>排定会议 · ${esc(p.alias || p.name)}</h3>
     <label class="f">会议时间</label>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-      <button type="button" class="btn ghost sm" onclick="$('#d_time').value='${quickTime(1, 9, 30)}'">明天 09:30</button>
-      <button type="button" class="btn ghost sm" onclick="$('#d_time').value='${quickTime(1, 14, 30)}'">明天 14:30</button>
-      <button type="button" class="btn ghost sm" onclick="$('#d_time').value='${quickTime(2, 9, 30)}'">后天 09:30</button>
-      <button type="button" class="btn ghost sm" onclick="$('#d_time').value='${quickTime(2, 14, 30)}'">后天 14:30</button>
+    <div class="grid-2 mb-2">
+      ${quickTimeBtn('d_time', '明天 09:30', quickTime(1, 9, 30))}
+      ${quickTimeBtn('d_time', '明天 14:30', quickTime(1, 14, 30))}
+      ${quickTimeBtn('d_time', '后天 09:30', quickTime(2, 9, 30))}
+      ${quickTimeBtn('d_time', '后天 14:30', quickTime(2, 14, 30))}
     </div>
     <input type="datetime-local" id="d_time" value="${ap.scheduledTime || quickTime(1, 9, 30)}">
 
@@ -228,8 +233,7 @@ function deanScheduleModal(pid, key = 's2') {
     <label class="f">参会人员</label>
     ${chips('d_att', people, ap.attendees || defaultAttendees)}
 
-    <button class="btn purple block" onclick="doDeanSchedule('${pid}','${key}')">✔ 确定开会并通知参会人</button>
-    <button class="btn gray block" onclick="closeModal()" style="margin-top:6px">取消</button>`);
+    ${btns(`doDeanSchedule('${pid}','${key}')`, `${icon('check')}确定开会并通知参会人`)}`);
 }
 
 function doDeanSchedule(pid, key) {
@@ -249,19 +253,19 @@ function deanBatchScheduleModal() {
   const rooms = [['三楼大会议室', '三楼大会议室'], ['二楼研讨室', '二楼研讨室'], ['五楼多功能厅', '五楼多功能厅'], ['视频会议', '视频会议']];
 
   openModal(`<h3>合并排定技术审查会（${applies.length} 项）</h3>
-    <div style="display:flex;flex-direction:column;gap:6px">
+    <div class="vstack">
       ${applies.map(({ p }) => `
-        <label style="display:flex;gap:8px;align-items:center;padding:7px 10px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer">
-          <input type="checkbox" name="bs_pids" value="${p.id}" checked style="width:auto">
+        <label class="check-item">
+          <input type="checkbox" name="bs_pids" value="${p.id}" checked>
           <b>${esc(p.alias || p.name)}</b>
-          <span class="muted" style="margin-left:auto">${uname(p.leader)}</span>
+          <span class="muted ml-auto">${uname(p.leader)}</span>
         </label>`).join('')}
     </div>
 
     <label class="f">会议时间</label>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-      <button type="button" class="btn ghost sm" onclick="$('#bs_time').value='${quickTime(1, 9, 30)}'">明天 09:30</button>
-      <button type="button" class="btn ghost sm" onclick="$('#bs_time').value='${quickTime(1, 14, 30)}'">明天 14:30</button>
+    <div class="grid-2 mb-2">
+      ${quickTimeBtn('bs_time', '明天 09:30', quickTime(1, 9, 30))}
+      ${quickTimeBtn('bs_time', '明天 14:30', quickTime(1, 14, 30))}
     </div>
     <input type="datetime-local" id="bs_time" value="${quickTime(1, 9, 30)}">
 
@@ -271,8 +275,7 @@ function deanBatchScheduleModal() {
     <label class="f">参会人员</label>
     ${chips('bs_att', people, allAttendees)}
 
-    <button class="btn purple block" onclick="doDeanBatchSchedule()">✔ 确定排期并通知全员</button>
-    <button class="btn gray block" onclick="closeModal()" style="margin-top:6px">取消</button>`);
+    ${btns('doDeanBatchSchedule()', `${icon('check')}确定排期并通知全员`)}`);
 }
 
 function doDeanBatchSchedule() {
@@ -346,7 +349,7 @@ function versionModal(pid) {
   openModal(`<h3>上传第 ${v.no + 1} 版方案</h3>
     <label class="f">修改原因（点选）</label>
     ${chips('v_rchip', reasons.map((r) => [r, r]), ['按审查意见修改'], true)}
-    <input type="text" id="v_note" placeholder="选填补充说明" style="margin-top:6px">
+    <input type="text" id="v_note" class="input-gap" placeholder="选填补充说明">
     ${contentFields(p.category, v)}
     ${btns(`doVersion('${pid}')`, '上传新版')}`);
 }
@@ -359,7 +362,14 @@ function doVersion(pid) {
   addVersion(P(pid), { note, ...c });
 }
 
-// ---- 阶段更多操作（省略号 ⋯ 收纳：撤销上一级、修改信息、修改会议纪要、取消报会、查看流水）----
+// ---- 阶段更多操作（省略号 ⋯ 收纳：撤回上一阶段、修改信息、修改会议纪要、取消报会、查看流水）----
+const menuItem = (onclick, ico, label, sub, danger = false) => `
+  <button class="menu-item ${danger ? 'danger' : ''}" onclick="${onclick}">
+    ${icon(ico)}
+    <span class="menu-main"><span class="menu-label">${label}</span><span class="menu-sub">${sub}</span></span>
+    ${icon('chevron-right', 'i-sm')}
+  </button>`;
+
 function stageMoreMenuModal(pid) {
   const p = P(pid);
   if (!p) return;
@@ -371,45 +381,20 @@ function stageMoreMenuModal(pid) {
   const isApplied = !!sCur.apply;
 
   openModal(`
-    <div class="row" style="margin-bottom:12px">
-      <h3 style="margin:0">更多操作</h3>
-      <span class="muted" style="font-size:12px">${esc(p.alias || p.name)}</span>
+    <div class="sheet-head">
+      <h3>更多操作</h3>
+      <span class="muted">${esc(p.alias || p.name)}</span>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:8px">
-      ${canRevert ? `
-        <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();revertStage(P('${p.id}'))">
-          <span style="font-weight:600;color:#0f172a">↩ 撤销上一级（退回）</span>
-          <span class="muted" style="font-size:12px">退回至：${esc(backStageName)}</span>
-        </button>
-      ` : ''}
-
-      <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();editProjectModal('${p.id}')">
-        <span style="font-weight:600;color:#0f172a">✏️ 修改项目信息</span>
-        <span class="muted" style="font-size:12px">名称、俗称、成员、公开范围</span>
-      </button>
-
-      ${hasMeeting ? `
-        <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();meetingModal('${p.id}','${cur}')">
-          <span style="font-weight:600;color:#0f172a">📝 修改本阶段会议信息</span>
-          <span class="muted" style="font-size:12px">开会时间、纪要、成果照片</span>
-        </button>
-      ` : ''}
-
-      ${isApplied ? `
-        <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();cancelApplyMeeting('${p.id}','${cur}')">
-          <span style="font-weight:600;color:#dc2626">❌ 取消本次报会</span>
-          <span class="muted" style="font-size:12px">撤回排期申请</span>
-        </button>
-      ` : ''}
-
-      <button class="btn gray block" style="margin-top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc" onclick="closeModal();historyModal('${p.id}')">
-        <span style="font-weight:600;color:#0f172a">📜 查看操作记录</span>
-        <span class="muted" style="font-size:12px">共 ${p.log.length} 条记录</span>
-      </button>
+    <div class="menu-list">
+      ${canRevert ? menuItem(`closeModal();revertStage(P('${p.id}'))`, 'undo', '撤回上一阶段', `点错了？撤回至：${esc(backStageName)}`) : ''}
+      ${menuItem(`closeModal();editProjectModal('${p.id}')`, 'pencil', '修改项目信息', '名称、俗称、成员、公开范围')}
+      ${hasMeeting ? menuItem(`closeModal();meetingModal('${p.id}','${cur}')`, 'file-text', '修改本阶段会议信息', '开会时间、纪要、成果照片') : ''}
+      ${isApplied ? menuItem(`closeModal();cancelApplyMeeting('${p.id}','${cur}')`, 'x-circle', '取消本次报会', '撤回排期申请', true) : ''}
+      ${menuItem(`closeModal();historyModal('${p.id}')`, 'history', '查看操作记录', `共 ${p.log.length} 条记录`)}
     </div>
 
-    <button class="btn gray block" onclick="closeModal()" style="margin-top:8px">取消</button>
+    <div class="sheet-actions"><button class="btn text neutral block" onclick="closeModal()">取消</button></div>
   `);
 }
 
@@ -420,7 +405,7 @@ function editProjectModal(pid) {
     <label class="f">正式名称</label><input type="text" id="e_name" value="${esc(p.name)}">
     <label class="f">俗称</label><input type="text" id="e_alias" value="${esc(p.alias)}">
     ${memberFieldHtml(p.members)}
-    <label class="f" style="margin-top:14px">公开给谁看</label>
+    <label class="f">公开给谁看</label>
     ${visibleFieldHtml(p.visible)}
     ${btns(`doEditProject('${pid}')`, '保存')}`);
   renderMemberBadges();
@@ -464,7 +449,7 @@ function openDirectChannel() {
 
   const topics = ['政策边界请示', '跨部门协调', '指标疑难把关', '急件当面汇报'];
 
-  openModal(`<h3>✉️ 院长直通车</h3>
+  openModal(`<div class="sheet-head"><h3>${icon('mail')}院长直通车</h3></div>
     ${myProjs.length ? `
       <label class="f">选择你负责/参与的项目</label>
       ${chips('dc_pid', myProjs.map((p) => [p.id, p.alias || p.name]), [myProjs[0].id], true)}
@@ -478,24 +463,24 @@ function openDirectChannel() {
       <label class="f">补充一句话（选填）</label>
       <input type="text" id="dc_text" placeholder="选填，不填也可直接发送">
 
-      <button class="btn purple block" onclick="doDirectSubmit()">发送给王院长</button>
-    ` : `<div class="empty" style="padding:18px 0">你当前暂无负责或参与的项目</div>`}
+      <div class="sheet-actions"><button class="btn block" onclick="doDirectSubmit()">${icon('send')}发送给王院长</button></div>
+    ` : `<div class="empty">你当前暂无负责或参与的项目</div>`}
 
     ${myHistory.length ? `
-      <div style="margin-top:14px;padding-top:10px;border-top:1px solid #f1f5f9">
-        <div class="muted" style="margin-bottom:6px">我的直通车记录</div>
+      <div class="section-split">
+        <div class="muted mb-2">我的直通车记录</div>
         ${myHistory.slice().reverse().map(({ p, n }) => `
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:12.5px">
-            <div class="row">
+          <div class="history-item">
+            <div class="row nowrap">
               <b>${esc(p.alias || p.name)} · ${esc(n.topic || '请示')}</b>
-              <span class="tag ${n.status === 'replied' ? 'green' : 'orange'}">${n.status === 'replied' ? '王院长已约' : '待回复'}</span>
+              <span class="tag ${n.status === 'replied' ? 'done' : ''}">${n.status === 'replied' ? '王院长已约' : '待回复'}</span>
             </div>
-            ${n.text ? `<div class="muted" style="margin-top:2px">${esc(n.text)}</div>` : ''}
-            ${n.status === 'replied' ? `<div style="color:#15803d;font-weight:600;margin-top:4px">🗓 ${fmtAppt(n.replyTime)} · ${esc(n.replyLoc || '院长办公室')}${n.replyMsg ? '（' + esc(n.replyMsg) + '）' : ''}</div>` : ''}
+            ${n.text ? `<div class="muted mt-1">${esc(n.text)}</div>` : ''}
+            ${n.status === 'replied' ? `<div class="meet-line text-done">${icon('calendar', 'i-sm')}${fmtAppt(n.replyTime)} · ${esc(n.replyLoc || '院长办公室')}${n.replyMsg ? '（' + esc(n.replyMsg) + '）' : ''}</div>` : ''}
           </div>`).join('')}
       </div>` : ''}
 
-    <button class="btn gray block" onclick="closeModal()" style="margin-top:8px">关闭</button>`);
+    <div class="sheet-actions"><button class="btn text neutral block" onclick="closeModal()">关闭</button></div>`);
 }
 
 function doDirectSubmit() {
@@ -515,25 +500,24 @@ function deanReplyNoteModal(pid, noteId) {
   const locs = [['院长办公室', '院长办公室'], ['二楼研讨室', '二楼研讨室'], ['电话/视频', '电话/视频']];
 
   openModal(`<h3>预约沟通 · ${esc(p.alias || p.name)}</h3>
-    <div class="card" style="background:#faf7ff;border:1px solid #e9d5ff">
+    <div class="card flat">
       <b>${uname(n.by)}：${esc(n.topic || '请示沟通')}</b>
-      ${n.text ? `<div class="muted" style="margin-top:3px">${esc(n.text)}</div>` : ''}
+      ${n.text ? `<div class="muted mt-1">${esc(n.text)}</div>` : ''}
     </div>
 
     <label class="f">什么时候方便过来？（点选）</label>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-      <button type="button" class="btn ghost sm" onclick="$('#dr_time').value='any'">随时过来</button>
-      <button type="button" class="btn ghost sm" onclick="$('#dr_time').value='${quickTime(0, 16, 30)}'">今天 16:30</button>
-      <button type="button" class="btn ghost sm" onclick="$('#dr_time').value='${quickTime(1, 10, 0)}'">明天 10:00</button>
-      <button type="button" class="btn ghost sm" onclick="$('#dr_time').value='${quickTime(1, 15, 30)}'">明天 15:30</button>
+    <div class="grid-2 mb-2">
+      ${quickTimeBtn('dr_time', '随时过来', 'any')}
+      ${quickTimeBtn('dr_time', '今天 16:30', quickTime(0, 16, 30))}
+      ${quickTimeBtn('dr_time', '明天 10:00', quickTime(1, 10, 0))}
+      ${quickTimeBtn('dr_time', '明天 15:30', quickTime(1, 15, 30))}
     </div>
     <input type="datetime-local" id="dr_time" value="${n.replyTime && n.replyTime !== 'any' ? n.replyTime : quickTime(1, 10, 0)}">
 
     <label class="f">地点</label>
     ${chips('dr_loc', locs, [n.replyLoc || '院长办公室'], true)}
 
-    <button class="btn purple block" onclick="doDeanReplyNote('${pid}','${noteId}')">✔ 确认并通知</button>
-    <button class="btn gray block" onclick="closeModal()" style="margin-top:6px">取消</button>`);
+    ${btns(`doDeanReplyNote('${pid}','${noteId}')`, `${icon('check')}确认并通知`)}`);
 }
 
 function doDeanReplyNote(pid, noteId) {
@@ -549,31 +533,31 @@ function rulesModal() {
   const unread = unreadBulletinCount();
 
   openModal(`
-    <div class="row" style="margin-bottom:10px">
-      <h3 style="margin:0">📌 审查新规</h3>
-      <div style="display:flex;gap:6px;align-items:center">
-        ${unread > 0 ? `<button class="btn sm gray" onclick="markAllBulletinsRead();rulesModal()">全部已读</button>` : ''}
-        ${isCE ? `<button class="btn sm purple" onclick="editBulletinModal(null)">＋ 发布</button>` : ''}
+    <div class="sheet-head">
+      <h3>${icon('bell')}审查新规</h3>
+      <div class="hstack tight">
+        ${unread > 0 ? `<button class="btn sm text neutral" onclick="markAllBulletinsRead();rulesModal()">全部已读</button>` : ''}
+        ${isCE ? `<button class="btn sm ghost" onclick="editBulletinModal(null)">${icon('plus')}发布</button>` : ''}
       </div>
     </div>
 
     ${!list.length ? `<div class="empty">暂无新规</div>` : list.map((b) => {
       const read = isBulletinRead(b.id);
       return `
-        <div class="bulletin-card click" onclick="bulletinDetailModal('${b.id}')" style="position:relative;border-color:${read ? '#e2e8f0' : '#93c5fd'};background:${read ? '#fff' : '#f8fbff'}">
+        <div class="bulletin-card ${read ? '' : 'unread'}" onclick="bulletinDetailModal('${b.id}')">
           <div class="row">
-            <span class="tag ${b.priority === 'high' ? 'red' : 'blue'}">${esc(b.tag || '新规')}</span>
-            <span class="muted" style="font-size:11.5px">${esc(b.publishAt || '')}</span>
+            <span class="tag">${esc(b.tag || '新规')}</span>
+            <span class="faint">${esc(b.publishAt || '')}</span>
           </div>
-          <div style="font-weight:600;font-size:14px;margin-top:4px;color:#0f172a;display:flex;align-items:center;gap:6px">
-            ${!read ? '<span style="width:7px;height:7px;border-radius:50%;background:#ff3b30;flex-shrink:0"></span>' : ''}
+          <div class="b-title">
+            ${!read ? '<span class="unread-dot"></span>' : ''}
             <span>${esc(b.title)}</span>
           </div>
-          <div class="muted" style="margin-top:3px;font-size:12.5px">${esc(b.summary)}</div>
+          <div class="muted mt-1">${esc(b.summary)}</div>
         </div>`;
     }).join('')}
 
-    <button class="btn gray block" onclick="closeModal()">关闭</button>
+    ${closeBtn()}
   `);
 }
 
@@ -584,22 +568,22 @@ function bulletinDetailModal(id) {
   const isCE = U(me).role === '院总';
 
   openModal(`
-    <div class="row" style="margin-bottom:6px">
-      <button class="btn sm gray" onclick="rulesModal()">← 返回列表</button>
-      <span class="muted" style="font-size:12px">${esc(b.publishAt || '')}</span>
+    <div class="page-head">
+      <button class="btn sm text neutral" onclick="rulesModal()">${icon('arrow-left')}返回列表</button>
+      <span class="faint">${esc(b.publishAt || '')}</span>
     </div>
-    <h3 style="margin-top:6px;line-height:1.4">${esc(b.title)}</h3>
-    <div style="margin-bottom:10px">
-      <span class="tag blue">${esc(b.category)}</span>
+    <h3>${esc(b.title)}</h3>
+    <div class="tags mb-3">
+      <span class="tag progress">${esc(b.category)}</span>
       <span class="tag">${esc(b.publisher || '院总工办')}</span>
     </div>
-    <div style="font-size:13.5px;line-height:1.65;color:#1e293b;white-space:pre-wrap;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0">${esc(b.content || b.summary)}</div>
-    <div style="display:flex;gap:8px;margin-top:14px">
+    <div class="info-box text-block">${esc(b.content || b.summary)}</div>
+    <div class="btn-row">
       ${isCE ? `
-        <button class="btn sm ghost" style="flex:1" onclick="editBulletinModal('${b.id}')">修改</button>
-        <button class="btn sm gray" style="flex:1;color:#dc2626" onclick="deleteBulletin('${b.id}');rulesModal()">删除</button>
+        <button class="btn ghost" onclick="editBulletinModal('${b.id}')">修改</button>
+        <button class="btn danger-text" onclick="deleteBulletin('${b.id}');rulesModal()">删除</button>
       ` : ''}
-      <button class="btn block" style="margin-top:0;flex:1" onclick="rulesModal()">知道了</button>
+      <button class="btn" onclick="rulesModal()">知道了</button>
     </div>
   `);
 }
@@ -619,8 +603,10 @@ function editBulletinModal(id) {
     <label class="f">要点内容</label>
     <textarea id="eb_content" rows="4" placeholder="简明写清审查注意点">${esc(b ? b.content : '')}</textarea>
 
-    <button class="btn purple block" onclick="doSaveBulletin('${b ? b.id : ''}')">保存发布</button>
-    <button class="btn gray block" onclick="rulesModal()" style="margin-top:6px">返回</button>
+    <div class="sheet-actions">
+      <button class="btn block" onclick="doSaveBulletin('${b ? b.id : ''}')">保存发布</button>
+      <button class="btn text neutral block" onclick="rulesModal()">返回</button>
+    </div>
   `);
 }
 
@@ -654,8 +640,7 @@ function editIssueModal(issueId) {
     ${chips('ei_cat', CATEGORIES.filter((c) => c !== '其他（待开发）').map((c) => [c, c]), [iss.category || '控规修改'], true)}
     <label class="f">把关提示</label>
     <textarea id="ei_guide" placeholder="简明说明审查注意要点">${esc(iss.guide || iss.problem || '')}</textarea>
-    <button class="btn purple block" onclick="doSaveIssue('${issueId}')">保存</button>
-    <button class="btn gray block" onclick="closeModal()" style="margin-top:6px">取消</button>`);
+    ${btns(`doSaveIssue('${issueId}')`, '保存')}`);
 }
 
 function newIssueModal() { editIssueModal('iss' + Date.now()); }
@@ -686,14 +671,13 @@ function broadcastIssueModal(issueId) {
   const iss = (DB.commonIssues || []).find((x) => x.id === issueId);
   if (!iss) return;
   openModal(`<h3>发布至「新规」红标提醒</h3>
-    <div class="card" style="background:#faf7ff;border:1px solid #e9d5ff">
+    <div class="card flat">
       <b>${esc(iss.title)}</b>
-      <div class="muted" style="margin-top:4px">${esc(iss.guide || iss.problem)}</div>
+      <div class="muted mt-1">${esc(iss.guide || iss.problem)}</div>
     </div>
     <label class="f">推送范围</label>
     ${chips('bi_scope', DEPTS.map((d) => [d, d]), DEPTS)}
-    <button class="btn purple block" onclick="doBroadcastIssue('${issueId}')">立即发布</button>
-    <button class="btn gray block" onclick="closeModal()" style="margin-top:6px">取消</button>`);
+    ${btns(`doBroadcastIssue('${issueId}')`, '立即发布')}`);
 }
 
 function doBroadcastIssue(issueId) {

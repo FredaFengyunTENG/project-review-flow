@@ -39,18 +39,25 @@ function render() {
   else if (route.name === 'project') v.innerHTML = viewProject(P(route.arg));
 }
 
+// 状态标签：进行（蓝）/ 已完成（绿）/ 待处理（中性灰）
 function statusTag(it) {
-  if (it.status === 'done') return '<span class="tag green">已通过</span>';
-  if (it.status === 'known') return '<span class="tag green">已阅知</span>';
-  if (it.status === 'holding') return '<span class="tag orange">待把关</span>';
-  if (it.status === 'accepted') return `<span class="tag blue">已接收${it.appointment ? ' · 约' + fmtAppt(it.appointment) : ''}</span>`;
-  return '<span class="tag orange">待审查</span>';
+  if (it.status === 'done') return '<span class="tag done">已通过</span>';
+  if (it.status === 'known') return '<span class="tag done">已阅知</span>';
+  if (it.status === 'holding') return '<span class="tag progress">待把关</span>';
+  if (it.status === 'accepted') return `<span class="tag progress">已接收${it.appointment ? ' · 约' + fmtAppt(it.appointment) : ''}</span>`;
+  return '<span class="tag">待审查</span>';
 }
 
+// 类别不是状态，统一中性灰，保持色彩克制
 function catTag(cat) {
-  const cls = cat === '正向优化' ? 'green' : cat === '技术修正' ? 'blue' : cat === '控规优化调整' ? 'purple' : cat === '控规修改' ? 'orange' : '';
-  return `<span class="tag ${cls}">${esc(cat)}</span>`;
+  return `<span class="tag">${esc(cat)}</span>`;
 }
+
+const sectionTitle = (text, count) => `<h2>${text}${count !== undefined ? `<span class="count">${count}</span>` : ''}</h2>`;
+const backBar = (label, right = '') => `<div class="page-head">
+    <button class="btn sm text neutral" onclick="go('todo')">${icon('arrow-left')}${label}</button>
+    ${right}
+  </div>`;
 
 // 流程精简直观步进指示（显眼位置呈现）
 function miniFlowHtml(p) {
@@ -64,9 +71,9 @@ function miniFlowHtml(p) {
         const isCur = i === curIdx;
         const isMeeting = meta.type === 'meeting';
         const cls = isDone ? 'done' : isCur ? (isMeeting ? 'wait' : 'cur') : '';
-        const icon = isDone ? '✔ ' : isCur ? (isMeeting ? '⏳ ' : '● ') : '';
-        const arrow = i < keys.length - 1 ? '<span class="mini-step-arrow">›</span>' : '';
-        return `<span class="mini-step ${cls}">${icon}${esc(meta.name)}</span>${arrow}`;
+        const ico = isDone ? icon('check', 'i-sm') : isCur ? (isMeeting ? icon('clock', 'i-sm') : icon('dot', 'i-sm')) : '';
+        const arrow = i < keys.length - 1 ? `<span class="mini-step-arrow">${icon('chevron-right', 'i-sm')}</span>` : '';
+        return `<span class="mini-step ${cls}">${ico}${esc(meta.name)}</span>${arrow}`;
       }).join('')}
     </div>`;
 }
@@ -77,20 +84,20 @@ function viewTodo() {
 
   // 1. 待我审查
   const tasks = myReviewTasks();
-  h += `<h2>待我审查 (${tasks.length})</h2>`;
+  h += sectionTitle('待我审查', tasks.length);
   h += tasks.length ? tasks.map(({ p, r, it }) => `
     <div class="card click" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
-      <div class="row">
-        <b>${esc(p.alias || p.name)}</b>
+      <div class="row nowrap">
+        <span class="title">${esc(p.alias || p.name)}</span>
         ${statusTag(it)}
       </div>
-      <div class="muted" style="margin-top:3px">${p.dept || '规划一所'} · ${stageMeta(p, r.stage).name} · ${uname(p.leader)} 送审</div>
-      ${r.parallel ? `<div class="tag red" style="margin-top:4px">加急：${esc(r.reason)}</div>` : ''}
-    </div>`).join('') : '<div class="card empty" style="padding:14px 0">暂无待审事项 ☕</div>';
+      <div class="muted card-meta">${p.dept || '规划一所'} · ${stageMeta(p, r.stage).name} · ${uname(p.leader)} 送审</div>
+      ${r.parallel ? `<div class="mt-2"><span class="tag danger">加急：${esc(r.reason)}</span></div>` : ''}
+    </div>`).join('') : `<div class="card empty">${icon('inbox')}暂无待审事项</div>`;
 
   // 2. 我参与的进行中项目（显眼展示流程与并联推进）
   const mine = DB.projects.filter((p) => p.members.includes(me) && !finished(p));
-  h += `<h2>进行中的项目 (${mine.length})</h2>`;
+  h += sectionTitle('进行中的项目', mine.length);
   h += mine.length ? mine.map((p) => {
     const curK = curStage(p);
     const def = stageMeta(p, curK);
@@ -99,9 +106,9 @@ function viewTodo() {
     let meetingBadge = '';
     if (sCur.apply) {
       if (sCur.apply.status === 'scheduled') {
-        meetingBadge = `<span class="tag green">🗓 开会：${fmtAppt(sCur.apply.scheduledTime)}</span>`;
+        meetingBadge = `<span class="tag wait">${icon('calendar', 'i-sm')}开会 ${fmtAppt(sCur.apply.scheduledTime)}</span>`;
       } else {
-        meetingBadge = `<span class="tag purple">已报会 · 等开会</span>`;
+        meetingBadge = `<span class="tag wait">已报会 · 等开会</span>`;
       }
     }
 
@@ -115,11 +122,11 @@ function viewTodo() {
           const nextReviews = (p.reviews || []).filter((r) => r.stage === nextKey);
           const nextDone = nextReviews.length && nextReviews.every((r) => r.items.every((it) => it.status === 'done' || it.status === 'known'));
           if (nextDone) {
-            parallelTip = `<div style="font-size:11.5px;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;padding:3px 8px;border-radius:6px;margin-top:5px">⚡ 下一阶段【${esc(nextDef.name)}】成果已提前审查就绪</div>`;
+            parallelTip = `<div class="parallel-tip">${icon('check-circle', 'i-sm')}下一阶段「${esc(nextDef.name)}」成果已提前审查就绪</div>`;
           } else if (nextReviews.length) {
-            parallelTip = `<div style="font-size:11.5px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:3px 8px;border-radius:6px;margin-top:5px">⚡ 正在提前审查下一阶段【${esc(nextDef.name)}】成果</div>`;
+            parallelTip = `<div class="parallel-tip">${icon('zap', 'i-sm')}正在提前审查下一阶段「${esc(nextDef.name)}」成果</div>`;
           } else {
-            parallelTip = `<div style="font-size:11.5px;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;padding:3px 8px;border-radius:6px;margin-top:5px">⚡ 等会不等人：可同步送审下一阶段【${esc(nextDef.name)}】成果</div>`;
+            parallelTip = `<div class="parallel-tip">${icon('zap', 'i-sm')}等会不等人：可同步送审「${esc(nextDef.name)}」成果</div>`;
           }
         }
       }
@@ -127,17 +134,16 @@ function viewTodo() {
 
     return `<div class="card click" onclick="go('project','${p.id}')">
       <div class="row">
-        <b>${esc(p.alias || p.name)}</b>
-        <div style="display:flex;align-items:center;gap:6px">
+        <span class="title">${esc(p.alias || p.name)}</span>
+        <div class="hstack tight">
           ${catTag(p.category)}
           ${meetingBadge}
         </div>
       </div>
-      <!-- 显眼流程条 -->
       ${miniFlowHtml(p)}
       ${parallelTip}
     </div>`;
-  }).join('') : '<div class="card empty" style="padding:14px 0">暂无进行中的项目</div>';
+  }).join('') : '<div class="card empty">暂无进行中的项目</div>';
 
   return h;
 }
@@ -169,31 +175,27 @@ function viewProjects() {
   });
 
   return `
-    <div class="row">
-      <h2>项目台账 (${allList.length})</h2>
-    </div>
-    
+    ${sectionTitle('项目台账', allList.length)}
+
     <!-- 分类筛选轻量标签栏 -->
-    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px">
+    <div class="filter-bar">
       ${filterCats.map((c) => {
         const count = allList.filter((p) => c === 'all' ? true : c === 'finished' ? finished(p) : p.category === c && !finished(p)).length;
-        const act = projectFilterCat === c ? 'primary' : 'ghost';
-        return `<button class="btn sm ${act}" style="flex-shrink:0;padding:4px 10px;font-size:12px" onclick="setProjectFilter('${c}')">${labels[c]} (${count})</button>`;
+        return `<span class="chip ${projectFilterCat === c ? 'on' : ''}" onclick="setProjectFilter('${c}')">${labels[c]}<span class="faint">${count}</span></span>`;
       }).join('')}
     </div>
 
     ${list.length ? list.map((p) => `
       <div class="card click" onclick="go('project','${p.id}')">
-        <div class="row">
-          <b>${esc(p.alias || p.name)}</b>
+        <div class="row nowrap">
+          <span class="title">${esc(p.alias || p.name)}</span>
           ${catTag(p.category)}
         </div>
-        <div class="muted" style="margin-top:2px">${esc(p.name)}</div>
-        <!-- 显眼流程条 -->
+        <div class="muted card-meta">${esc(p.name)}</div>
         ${miniFlowHtml(p)}
-        <div class="muted" style="margin-top:3px;font-size:12px">负责人：${uname(p.leader)} · ${finished(p) ? '✅ 已结项' : '当前：' + (curStage(p) ? stageMeta(p, curStage(p)).name : '—')}</div>
+        <div class="faint mt-2">负责人：${uname(p.leader)} · ${finished(p) ? '<span class="text-done">已结项</span>' : '当前：' + (curStage(p) ? stageMeta(p, curStage(p)).name : '—')}</div>
       </div>`).join('') : '<div class="card empty">暂无该分类项目</div>'}
-    <button class="btn gray block" onclick="resetDemo()" style="margin-top:16px">重置示例数据</button>
+    <button class="btn text neutral block mt-4" onclick="resetDemo()">重置示例数据</button>
   `;
 }
 
@@ -209,11 +211,11 @@ function clausePickerHtml(cat, curVal = '') {
     <label class="f">修改依据</label>
     <div id="clause_container">
       <div class="clause-picked-bar">
-        <span class="tag blue" style="font-size:13px;padding:3px 10px;font-weight:600">📜 ${esc(picked)}</span>
-        <button type="button" class="btn sm ghost" onclick="toggleClausePicker('${esc(cat)}')">${clausePickerOpen ? '收起' : '更换依据'}</button>
+        <span class="tag progress">${icon('bookmark', 'i-sm')}${esc(picked)}</span>
+        <button type="button" class="btn sm text" onclick="toggleClausePicker('${esc(cat)}')">${clausePickerOpen ? '收起' : '更换依据'}</button>
       </div>
       <input type="hidden" id="c_clause_val" value="${esc(picked)}">
-      <div class="clause-list" id="clause_list" style="display:${clausePickerOpen ? 'flex' : 'none'}">
+      <div class="clause-list ${clausePickerOpen ? '' : 'hidden'}" id="clause_list">
         ${items.map(([code, desc]) => `
           <div class="clause-opt ${code === picked ? 'on' : ''}" onclick="selectClause('${esc(code)}','${esc(cat)}')">
             <b>${esc(code)}</b>
@@ -226,7 +228,7 @@ function clausePickerHtml(cat, curVal = '') {
 function toggleClausePicker(cat) {
   clausePickerOpen = !clausePickerOpen;
   const list = $('#clause_list');
-  if (list) list.style.display = clausePickerOpen ? 'flex' : 'none';
+  if (list) list.classList.toggle('hidden', !clausePickerOpen);
   const btn = $('#clause_container button');
   if (btn) btn.textContent = clausePickerOpen ? '收起' : '更换依据';
 }
@@ -278,7 +280,7 @@ function categorySchemeLabels(cat) {
 
 function contentFields(cat, v = {}) {
   if (cat === '其他（待开发）') {
-    return `<div class="empty" style="padding:16px 0">专项规划等其他类型正在开发中...</div>`;
+    return `<div class="empty">专项规划等其他类型正在开发中...</div>`;
   }
   const imgs = v.imgs || {};
   const curClause = v.clause || '';
@@ -305,20 +307,20 @@ function readContent() {
 
 // ===== 新建项目视图（精美、字少、快捷选人）=====
 function viewNew() {
-  return `<h2>新建项目</h2>
+  return `${sectionTitle('新建项目')}
   <div class="card">
-    <label class="f" style="margin-top:0">项目类别</label>
+    <label class="f">项目类别</label>
     ${chips('n_cat', CATEGORIES.map((c) => [c, c]), ['控规优化调整'], true)}
-    <div id="n_catTip" class="muted" style="margin-top:4px;font-size:12px;color:#1d5eff"></div>
+    <div id="n_catTip" class="muted mt-2"></div>
 
     <label class="f">项目正式名称</label>
     <input type="text" id="n_name" placeholder="输入名称或粘贴截图">
-    <div style="margin-top:4px">${uploader('n_nameImg')}</div>
+    <div class="upl-wrap">${uploader('n_nameImg')}</div>
 
     <label class="f">俗称（简称）</label>
     <input type="text" id="n_alias" placeholder="如：东湖地块 / 滨江商务区">
 
-    <div id="n_pubBox" style="display:none">
+    <div id="n_pubBox" class="hidden">
       <label class="f">公示节点（控规修改）</label>
       ${chips('n_pub', [['after', '联审会后'], ['before', '联审会前']], ['after'], true)}
     </div>
@@ -327,14 +329,14 @@ function viewNew() {
   <div id="n_rest">
     <div class="card">
       ${memberFieldHtml([me])}
-      <label class="f" style="margin-top:14px">公开给谁看</label>
+      <label class="f">公开给谁看</label>
       ${visibleFieldHtml()}
     </div>
 
-    <h2>方案图件与依据</h2>
+    ${sectionTitle('方案图件与依据')}
     <div class="card" id="n_content"></div>
 
-    <button class="btn block" onclick="doCreate()" style="font-size:15px;padding:11px">创建项目</button>
+    <button class="btn block mt-4" onclick="doCreate()">创建项目</button>
   </div>`;
 }
 
@@ -354,9 +356,9 @@ function bindNew() {
     clausePickerOpen = false;
     pickedClauseState = '';
     $('#n_catTip').textContent = tips[cat] || '';
-    $('#n_pubBox').style.display = cat === '控规修改' ? '' : 'none';
+    $('#n_pubBox').classList.toggle('hidden', cat !== '控规修改');
     $('#n_content').innerHTML = contentFields(cat);
-    $('#n_rest').style.display = isOther ? 'none' : '';
+    $('#n_rest').classList.toggle('hidden', isOther);
   };
   $('#n_cat')?.addEventListener('change', upd);
   upd();
@@ -395,14 +397,14 @@ function renderSchemeCard(p) {
     const imgs = v.imgs || {};
     return `
       <div class="ver ${!isMulti ? 'single' : isOld ? 'old' : ''}">
-        ${isMulti ? `<div class="row"><b>第 ${v.no} 版</b><span class="muted">${v.at} · ${uname(v.by)}</span></div>` : ''}
+        ${isMulti ? `<div class="row mb-2"><b>第 ${v.no} 版</b><span class="faint">${v.at} · ${uname(v.by)}</span></div>` : ''}
         ${isMulti && v.note ? `<div class="note">${esc(v.note)}</div>` : ''}
-        ${v.clause ? `<div style="margin:4px 0"><span class="tag blue">📜 ${esc(v.clause)}</span></div>` : ''}
+        ${v.clause ? `<div class="clause-line"><span class="tag progress">${icon('bookmark', 'i-sm')}${esc(v.clause)}</span></div>` : ''}
         <div class="scheme-pair ${is3 ? 'cols-3' : ''}">
           ${labels.map((item) => `
             <div class="scheme-box">
               <div class="lbl">${esc(item.title)}</div>
-              ${imgsHtml(imgs[item.key]) || '<span class="muted">—</span>'}
+              ${imgsHtml(imgs[item.key]) || '<span class="faint">—</span>'}
             </div>
           `).join('')}
         </div>
@@ -427,111 +429,104 @@ function renderParallelAdvance(p, cur) {
 
   if (isDone) {
     return `
-      <div style="margin-top:10px;padding:9px 12px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px">
-        <div class="row">
-          <b style="color:#15803d;font-size:13px">⚡ 下一阶段「${esc(nextDef.name)}」成果已提前把关通过！</b>
-          <span class="tag green">已就绪</span>
+      <div class="parallel-box ready">
+        <div class="row nowrap">
+          <span class="p-title">${icon('check-circle')}下一阶段「${esc(nextDef.name)}」已提前把关通过</span>
+          <span class="tag done">已就绪</span>
         </div>
-        <div class="muted" style="font-size:12px;color:#166534;margin-top:3px">会后记录结果即可直接进入公示/入库，省去重复等待周期。</div>
+        <div class="p-desc">会后记录结果即可直接进入公示/入库，省去重复等待周期。</div>
       </div>`;
   }
   if (nextReviews.length) {
     return `
-      <div style="margin-top:10px;padding:9px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px">
-        <div class="row">
-          <b style="color:#1e40af;font-size:13px">⚡ 下一阶段「${esc(nextDef.name)}」正在提前把关中...</b>
-          <span class="tag blue">并联把关中</span>
+      <div class="parallel-box">
+        <div class="row nowrap">
+          <span class="p-title">${icon('zap')}下一阶段「${esc(nextDef.name)}」提前把关中</span>
+          <span class="tag parallel">并联把关中</span>
         </div>
-        <div class="muted" style="font-size:12px;color:#1e3a8a;margin-top:3px">
-          正在把关：${nextReviews[0].items.map((i) => uname(i.uid) + '(' + (i.status === 'done' || i.status === 'known' ? '✔已过' : '审查中') + ')').join('、')}
+        <div class="p-desc">
+          正在把关：${nextReviews[0].items.map((i) => uname(i.uid) + '（' + (i.status === 'done' || i.status === 'known' ? '已过' : '审查中') + '）').join('、')}
         </div>
       </div>`;
   }
   return `
-    <div style="margin-top:10px;padding:9px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px">
-      <div class="row">
-        <b style="color:#15803d;font-size:13px">⚡ 并联提效 · 等会不等人</b>
-        <span class="tag green">建议推进</span>
+    <div class="parallel-box">
+      <div class="row nowrap">
+        <span class="p-title">${icon('zap')}并联提效 · 等会不等人</span>
+        <span class="tag parallel">建议推进</span>
       </div>
-      <div class="muted" style="margin-top:3px;font-size:12px;color:#166534">
-        当前在等开会排期。建议同步准备并提前送审下一阶段<b>【${esc(nextDef.name)}】</b>（${nextDef.forms ? nextDef.forms.join('、') : '成果材料'}），开完会即可直接放行！
+      <div class="p-desc">
+        当前在等开会排期，可同步提前送审下一阶段<b>「${esc(nextDef.name)}」</b>（${nextDef.forms ? nextDef.forms.join('、') : '成果材料'}），开完会即可直接放行。
       </div>
-      <div style="margin-top:8px">
-        <button class="btn sm green" onclick="reviewModal('${p.id}','${nextKey}')">📤 提前送审「${esc(nextDef.name)}」成果</button>
-      </div>
+      <button class="btn sm parallel" onclick="reviewModal('${p.id}','${nextKey}')">${icon('send')}提前送审「${esc(nextDef.name)}」成果</button>
     </div>`;
 }
 
 // ===== 项目详情页（精简、去AI腔调、报会不阻塞、少打字）=====
 function viewProject(p) {
   if (!p) return '<div class="empty">项目不存在</div>';
-  if (!canSee(p, me)) return '<div class="empty">🔒 你不在该项目的公开范围内</div>';
+  if (!canSee(p, me)) return `<div class="empty">${icon('lock')}你不在该项目的公开范围内</div>`;
   const keys = path(p), cur = curStage(p), def = stageMeta(p, cur), team = isTeam(p);
   const sCur = p.stages[cur] || {};
   const isApplied = !!sCur.apply;
   const isScheduled = isApplied && sCur.apply.status === 'scheduled';
 
-  // 当前阶段动作卡片（无AI用语，直接呈现动作按钮）
+  // 当前阶段动作卡片（无AI用语，直接呈现动作按钮；每张卡只一个主按钮）
   let stageCard = '';
   if (team) {
-    const moreBtn = `<button class="icon-more-btn" onclick="stageMoreMenuModal('${p.id}')" title="更多操作">⋯</button>`;
+    const moreBtn = `<button class="icon-more-btn" onclick="stageMoreMenuModal('${p.id}')" title="更多操作" aria-label="更多操作">${icon('more', 'i-lg')}</button>`;
+    const cardFoot = `<div class="card-foot">
+          <button class="btn sm text" onclick="versionModal('${p.id}')">${icon('plus')}传新版方案</button>
+          ${moreBtn}
+        </div>`;
 
     if (finished(p)) {
-      stageCard = `<div class="card" style="border:1.5px solid #16a34a;background:#f7fcf9">
-        <div class="row">
-          <b style="color:#15803d;font-size:15px">🎉 全部审查及入库流程已结项</b>
+      stageCard = `<div class="card stage-card is-done">
+        <div class="row nowrap">
+          <span class="stage-name text-done hstack tight">${icon('check-circle')}全部审查及入库流程已结项</span>
           ${moreBtn}
         </div>
       </div>`;
     } else if (cur === 's2' || def.name.includes('技术审查会')) {
       // 分院技术审查会：一键报会、绝不阻塞，随时可推进评审审查
-      stageCard = `<div class="card" style="border:1.5px solid #d8b4fe;background:#fcfaff">
-        <div class="row">
-          <b style="font-size:15px;color:#6b21a8">${esc(def.name)}</b>
-          ${isScheduled ? '<span class="tag green">已排期</span>' : isApplied ? '<span class="tag purple">已报会</span>' : '<span class="tag gray">未报会</span>'}
+      stageCard = `<div class="card stage-card is-wait">
+        <div class="row nowrap">
+          <span class="stage-name">${esc(def.name)}</span>
+          ${isScheduled ? '<span class="tag wait">已排期</span>' : isApplied ? '<span class="tag wait">已报会</span>' : '<span class="tag">未报会</span>'}
         </div>
 
         ${isScheduled ? `
-          <div style="margin-top:6px;font-size:13px;color:#15803d;background:#fff;padding:8px 10px;border-radius:8px;border:1px solid #bbf7d0">
-            🗓 <b>已排期：</b>${fmtAppt(sCur.apply.scheduledTime)} · ${esc(sCur.apply.location || '三楼大会议室')}
-          </div>` : ''}
+          <div class="info-box wait">${icon('calendar', 'i-sm')}已排期：${fmtAppt(sCur.apply.scheduledTime)} · ${esc(sCur.apply.location || '三楼大会议室')}</div>` : ''}
 
-        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+        <div class="stage-actions">
           ${!isApplied ? `
-            <button class="btn purple block" style="margin-top:0" onclick="oneTapApplyMeeting('${p.id}','${cur}')">📅 一键报会（报给院长凑会）</button>
-            <button class="btn ghost block" style="margin-top:0" onclick="completeStage(P('${p.id}'), true)">不上会，直接进入评审审查 →</button>
+            <button class="btn block" onclick="oneTapApplyMeeting('${p.id}','${cur}')">${icon('calendar')}一键报会（报给院长凑会）</button>
+            <button class="btn text block" onclick="completeStage(P('${p.id}'), true)">不上会，直接进入评审审查${icon('arrow-right')}</button>
           ` : `
-            <button class="btn green block" style="margin-top:0;font-size:15px" onclick="completeStage(P('${p.id}'))">进入评审审查（不等开会直接推）→</button>
-            <button class="btn sm ghost purple" onclick="meetingModal('${p.id}','${cur}')">📝 记会议结果</button>
+            <button class="btn block" onclick="completeStage(P('${p.id}'))">进入评审审查（不等开会直接推）${icon('arrow-right')}</button>
+            <button class="btn ghost block" onclick="meetingModal('${p.id}','${cur}')">${icon('file-text')}记会议结果</button>
           `}
         </div>
 
         ${renderParallelAdvance(p, cur)}
-
-        <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
-          <button class="btn sm ghost" onclick="versionModal('${p.id}')">＋ 传新版方案</button>
-          ${moreBtn}
-        </div>
+        ${cardFoot}
       </div>`;
     } else if (def.type === 'meeting') {
-      // 其他会议阶段（联审会、局长办公会、市政府会）
-      stageCard = `<div class="card" style="border:1.5px solid #93c5fd;background:#f8fbff">
-        <div class="row">
-          <b style="font-size:15px;color:#1d4ed8">${esc(def.name)}</b>
-          <span class="tag blue">会议节点</span>
+      // 其他会议阶段（联审会、局长办公会、市政府会）：未记会议时主按钮为"记录"，记完后主按钮为"完成"
+      const hasMeeting = !!sCur.meeting;
+      stageCard = `<div class="card stage-card is-wait">
+        <div class="row nowrap">
+          <span class="stage-name">${esc(def.name)}</span>
+          <span class="tag wait">会议节点</span>
         </div>
-        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
-          ${def.preReview ? `<button class="btn ghost block" style="margin-top:0" onclick="reviewModal('${p.id}')">📤 发起会前预审</button>` : ''}
-          <button class="btn block" style="margin-top:0" onclick="meetingModal('${p.id}','${cur}')">📝 记录会议信息</button>
-          <button class="btn green block" style="margin-top:0" onclick="completeStage(P('${p.id}'))">完成本阶段，进入下一步 →</button>
+        <div class="stage-actions">
+          <button class="btn ${hasMeeting ? 'ghost' : ''} block" onclick="meetingModal('${p.id}','${cur}')">${icon('file-text')}记录会议信息</button>
+          <button class="btn ${hasMeeting ? '' : 'ghost'} block" onclick="completeStage(P('${p.id}'))">完成本阶段，进入下一步${icon('arrow-right')}</button>
+          ${def.preReview ? `<button class="btn text block" onclick="reviewModal('${p.id}')">${icon('send')}发起会前预审</button>` : ''}
         </div>
 
         ${renderParallelAdvance(p, cur)}
-
-        <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
-          <button class="btn sm ghost" onclick="versionModal('${p.id}')">＋ 传新版方案</button>
-          ${moreBtn}
-        </div>
+        ${cardFoot}
       </div>`;
     } else {
       // 审查节点
@@ -540,8 +535,8 @@ function viewProject(p) {
 
       if (!stageReviews.length) {
         reviewAction = `
-          <button class="btn block" style="margin-top:0;font-size:15px" onclick="reviewModal('${p.id}')">📤 送审「${def.forms ? def.forms[0] : '成果'}」</button>
-          ${def.optional ? `<button class="btn ghost sm block" style="margin-top:6px" onclick="completeStage(P('${p.id}'), true)">${esc(def.skipLabel || '跳过此阶段 →')}</button>` : ''}`;
+          <button class="btn block" onclick="reviewModal('${p.id}')">${icon('send')}送审「${def.forms ? def.forms[0] : '成果'}」</button>
+          ${def.optional ? `<button class="btn text block" onclick="completeStage(P('${p.id}'), true)">${esc(def.skipLabel || '跳过此阶段')}${icon('arrow-right')}</button>` : ''}`;
       } else {
         // 判定放行：
         // 1. 所有审查项均为 done 或 known
@@ -558,14 +553,14 @@ function viewProject(p) {
         const statusBadges = stageReviews.flatMap((r) => r.items.map((it) => {
           const u = U(it.uid);
           if (u.role === '所长') {
-            if (it.status === 'known') return `<span class="tag green">✔ ${uname(it.uid)}（已阅知）</span>`;
-            if (it.status === 'holding') return `<span class="tag orange">⏳ ${uname(it.uid)}（待所长把关中）</span>`;
-            if (it.status === 'done') return `<span class="tag green">✔ ${uname(it.uid)}（把关完成）</span>`;
-            return `<span class="tag gray">${uname(it.uid)}（知晓中）</span>`;
+            if (it.status === 'known') return `<span class="tag done">${icon('check', 'i-sm')}${uname(it.uid)}（已阅知）</span>`;
+            if (it.status === 'holding') return `<span class="tag progress">${icon('clock', 'i-sm')}${uname(it.uid)}（待所长把关中）</span>`;
+            if (it.status === 'done') return `<span class="tag done">${icon('check', 'i-sm')}${uname(it.uid)}（把关完成）</span>`;
+            return `<span class="tag">${uname(it.uid)}（知晓中）</span>`;
           }
-          if (it.status === 'done') return `<span class="tag green">✔ ${uname(it.uid)}（${u.role === '组长' || u.role === '所总' ? '审查校对通过' : '审查通过'}）</span>`;
-          if (it.status === 'accepted') return `<span class="tag blue">📅 ${uname(it.uid)}（已约送册）</span>`;
-          return `<span class="tag orange">⏳ ${uname(it.uid)}（审查中）</span>`;
+          if (it.status === 'done') return `<span class="tag done">${icon('check', 'i-sm')}${uname(it.uid)}（${u.role === '组长' || u.role === '所总' ? '审查校对通过' : '审查通过'}）</span>`;
+          if (it.status === 'accepted') return `<span class="tag progress">${icon('calendar', 'i-sm')}${uname(it.uid)}（已约送册）</span>`;
+          return `<span class="tag">${icon('clock', 'i-sm')}${uname(it.uid)}（审查中）</span>`;
         }));
 
         let directorQuickActions = '';
@@ -574,13 +569,11 @@ function viewProject(p) {
           const myItem = curReview?.items.find((i) => i.uid === me);
           if (myItem?.status !== 'done') {
             directorQuickActions = `
-              <div style="margin-top:8px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px">
-                <div style="display:flex;align-items:center;justify-content:space-between">
-                  <span style="font-size:12.5px;font-weight:600;color:#0369a1">所长把关选择：</span>
-                  <div style="display:flex;gap:6px">
-                    <button class="btn sm green" onclick="directorAcknowledge('${p.id}','${curReview.id}')" title="知晓直接放行，不卡后续流程">🟢 一键阅知</button>
-                    <button class="btn sm orange" onclick="directorHold('${p.id}','${curReview.id}')" title="设为待我把关，亲自审查提意见">🟡 待我把关</button>
-                  </div>
+              <div class="director-pick">
+                <div class="muted">所长把关选择</div>
+                <div class="btn-row">
+                  <button class="btn sm ghost" onclick="directorAcknowledge('${p.id}','${curReview.id}')" title="知晓直接放行，不卡后续流程">${icon('eye')}一键阅知</button>
+                  <button class="btn sm ghost" onclick="directorHold('${p.id}','${curReview.id}')" title="设为待我把关，亲自审查提意见">${icon('shield-check')}待我把关</button>
                 </div>
               </div>`;
           }
@@ -588,11 +581,13 @@ function viewProject(p) {
 
         if (allDone) {
           reviewAction = `
-            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">${statusBadges.join('')}</div>
-            <div style="color:#15803d;font-weight:600;font-size:13px;margin-bottom:6px">✔ 审查流程已满足进入下一阶段条件</div>
+            <div class="tags">${statusBadges.join('')}</div>
+            <div class="status-line done">${icon('check-circle')}审查流程已满足进入下一阶段条件</div>
             ${directorQuickActions}
-            <button class="btn green block" style="margin-top:6px" onclick="completeStage(P('${p.id}'))">进入下一阶段 →</button>
-            <button class="btn ghost sm" style="margin-top:6px" onclick="reviewModal('${p.id}')">＋ 追加送审其他人</button>`;
+            <div class="stage-actions">
+              <button class="btn block" onclick="completeStage(P('${p.id}'))">进入下一阶段${icon('arrow-right')}</button>
+              <button class="btn text block" onclick="reviewModal('${p.id}')">${icon('plus')}追加送审其他人</button>
+            </div>`;
         } else {
           const waitingNames = stageReviews.flatMap((r) => r.items.filter((it) => {
             if (it.status === 'done' || it.status === 'known') return false;
@@ -600,26 +595,23 @@ function viewProject(p) {
           })).map((i) => uname(i.uid));
 
           reviewAction = `
-            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">${statusBadges.join('')}</div>
-            <div class="muted" style="font-size:13px;margin-bottom:6px">正在等待：<b>${waitingNames.join('、')}</b> 把关</div>
+            <div class="tags">${statusBadges.join('')}</div>
+            <div class="status-line">正在等待<b>${waitingNames.join('、')}</b>把关</div>
             ${directorQuickActions}
-            <div class="row" style="margin-top:8px">
-              <button class="btn sm ghost" onclick="reviewModal('${p.id}')">＋ 追加送审</button>
-              <button class="btn sm green" onclick="completeStage(P('${p.id}'))">直接进入下一阶段 →</button>
+            <div class="btn-row">
+              <button class="btn sm text" onclick="reviewModal('${p.id}')">${icon('plus')}追加送审</button>
+              <button class="btn sm ghost" onclick="completeStage(P('${p.id}'))">直接进入下一阶段${icon('arrow-right')}</button>
             </div>`;
         }
       }
 
-      stageCard = `<div class="card" style="border:1.5px solid #93c5fd;background:#f8fbff">
-        <div class="row">
-          <b style="font-size:15px;color:#1d4ed8">${esc(def.name)}</b>
-          <span class="tag blue">审查节点</span>
+      stageCard = `<div class="card stage-card">
+        <div class="row nowrap">
+          <span class="stage-name">${esc(def.name)}</span>
+          <span class="tag progress">审查节点</span>
         </div>
-        <div style="margin-top:10px">${reviewAction}</div>
-        <div class="row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0">
-          <button class="btn sm ghost" onclick="versionModal('${p.id}')">＋ 传新版方案</button>
-          ${moreBtn}
-        </div>
+        <div class="stage-actions">${reviewAction}</div>
+        ${cardFoot}
       </div>`;
     }
   }
@@ -627,34 +619,31 @@ function viewProject(p) {
   const otherMembers = p.members.filter((m) => m !== p.leader);
 
   return `<div class="card">
-    <div class="row">
-      <b style="font-size:16px">${esc(p.alias || p.name)}</b>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span class="tag purple">${p.dept || '规划一所'}</span>
-        ${catTag(p.category)}
-        ${team ? `<button class="icon-more-btn" onclick="stageMoreMenuModal('${p.id}')" title="更多操作" style="width:24px;height:24px;font-size:13px;border-radius:6px">⋯</button>` : ''}
-      </div>
-    </div>
-    ${p.alias && p.alias !== p.name ? `<div class="muted" style="margin-top:2px">${esc(p.name)}</div>` : ''}
+    <div class="title">${esc(p.alias || p.name)}</div>
+    ${p.alias && p.alias !== p.name ? `<div class="muted card-meta">${esc(p.name)}</div>` : ''}
     ${imgsHtml(p.nameImgs)}
-    <div class="muted" style="margin-top:4px">
+    <div class="tags mt-3">
+      <span class="tag">${p.dept || '规划一所'}</span>
+      ${catTag(p.category)}
+    </div>
+    <div class="muted mt-3">
       负责人：<b>${uname(p.leader)}</b>${otherMembers.length ? ' · 成员：' + otherMembers.map(uname).join('、') : ''}
     </div>
-    <div class="muted" style="margin-top:2px">公开：${p.visible.map(uname).join('、')}</div>
+    <div class="faint mt-1">公开：${p.visible.map(uname).join('、')}</div>
   </div>
 
   ${stageCard}
 
-  <h2>方案图件与依据</h2>
+  ${sectionTitle('方案图件与依据')}
   ${renderSchemeCard(p)}
 
-  <h2>流程进度</h2>
+  ${sectionTitle('流程进度')}
   <div class="card">
     <ul class="timeline">
       ${keys.map((k, i) => {
         const s = p.stages[k] || {};
         const m = stageMeta(p, k);
-        const cls = s.skipped ? 'skip' : i < p.stageIdx ? 'done' : i === p.stageIdx ? 'cur' : '';
+        const cls = s.skipped ? 'skip' : i < p.stageIdx ? 'done' : i === p.stageIdx ? ('cur' + (m.type === 'meeting' ? ' wait' : '')) : '';
         return `<li class="${cls}">
           <span class="sname">${esc(m.name)}</span>
           ${m.optional ? '<span class="tag">可选</span>' : ''}
@@ -662,8 +651,8 @@ function viewProject(p) {
         </li>`;
       }).join('')}
     </ul>
-    <div style="margin-top:12px;padding-top:8px;border-top:1px dashed #e2e8f0;text-align:center">
-      <span class="edit-link" onclick="historyModal('${p.id}')">📜 查看完整操作记录 (${p.log.length})</span>
+    <div class="timeline-foot">
+      <span class="edit-link" onclick="historyModal('${p.id}')">${icon('history', 'i-sm')}查看完整操作记录 (${p.log.length})</span>
     </div>
   </div>`;
 }
@@ -677,23 +666,21 @@ function stageDetail(p, key) {
     const ap = s.apply;
     h += `<div class="opinion meeting">
       <div class="row">
-        <span><b>分院审查会报会</b></span>
-        <span class="tag ${ap.status === 'scheduled' ? 'green' : 'purple'}">${ap.status === 'scheduled' ? '已排期' : '已报会'}</span>
+        <b>分院审查会报会</b>
+        <span class="tag wait">${ap.status === 'scheduled' ? '已排期' : '已报会'}</span>
       </div>
-      <div class="muted" style="margin-top:2px">报会人：${uname(ap.applicant || p.leader)} · ${ap.submittedAt || ''}</div>
-      ${ap.scheduledTime ? `<div style="margin-top:4px;color:#15803d;font-weight:600">🗓 开会：${fmtAppt(ap.scheduledTime)} · ${esc(ap.location || '三楼大会议室')}</div>` : ''}
-      ${U(me).role === '院长' && ap.status === 'pending' ? `<div style="text-align:right;margin-top:4px"><button class="btn sm purple" onclick="deanScheduleModal('${p.id}','${key}')">排定会议</button></div>` : ''}
+      <div class="muted mt-1">报会人：${uname(ap.applicant || p.leader)} · ${ap.submittedAt || ''}</div>
+      ${ap.scheduledTime ? `<div class="meet-line">${icon('calendar', 'i-sm')}开会：${fmtAppt(ap.scheduledTime)} · ${esc(ap.location || '三楼大会议室')}</div>` : ''}
+      ${U(me).role === '院长' && ap.status === 'pending' ? `<div class="hstack mt-2"><button class="btn sm ml-auto" onclick="deanScheduleModal('${p.id}','${key}')">排定会议</button></div>` : ''}
     </div>`;
   }
 
   if (s.meeting) {
     const m = s.meeting;
     h += `<div class="opinion meeting">
-      <div class="row">
-        <span>🗓 <b>${fmtAppt(m.time) || '已开会'}</b> · ${esc(m.opinion || '原则通过')}</span>
-      </div>
-      ${m.location ? `<div class="muted" style="margin-top:2px">地点：${esc(m.location)}</div>` : ''}
-      ${m.implement ? `<div style="margin-top:2px;font-size:12.5px">${esc(m.implement)}</div>` : ''}
+      <div class="meet-line">${icon('calendar', 'i-sm')}<b>${fmtAppt(m.time) || '已开会'}</b> · ${esc(m.opinion || '原则通过')}</div>
+      ${m.location ? `<div class="muted mt-1">地点：${esc(m.location)}</div>` : ''}
+      ${m.implement ? `<div class="mt-1">${esc(m.implement)}</div>` : ''}
       <div>${imgsHtml(m.photos)}</div>
     </div>`;
   }
@@ -702,7 +689,7 @@ function stageDetail(p, key) {
     r.items.forEach((it) => {
       h += `<div class="stage-item">
         <div class="row">
-          <span><b>${uname(it.uid)}</b> <small class="muted">(${U(it.uid).role})</small></span>
+          <span><b>${uname(it.uid)}</b> <small class="faint">(${U(it.uid).role})</small></span>
           ${statusTag(it)}
         </div>
         ${fbSummary(it.feedback)}
@@ -730,28 +717,28 @@ function viewDeanBoard() {
   const total = DB.projects.length;
 
   return `
-    <div class="card" style="border:1.5px solid #8250df;background:linear-gradient(135deg, #faf7ff 0%, #f3ebff 100%)">
-      <div class="row">
-        <b style="font-size:16px;color:#581c87">👑 王院长看板</b>
-        <span class="tag purple">全院 ${total} 项</span>
+    <div class="card">
+      <div class="board-head">
+        <span class="title">${icon('dashboard')}王院长看板</span>
+        <span class="tag">全院 ${total} 项</span>
       </div>
     </div>
 
-    <h2>待办事项</h2>
-    <div class="card click" style="border-color:#d8b4fe" onclick="go('dean-meetings')">
-      <div class="row">
-        <b>⚡ 分院技术审查会报会</b>
-        <span class="tag ${applies.length ? 'purple' : 'gray'}">${applies.length} 项待排期</span>
+    ${sectionTitle('待办事项')}
+    <div class="card click" onclick="go('dean-meetings')">
+      <div class="row nowrap">
+        <span class="title">分院技术审查会报会</span>
+        <span class="tag ${applies.length ? 'wait' : ''}">${applies.length} 项待排期</span>
       </div>
-      <div class="muted" style="margin-top:4px">${applies.length ? applies.map(({ p }) => esc(p.alias || p.name)).join('、') : '暂无待排期报会'}</div>
+      <div class="muted card-meta">${applies.length ? applies.map(({ p }) => esc(p.alias || p.name)).join('、') : '暂无待排期报会'}</div>
     </div>
 
-    <div class="card click" style="border-color:#d8b4fe" onclick="go('dean-notes')">
-      <div class="row">
-        <b>✉️ 院长直通车留言</b>
-        <span class="tag ${notes.length ? 'purple' : 'gray'}">${notes.length} 条待回复</span>
+    <div class="card click" onclick="go('dean-notes')">
+      <div class="row nowrap">
+        <span class="title">院长直通车留言</span>
+        <span class="tag ${notes.length ? 'progress' : ''}">${notes.length} 条待回复</span>
       </div>
-      <div class="muted" style="margin-top:4px">${notes.length ? notes.map(({ p, note }) => `${esc(p.alias || p.name)} (${esc(note.topic || '请示')})`).join('、') : '暂无待回复留言'}</div>
+      <div class="muted card-meta">${notes.length ? notes.map(({ p, note }) => `${esc(p.alias || p.name)} (${esc(note.topic || '请示')})`).join('、') : '暂无待回复留言'}</div>
     </div>
   `;
 }
@@ -759,29 +746,26 @@ function viewDeanBoard() {
 function viewDeanMeetings() {
   const applies = deanPendingApplies();
   return `
-    <div class="row" style="margin-bottom:10px">
-      <button class="btn sm gray" onclick="go('todo')">← 返回看板</button>
-      <span class="muted" style="font-size:12.5px">分院技术审查会排期</span>
-    </div>
+    ${backBar('返回看板', '<span class="muted">分院技术审查会排期</span>')}
 
     ${applies.length >= 2 ? `
-      <div class="card" style="background:#fffbeb;border:1px solid #fde68a">
+      <div class="card stage-card is-wait">
         <div class="row">
-          <b style="color:#b45309">已达集中开会建议量 (${applies.length} 项)</b>
-          <button class="btn sm purple" onclick="deanBatchScheduleModal()">一键合并排期</button>
+          <span><b>已达集中开会建议量</b> <span class="faint">${applies.length} 项</span></span>
+          <button class="btn sm" onclick="deanBatchScheduleModal()">一键合并排期</button>
         </div>
       </div>` : ''}
 
     ${!applies.length ? '<div class="empty">暂无待开会的报会申请</div>' : applies.map(({ p, key, apply }) => `
       <div class="card">
-        <div class="row">
-          <b>${esc(p.alias || p.name)}</b>
-          <span class="tag purple">${p.dept || '规划一所'}</span>
+        <div class="row nowrap">
+          <span class="title">${esc(p.alias || p.name)}</span>
+          <span class="tag">${p.dept || '规划一所'}</span>
         </div>
-        <div class="muted" style="margin-top:3px">报会人：${uname(apply.applicant || p.leader)} · ${apply.submittedAt || ''}</div>
-        <div class="row" style="margin-top:8px">
-          <span class="edit-link" onclick="go('project','${p.id}')" style="margin-left:0">查看项目 →</span>
-          <button class="btn sm purple" onclick="deanScheduleModal('${p.id}','${key}')">排定时间</button>
+        <div class="muted card-meta">报会人：${uname(apply.applicant || p.leader)} · ${apply.submittedAt || ''}</div>
+        <div class="card-foot">
+          <span class="edit-link" onclick="go('project','${p.id}')">查看项目${icon('arrow-right', 'i-sm')}</span>
+          <button class="btn sm ${applies.length >= 2 ? 'ghost' : ''}" onclick="deanScheduleModal('${p.id}','${key}')">排定时间</button>
         </div>
       </div>`).join('')}
   `;
@@ -790,21 +774,19 @@ function viewDeanMeetings() {
 function viewDeanNotes() {
   const notes = deanPendingNotes();
   return `
-    <div class="row" style="margin-bottom:10px">
-      <button class="btn sm gray" onclick="go('todo')">← 返回看板</button>
-      <span class="muted" style="font-size:12.5px">院长直通车留言</span>
-    </div>
+    ${backBar('返回看板', '<span class="muted">院长直通车留言</span>')}
 
     ${!notes.length ? '<div class="empty">暂无待回复直通车留言</div>' : notes.map(({ p, note }) => `
       <div class="card">
-        <div class="row">
-          <b>${esc(p.alias || p.name)} · ${esc(note.topic || '请示')}</b>
-          ${note.urgent ? '<span class="tag red">加急</span>' : ''}
+        <div class="row nowrap">
+          <span class="title">${esc(p.alias || p.name)} · ${esc(note.topic || '请示')}</span>
+          ${note.urgent ? '<span class="tag danger">加急</span>' : ''}
         </div>
-        <div class="muted" style="margin-top:2px">来自：${uname(note.by)} · ${note.at}</div>
-        ${note.text ? `<div style="margin-top:6px;font-size:13px;background:#f8fafc;padding:6px 8px;border-radius:6px">${esc(note.text)}</div>` : ''}
-        <div style="text-align:right;margin-top:8px">
-          <button class="btn sm purple" onclick="deanReplyNoteModal('${p.id}','${note.id}')">回复预约时间</button>
+        <div class="muted card-meta">来自：${uname(note.by)} · ${note.at}</div>
+        ${note.text ? `<div class="info-box">${esc(note.text)}</div>` : ''}
+        <div class="card-foot">
+          <span></span>
+          <button class="btn sm" onclick="deanReplyNoteModal('${p.id}','${note.id}')">回复预约时间</button>
         </div>
       </div>`).join('')}
   `;
@@ -816,25 +798,25 @@ function viewChiefEngineerBoard() {
   const issues = DB.commonIssues || [];
 
   return `
-    <div class="card" style="border:1.5px solid #1d5eff;background:linear-gradient(135deg, #f0f6ff 0%, #e6f0fd 100%)">
-      <div class="row">
-        <b style="font-size:16px;color:#1e40af">🏛 李院总看板</b>
-        <span class="tag blue">把关大盘</span>
+    <div class="card">
+      <div class="board-head">
+        <span class="title">${icon('landmark')}李院总看板</span>
+        <span class="tag">把关大盘</span>
       </div>
     </div>
 
-    <h2>待办事项</h2>
+    ${sectionTitle('待办事项')}
     <div class="card click" onclick="go('ce-reviews')">
-      <div class="row">
-        <b>待我技术把关审查</b>
-        <span class="tag ${myTasks.length ? 'red' : 'gray'}">${myTasks.length} 项</span>
+      <div class="row nowrap">
+        <span class="title">待我技术把关审查</span>
+        <span class="tag ${myTasks.length ? 'progress' : ''}">${myTasks.length} 项</span>
       </div>
     </div>
 
     <div class="card click" onclick="go('ce-issues')">
-      <div class="row">
-        <b>共性技术问题收集板</b>
-        <span class="tag purple">${issues.length} 条</span>
+      <div class="row nowrap">
+        <span class="title">共性技术问题收集板</span>
+        <span class="tag">${issues.length} 条</span>
       </div>
     </div>
   `;
@@ -843,18 +825,15 @@ function viewChiefEngineerBoard() {
 function viewChiefEngineerReviews() {
   const tasks = myReviewTasks();
   return `
-    <div class="row" style="margin-bottom:10px">
-      <button class="btn sm gray" onclick="go('todo')">← 返回院总看板</button>
-      <span class="muted" style="font-size:12.5px">待审成果</span>
-    </div>
-    ${!tasks.length ? '<div class="empty">暂无待审成果 ☕</div>' : tasks.map(({ p, r, it }) => `
+    ${backBar('返回院总看板', '<span class="muted">待审成果</span>')}
+    ${!tasks.length ? `<div class="empty">${icon('inbox')}暂无待审成果</div>` : tasks.map(({ p, r, it }) => `
       <div class="card click" onclick="${it.status === 'pending' ? `acceptModal('${p.id}','${r.id}')` : `feedbackModal('${p.id}','${r.id}')`}">
-        <div class="row">
-          <b>${esc(p.alias || p.name)}</b>
+        <div class="row nowrap">
+          <span class="title">${esc(p.alias || p.name)}</span>
           ${statusTag(it)}
         </div>
-        <div class="muted" style="margin-top:2px">${p.dept || '规划一所'} · ${stageMeta(p, r.stage).name} · ${uname(p.leader)} 送审</div>
-        ${r.parallel ? `<span class="tag red" style="margin-top:4px">加急：${esc(r.reason)}</span>` : ''}
+        <div class="muted card-meta">${p.dept || '规划一所'} · ${stageMeta(p, r.stage).name} · ${uname(p.leader)} 送审</div>
+        ${r.parallel ? `<div class="mt-2"><span class="tag danger">加急：${esc(r.reason)}</span></div>` : ''}
       </div>`).join('')}
   `;
 }
@@ -864,20 +843,17 @@ function viewChiefEngineerUpcoming() { return viewChiefEngineerReviews(); }
 function viewChiefEngineerIssues() {
   const issues = DB.commonIssues || [];
   return `
-    <div class="row" style="margin-bottom:10px">
-      <button class="btn sm gray" onclick="go('todo')">← 返回院总看板</button>
-      <button class="btn sm purple" onclick="newIssueModal()">＋ 新增注意点</button>
-    </div>
+    ${backBar('返回院总看板', `<button class="btn sm" onclick="newIssueModal()">${icon('plus')}新增注意点</button>`)}
     ${!issues.length ? '<div class="empty">暂无共性问题</div>' : issues.map((iss) => `
       <div class="issue-card">
-        <div class="row">
+        <div class="row nowrap">
           <b>${esc(iss.title)}</b>
-          <span class="tag blue">${esc(iss.category)}</span>
+          <span class="tag">${esc(iss.category)}</span>
         </div>
-        <div class="muted" style="margin-top:4px">${esc(iss.guide || iss.problem)}</div>
-        <div class="row" style="margin-top:8px">
-          <button class="btn sm gray" onclick="editIssueModal('${iss.id}')">修改</button>
-          <button class="btn sm purple" onclick="broadcastIssueModal('${iss.id}')">发布至「新规」提醒</button>
+        <div class="muted card-meta">${esc(iss.guide || iss.problem)}</div>
+        <div class="card-foot">
+          <button class="btn sm text neutral" onclick="editIssueModal('${iss.id}')">${icon('pencil')}修改</button>
+          <button class="btn sm ghost" onclick="broadcastIssueModal('${iss.id}')">${icon('bell')}发布至「新规」提醒</button>
         </div>
       </div>`).join('')}
   `;
@@ -889,77 +865,74 @@ function viewDirectorBoard() {
   const dProjects = deptProjects(dept);
   const dirReviews = directorPendingReviews(dept);
   const applies = deptMeetingApplies(dept);
+  const viewBtn = (pid, label = '查看方案') => `<button class="btn sm text" onclick="go('project','${pid}')">${label}${icon('arrow-right', 'i-sm')}</button>`;
 
   return `
-    <div class="card" style="border:1.5px solid #1d5eff;background:#f8fbff">
-      <div class="row">
-        <b style="font-size:16px;color:#1e40af">🏢 ${dept} 看板</b>
-        <span class="tag blue">${dProjects.length} 项在编</span>
+    <div class="card">
+      <div class="board-head">
+        <span class="title">${icon('building')}${dept} 看板</span>
+        <span class="tag">${dProjects.length} 项在编</span>
       </div>
     </div>
 
     ${dirReviews.length ? `
-      <h2>本所审查与把关 (${dirReviews.length})</h2>
-      <div class="muted" style="margin:-4px 0 8px;font-size:12px;color:#64748b">
-        💡 组长/所总负责技术审查与校对；所长可自主点选<b>「一键阅知」</b>放行或<b>「待我把关」</b>亲自把关。
-      </div>
+      ${sectionTitle('本所审查与把关', dirReviews.length)}
+      <div class="hint mb-3">${icon('info', 'i-sm')}<span>组长/所总负责技术审查与校对；所长可点选「一键阅知」放行，或「待我把关」亲自把关。</span></div>
       ${dirReviews.map(({ p, r, it, items }) => {
         const curStatus = it ? it.status : 'pending';
         const techReviewers = items.filter((x) => U(x.uid).role === '组长' || U(x.uid).role === '所总');
         const techSummary = techReviewers.length
-          ? techReviewers.map((x) => `${uname(x.uid)}（${x.status === 'done' ? '✔ 审查校对通过' : '审查中'}）`).join('、')
+          ? techReviewers.map((x) => `${uname(x.uid)}（${x.status === 'done' ? '审查校对通过' : '审查中'}）`).join('、')
           : '由组长/所总负责审查校对';
 
         let actionArea = '';
         if (curStatus === 'known') {
           actionArea = `
-            <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;align-items:center">
-              <span class="tag green">✔ 我已阅知（放行推进）</span>
-              <div style="display:flex;gap:6px">
-                <button class="btn xs ghost" onclick="directorHold('${p.id}','${r.id}')">改为亲自把关</button>
-                <button class="btn xs ghost" onclick="go('project','${p.id}')">查看方案 →</button>
+            <div class="card-foot">
+              <span class="tag done">${icon('check', 'i-sm')}我已阅知（放行推进）</span>
+              <div class="hstack tight">
+                <button class="btn sm text neutral" onclick="directorHold('${p.id}','${r.id}')">改为亲自把关</button>
+                ${viewBtn(p.id)}
               </div>
             </div>`;
         } else if (curStatus === 'holding') {
           actionArea = `
-            <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;align-items:center">
-              <div>
-                <span class="tag orange">⏳ 待我把关中</span>
-                <button class="btn sm blue" onclick="feedbackModal('${p.id}','${r.id}')" style="margin-left:6px;padding:3px 9px">✏️ 填写把关意见</button>
-              </div>
-              <div style="display:flex;gap:6px">
-                <button class="btn xs ghost" onclick="directorAcknowledge('${p.id}','${r.id}')">转为一键阅知放行</button>
-                <button class="btn xs ghost" onclick="go('project','${p.id}')">查看方案 →</button>
-              </div>
+            <div class="card-foot">
+              <span class="tag progress">${icon('clock', 'i-sm')}待我把关中</span>
+              <button class="btn sm" onclick="feedbackModal('${p.id}','${r.id}')">${icon('pencil')}填写把关意见</button>
+            </div>
+            <div class="row mt-2">
+              <button class="btn sm text neutral" onclick="directorAcknowledge('${p.id}','${r.id}')">转为一键阅知放行</button>
+              ${viewBtn(p.id)}
             </div>`;
         } else if (curStatus === 'done') {
           actionArea = `
-            <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;align-items:center">
-              <span class="tag green">✔ 我已完成把关</span>
-              <button class="btn xs ghost" onclick="go('project','${p.id}')">查看方案 →</button>
+            <div class="card-foot">
+              <span class="tag done">${icon('check', 'i-sm')}我已完成把关</span>
+              ${viewBtn(p.id)}
             </div>`;
         } else {
-          // 未操作：两个清晰的选择
+          // 未操作：两个清晰的选择（一键阅知为主操作）
           actionArea = `
-            <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;align-items:center">
-              <div style="display:flex;gap:6px">
-                <button class="btn sm green" onclick="directorAcknowledge('${p.id}','${r.id}')" title="知晓后直接放行，不卡后续流程">🟢 一键阅知</button>
-                <button class="btn sm orange" onclick="directorHold('${p.id}','${r.id}')" title="重点项目设为待我把关，亲自审查">🟡 待我把关</button>
+            <div class="card-foot">
+              <div class="hstack">
+                <button class="btn sm" onclick="directorAcknowledge('${p.id}','${r.id}')" title="知晓后直接放行，不卡后续流程">${icon('eye')}一键阅知</button>
+                <button class="btn sm ghost" onclick="directorHold('${p.id}','${r.id}')" title="重点项目设为待我把关，亲自审查">${icon('shield-check')}待我把关</button>
               </div>
-              <button class="btn sm ghost" onclick="go('project','${p.id}')">查看图件 →</button>
+              ${viewBtn(p.id, '查看图件')}
             </div>`;
         }
 
         return `
-          <div class="card" style="border:1px solid #e2e8f0">
-            <div class="row">
-              <b>${esc(p.alias || p.name)}</b>
-              <span class="tag blue">${stageMeta(p, r.stage).name}</span>
+          <div class="card">
+            <div class="row nowrap">
+              <span class="title">${esc(p.alias || p.name)}</span>
+              <span class="tag progress">${stageMeta(p, r.stage).name}</span>
             </div>
-            <div class="muted" style="margin-top:3px;font-size:12px">
+            <div class="muted card-meta">
               负责人：${uname(p.leader)} · ${esc(r.form)} · ${r.paper ? '纸质册子' : '电子档'}
             </div>
-            <div style="font-size:12px;margin-top:6px;padding:5px 8px;background:#f8fafc;border-radius:6px;color:#334155">
+            <div class="info-box">
               <b>技术把关：</b>${techSummary}
             </div>
             ${actionArea}
@@ -967,25 +940,25 @@ function viewDirectorBoard() {
       }).join('')}` : ''}
 
     ${applies.length ? `
-      <h2>本所报会追踪 (${applies.length})</h2>
+      ${sectionTitle('本所报会追踪', applies.length)}
       ${applies.map(({ p, apply }) => `
         <div class="card click" onclick="go('project','${p.id}')">
-          <div class="row">
-            <b>${esc(p.alias || p.name)}</b>
-            <span class="tag ${apply.status === 'scheduled' ? 'green' : 'purple'}">${apply.status === 'scheduled' ? '已排期' : '已报会'}</span>
+          <div class="row nowrap">
+            <span class="title">${esc(p.alias || p.name)}</span>
+            <span class="tag wait">${apply.status === 'scheduled' ? '已排期' : '已报会'}</span>
           </div>
-          ${apply.scheduledTime ? `<div class="muted" style="margin-top:3px;color:#15803d">开会：${fmtAppt(apply.scheduledTime)} · ${esc(apply.location || '三楼大会议室')}</div>` : ''}
+          ${apply.scheduledTime ? `<div class="muted card-meta hstack tight">${icon('calendar', 'i-sm')}开会：${fmtAppt(apply.scheduledTime)} · ${esc(apply.location || '三楼大会议室')}</div>` : ''}
         </div>`).join('')}` : ''}
 
-    <h2>本所项目清单</h2>
+    ${sectionTitle('本所项目清单')}
     ${dProjects.map((p) => `
       <div class="card click" onclick="go('project','${p.id}')">
-        <div class="row">
-          <b>${esc(p.alias || p.name)}</b>
+        <div class="row nowrap">
+          <span class="title">${esc(p.alias || p.name)}</span>
           ${catTag(p.category)}
         </div>
-        <div class="muted" style="margin-top:2px">${esc(p.name)}</div>
-        <div class="muted" style="margin-top:3px">负责人：${uname(p.leader)} · ${finished(p) ? '✅ 已结项' : '当前：' + stageMeta(p, curStage(p)).name}</div>
+        <div class="muted card-meta">${esc(p.name)}</div>
+        <div class="faint mt-1">负责人：${uname(p.leader)} · ${finished(p) ? '<span class="text-done">已结项</span>' : '当前：' + stageMeta(p, curStage(p)).name}</div>
       </div>`).join('')}
   `;
 }
@@ -1009,11 +982,11 @@ function renderMemberBadges() {
   box.innerHTML = memberState.map((uid, idx) => {
     const isLeader = idx === 0;
     return `<span class="m-badge ${isLeader ? 'leader' : ''}">
-      ${isLeader ? '👑 ' : ''}${uname(uid)}${isLeader ? ' (负责人)' : ''}
-      ${!isLeader ? `<span class="edit-link" onclick="promoteLeader('${uid}')" style="font-size:11px">设负责人</span>` : ''}
-      <span class="del" onclick="removeMember('${uid}')">×</span>
+      ${isLeader ? icon('crown', 'i-sm') : ''}${uname(uid)}${isLeader ? ' (负责人)' : ''}
+      ${!isLeader ? `<span class="edit-link" onclick="promoteLeader('${uid}')">设负责人</span>` : ''}
+      <span class="del" onclick="removeMember('${uid}')">${icon('x', 'i-sm')}</span>
     </span>`;
-  }).join('') || '<span class="muted">未添加成员</span>';
+  }).join('') || '<span class="faint">未添加成员</span>';
 }
 
 function promoteLeader(uid) {
@@ -1027,38 +1000,38 @@ function removeMember(uid) {
 function addMember(uid) {
   if (!memberState.includes(uid)) memberState.push(uid);
   $('#m_search').value = '';
-  $('#m_search_res').style.display = 'none';
+  $('#m_search_res').classList.add('hidden');
   renderMemberBadges();
 }
 function searchMemberInput(q) {
   const resBox = $('#m_search_res');
-  if (!q.trim()) { resBox.style.display = 'none'; return; }
+  if (!q.trim()) { resBox.classList.add('hidden'); return; }
   const matches = searchUsers(q).filter((u) => !memberState.includes(u.id));
   if (!matches.length) {
-    resBox.innerHTML = '<span class="muted" style="font-size:12px">未找到匹配人员</span>';
+    resBox.innerHTML = '<span class="faint">未找到匹配人员</span>';
   } else {
     resBox.innerHTML = matches.map((u) =>
-      `<span class="chip" onclick="addMember('${u.id}')">${u.name} <small class="muted">${u.role}</small></span>`
+      `<span class="chip" onclick="addMember('${u.id}')">${u.name} <small class="faint">${u.role}</small></span>`
     ).join('');
   }
-  resBox.style.display = 'block';
+  resBox.classList.remove('hidden');
 }
 
 function memberFieldHtml(initMembers) {
   memberState = initMembers && initMembers.length ? [...initMembers] : [me];
   return `
-    <label class="f" style="margin-top:0">项目组成员 <span class="muted" style="font-weight:normal">(首位为负责人)</span></label>
+    <label class="f">项目组成员 <span class="faint">(首位为负责人)</span></label>
     <div class="member-list" id="m_badges"></div>
     <div class="search-box">
       <input type="text" id="m_search" placeholder="输入拼音首字母找人，如 sg 找孙工..." oninput="searchMemberInput(this.value)">
-      <div id="m_search_res" class="search-res" style="display:none"></div>
+      <div id="m_search_res" class="search-res hidden"></div>
     </div>`;
 }
 
 function visibleFieldHtml(vis = []) {
   return VIS_ROLES.slice().reverse().map((r) => {
     const key = ROLE_KEYS[r] || r;
-    return `<label class="f">${r}</label>${chips('n_v_' + key, peopleOf(r), vis)}`;
+    return `<label class="f sub">${r}</label>${chips('n_v_' + key, peopleOf(r), vis)}`;
   }).join('');
 }
 

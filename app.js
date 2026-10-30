@@ -25,7 +25,7 @@ const uniq = (a) => [...new Set(a)];
 
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(DB)); }
-  catch (e) { toast('⚠️ 浏览器存储已满，请少传几张图或重置示例数据', 5000); }
+  catch (e) { toast('浏览器存储已满，请少传几张图或重置示例数据', 5000); }
 }
 function pad(n) { return String(n).padStart(2, '0'); }
 function now() {
@@ -60,7 +60,7 @@ function toast(msg, ms = 2600) {
   setTimeout(() => t.remove(), ms);
 }
 function log(p, text, edit = false) { p.log.push({ t: now(), text, edit }); }
-function notify(uids, msg) { if (uids.length) toast(`📨 已通知 ${uids.map(uname).join('、')}：${msg}`, 4200); }
+function notify(uids, msg) { if (uids.length) toast(`已通知 ${uids.map(uname).join('、')}：${msg}`, 4200); }
 
 // ===== 顶部收纳按钮红标计数（新规 + 直通车）=====
 function unreadBulletinCount() {
@@ -137,15 +137,15 @@ let lastUpl = null;
 function uploader(id, init = [], title = '') {
   UPL[id] = [...init];
   return `<div class="upl" id="${id}" tabindex="0" onfocus="lastUpl='${id}'" onclick="lastUpl='${id}';this.classList.add('act')" onblur="this.classList.remove('act')">
-    ${title ? `<div class="upl-title"><span>${esc(title)}</span><span class="muted" style="font-size:11px;font-weight:normal">可粘贴</span></div>` : ''}
+    ${title ? `<div class="upl-title"><span>${esc(title)}</span><span class="faint">可粘贴</span></div>` : ''}
     <div class="thumbs" id="${id}_t">${thumbsHtml(id)}</div>
     <div class="upl-bar">
-      <label class="btn sm ghost" style="padding:4px 9px;font-size:12px">📷 传图<input type="file" accept="image/*" multiple hidden onchange="addFiles('${id}',this.files)"></label>
-      ${!title ? '<span class="muted" style="font-size:11.5px">点此框可 ⌘V / Ctrl+V 粘贴截图</span>' : ''}
+      <label class="btn sm ghost upl-btn">${icon('image')}传图<input type="file" accept="image/*" multiple hidden onchange="addFiles('${id}',this.files)"></label>
+      ${!title ? '<span class="faint">点此框可 Ctrl / Cmd + V 粘贴截图</span>' : ''}
     </div></div>`;
 }
 function thumbsHtml(id) {
-  return (UPL[id] || []).map((f, i) => `<span class="thumb">${f.src ? `<img src="${f.src}" onclick="viewImg(this.src)">` : `<span class="noimg">📷<br>${esc(f.name)}</span>`}<i onclick="event.stopPropagation();rmImg('${id}',${i})">×</i></span>`).join('');
+  return (UPL[id] || []).map((f, i) => `<span class="thumb">${f.src ? `<img src="${f.src}" onclick="viewImg(this.src)">` : `<span class="noimg">${icon('image')}${esc(f.name)}</span>`}<i onclick="event.stopPropagation();rmImg('${id}',${i})">${icon('x', 'i-sm')}</i></span>`).join('');
 }
 function rmImg(id, i) { UPL[id].splice(i, 1); const box = $('#' + id + '_t'); if (box) box.innerHTML = thumbsHtml(id); }
 async function addFiles(id, files) {
@@ -174,10 +174,10 @@ document.addEventListener('paste', (e) => {
   if (!target || !document.getElementById(target)) return;
   const files = [...(e.clipboardData?.items || [])].filter((i) => i.type.startsWith('image/')).map((i) => i.getAsFile());
   if (!files.length) return;
-  e.preventDefault(); addFiles(target, files); toast('✅ 已粘贴截图');
+  e.preventDefault(); addFiles(target, files); toast('已粘贴截图');
 });
 function imgsHtml(list = []) {
-  return (list || []).map((f) => f.src ? `<img class="mini" src="${f.src}" onclick="viewImg(this.src)">` : `<span class="tag">📷 ${esc(f.name)}</span>`).join('');
+  return (list || []).map((f) => f.src ? `<img class="mini" src="${f.src}" onclick="viewImg(this.src)">` : `<span class="tag">${icon('image', 'i-sm')}${esc(f.name)}</span>`).join('');
 }
 function viewImg(src) {
   const o = document.createElement('div'); o.className = 'imgview';
@@ -196,7 +196,7 @@ function createProject(d) {
   };
   log(p, `${uname(me)} 创建项目（${d.category}）`);
   DB.projects.unshift(p); save();
-  toast('✅ 已建档（送审时才通知审查人）');
+  toast('已建档（送审时才通知审查人）');
   go('project', p.id);
 }
 
@@ -205,7 +205,7 @@ function addVersion(p, v) {
   p.versions.push({ no, at: now(), by: me, ...v });
   log(p, `${uname(me)} 上传第 ${no} 版方案${v.note ? '：' + v.note : ''}`, true);
   save(); closeModal(); render();
-  toast(`✅ 已上传第 ${no} 版方案`);
+  toast(`已上传第 ${no} 版方案`);
 }
 
 function editProject(p, d) {
@@ -214,9 +214,9 @@ function editProject(p, d) {
   if (d.name !== p.name) diffs.push(`名称更新`);
   if (d.alias !== p.alias) diffs.push(`俗称更新`);
   const leader = d.members[0] || p.leader;
-  if (leader !== p.leader) diffs.push(`负责人 → ${uname(leader)}`);
+  if (leader !== p.leader) diffs.push(`负责人改为 ${uname(leader)}`);
   const members = uniq([leader, ...d.members]);
-  if (members.join() !== p.members.join()) diffs.push(`成员 → ${names(members)}`);
+  if (members.join() !== p.members.join()) diffs.push(`成员改为 ${names(members)}`);
   if (d.visible.slice().sort().join() !== p.visible.slice().sort().join()) diffs.push(`公开范围更新`);
   if (!diffs.length) { closeModal(); return toast('未改动'); }
   Object.assign(p, { name: d.name, alias: d.alias, leader, members, visible: d.visible });
@@ -269,7 +269,7 @@ function directorAcknowledge(pid, rid) {
   }
   log(p, `${uname(me)} 一键阅知「${stageMeta(p, r.stage).name}」成果（免技术审查放行）`);
   save(); render();
-  toast('✅ 已阅知，项目顺畅推进');
+  toast('已阅知，项目顺畅推进');
   notify([p.leader], `${uname(me)} 已阅知「${p.alias || p.name}」成果`);
 }
 
@@ -288,7 +288,7 @@ function directorHold(pid, rid) {
   }
   log(p, `${uname(me)} 设为「待我把关」（亲自审查）`);
   save(); render();
-  toast('📌 已设为待我把关');
+  toast('已设为待我把关');
 }
 
 function acceptReview(p, r, item, appt) {
@@ -328,7 +328,7 @@ function completeStage(p, skipped = false) {
   log(p, `${uname(me)} ${skipped ? '跳过' : '完成'}阶段「${sName}」`);
   p.stageIdx++;
   save(); render();
-  toast(finished(p) ? '🎉 全部阶段已完成' : `已进入：${stageMeta(p, curStage(p)).name}`);
+  toast(finished(p) ? '全部阶段已完成' : `已进入：${stageMeta(p, curStage(p)).name}`);
 }
 
 function revertStage(p) {
@@ -338,9 +338,9 @@ function revertStage(p) {
   p.stageIdx--;
   delete st(p, back).done;
   delete st(p, back).skipped;
-  log(p, `${uname(me)} 退回阶段「${backName}」`, true);
+  log(p, `${uname(me)} 撤回上一阶段，回到「${backName}」`, true);
   save(); render();
-  toast(`↩ 已退回：${backName}`);
+  toast(`已撤回：${backName}`);
 }
 
 function saveMeeting(p, m, key) {
@@ -491,7 +491,7 @@ function saveCommonIssue(iss) {
   if (idx >= 0) DB.commonIssues[idx] = iss;
   else DB.commonIssues.unshift(iss);
   save(); closeModal(); render();
-  toast('✅ 已保存');
+  toast('已保存');
 }
 
 function broadcastCommonIssue(issueId, scope) {
@@ -527,7 +527,7 @@ function broadcastCommonIssue(issueId, scope) {
   });
 
   save(); closeModal(); render();
-  toast(`📢 已同步至右上角「新规」`);
+  toast('已同步至右上角「新规」');
 }
 
 function deleteCommonIssue(issueId) {
@@ -545,7 +545,7 @@ function saveBulletin(b) {
     if (uid !== me) DB.readBulletins[uid] = (DB.readBulletins[uid] || []).filter((id) => id !== b.id);
   });
   save(); closeModal(); render();
-  toast('✅ 新规已发布');
+  toast('新规已发布');
 }
 
 function deleteBulletin(id) {
