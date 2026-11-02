@@ -1,0 +1,559 @@
+// ===== 基础数据（原型示例数据，正式版从钉钉通讯录读取）=====
+
+const DEPTS = ['规划一所', '规划二所', '规划三所'];
+
+const USERS = [
+  { id: 'u1', name: '王院长', role: '院长', dept: '院领导', py: 'wyz' },
+  { id: 'u2', name: '李院总', role: '院总', dept: '院领导', py: 'lyz' },
+  { id: 'u3', name: '张所长', role: '所长', dept: '规划一所', py: 'zsz' },
+  { id: 'u4', name: '赵所长', role: '所长', dept: '规划二所', py: 'zsz' },
+  { id: 'u21', name: '孙所长', role: '所长', dept: '规划三所', py: 'ssz' },
+  { id: 'u5', name: '陈所总', role: '所总', dept: '规划一所', py: 'csz' },
+  { id: 'u6', name: '刘所总', role: '所总', dept: '规划二所', py: 'lsz' },
+  { id: 'u7', name: '周组长', role: '组长', dept: '规划一所', py: 'zzz' },
+  { id: 'u8', name: '吴组长', role: '组长', dept: '规划二所', py: 'wzz' },
+  { id: 'u9', name: '郑工', role: '成员', dept: '规划一所', py: 'zg' },
+  { id: 'u10', name: '孙工', role: '成员', dept: '规划一所', py: 'sg' },
+  { id: 'u11', name: '钱工', role: '成员', dept: '规划二所', py: 'qg' },
+  { id: 'u12', name: '冯工', role: '成员', dept: '规划三所', py: 'fg' },
+  { id: 'u13', name: '卫工', role: '成员', dept: '规划三所', py: 'wg' },
+  { id: 'u14', name: '蒋工', role: '成员', dept: '规划三所', py: 'jg' },
+  { id: 'u15', name: '沈工', role: '成员', dept: '规划一所', py: 'sg' },
+  { id: 'u16', name: '韩工', role: '成员', dept: '规划二所', py: 'hg' },
+  { id: 'u17', name: '杨工', role: '成员', dept: '规划三所', py: 'yg' },
+  { id: 'u18', name: '朱工', role: '成员', dept: '规划一所', py: 'zg' },
+  { id: 'u19', name: '秦工', role: '成员', dept: '规划二所', py: 'qg' },
+  { id: 'u20', name: '许工', role: '成员', dept: '规划三所', py: 'xg' },
+];
+
+const VIS_ROLES = ['组长/所总', '所长', '院总', '院长'];
+
+const CATEGORIES = ['正向优化', '技术修正', '控规优化调整', '控规修改', '控规', '其他（待开发）'];
+
+// 阶段模板：s2 分院技术审查会必须上，但不卡流程（可先推进下一阶段，会议并行照常开）；s5 各类公示均可选择不公示
+const STAGES = {
+  s1: { name: '前期审理和初步方案', type: 'review', forms: ['汇报演示稿'] },
+  s2: { name: '分院技术审查会', type: 'meeting' },
+  s3: { name: '评审方案审查', type: 'review', forms: ['汇报演示稿', '评审成果'] },
+  s4: { name: '控规方案联审会', type: 'meeting' },
+  s5: { name: '批前公示', type: 'review', pub: true, forms: ['批前公示文件'] },
+  s6: { name: '市长会审查', type: 'review', forms: ['汇报演示稿'], optional: true },
+  s7: { name: '市政府规划联审联批会', type: 'meeting', preReview: true, forms: ['会前指标预审'] },
+  s8: { name: '成果报批审查', type: 'review', forms: ['报批成果'] },
+  s9: { name: '批后公告', type: 'review', forms: ['批后公告文件'] },
+  s_jzbgh: { name: '上局长业务会', type: 'meeting', preReview: true, forms: ['上会材料预审'] },
+  s_zxrk: { name: '提交成果报局', type: 'review', forms: ['报局成果'] },
+  s_jsrk: { name: '提交成果（报局）', type: 'review', forms: ['报局成果'] },
+};
+
+function stagePath(category, publicity) {
+  if (category === '其他（待开发）') return [];
+  if (category === '正向优化') {
+    return ['s1', 's2', 's3', 's4', 's5', 's_jzbgh', 's_zxrk'];
+  }
+  if (category === '技术修正') {
+    return ['s1', 's2', 's3', 's4', 's5', 's_jsrk'];
+  }
+  if (category === '控规优化调整') {
+    // 优化调整 + 新编控规合并一块走流程，联审会后只合并公示一次
+    return ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9'];
+  }
+  if (category === '控规') return ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9'];
+  // 控规修改：不上市长会，无批后公告
+  return publicity === 'before'
+    ? ['s1', 's2', 's3', 's5', 's4', 's8']
+    : ['s1', 's2', 's3', 's4', 's5', 's8'];
+}
+
+const STAGE_OVERRIDES = {
+  '正向优化': {
+    s3: { name: '申报成果审查', forms: ['正向优化申报成果', '汇报演示稿'] },
+    s4: { name: '详细规划联审会' },
+    s5: { name: '批前公示（≥10日）', forms: ['公示文件'] },
+  },
+  '技术修正': {
+    s3: { name: '申报成果审查', forms: ['技术修正成果', '汇报演示稿'] },
+    s4: { name: '详细规划联审会' },
+    s5: { name: '规划公示（≥10日）', forms: ['公示文件'] },
+  },
+  '控规优化调整': {
+    // 标（新编控规）的阶段只送新编控规；其余阶段优化调整 + 新编控规两套成果都要送
+    s1: { name: '前期审理和初步方案（所内审查）', dual: true, forms: ['优化调整演示稿', '新编控规演示稿'] },
+    s3: { dual: true, forms: ['优化调整评审成果', '新编控规评审成果', '汇报演示稿'] },
+    s4: { name: '详细规划联审会' },
+    s5: { name: '合并公示（一次≥10日）', dual: true, forms: ['优化调整公示文件', '新编控规公示文件'] },
+    s6: { dual: true, forms: ['优化调整演示稿', '新编控规演示稿'] },
+    s7: { name: '市政府规划联审联批会（新编控规）', forms: ['新编控规会前指标预审'] },
+    s8: { dual: true, forms: ['优化调整论证报告及附件', '新编控规成果及附件'] },
+    s9: { name: '批后公告（新编控规）', forms: ['新编控规批后公告文件'] },
+  },
+  '控规修改': {
+    s5: { name: '批前公示（≥30日）', forms: ['修改公示文件'] },
+  },
+};
+
+// 不公示理由（只给短选项；补充说明点开才填）
+const NO_PUB_REASONS = {
+  '正向优化': ['涉密', '不改道路红线及等级', '其他'],
+  '技术修正': ['不涉及相邻权益人', '其他'],
+  default: ['涉密', '其他'],
+};
+
+function stageMeta(pOrCat, key) {
+  const base = STAGES[key] || { name: key || '阶段', type: 'review', forms: ['成果材料'] };
+  const cat = typeof pOrCat === 'string' ? pOrCat : (pOrCat && pOrCat.category) || '';
+  const ov = (STAGE_OVERRIDES[cat] && STAGE_OVERRIDES[cat][key]) || {};
+  return { ...base, ...ov };
+}
+
+// 修改依据来源：界面只显示「第几款」，不写具体情形；条文原文通过「查看原文」打开 PDF
+const CLAUSE_SOURCE = {
+  '正向优化': { short: '《正向优化清单》第四条' },
+  '技术修正': { short: '《实施办法》第九条' },
+  '控规优化调整': { short: '《实施办法》第十二条', pdf: '' }, // 待放入：郑州市优化城镇详细规划实施管理办法（试行）PDF
+  '控规修改': { short: '《条例》第二十一条' },
+};
+
+// 修改依据条款（第二列为内部备注，界面不显示）
+const CLAUSE_ITEMS = {
+  '正向优化': [
+    ['第四条第(一)项', '土地用途转换（符合《正向优化清单》直接核发规划条件）'],
+    ['第四条第(二)项', '土地用途混合利用（支持存量空间盘活与产业功能复合）'],
+    ['第四条第(三)项', '规划控制指标优化（容积率、建筑密度、绿地率、高度等优化）'],
+    ['第四条第(四)项', '线性设施控制要素优化（不改道路红线及等级免予公示）'],
+  ],
+  '技术修正': [
+    ['第九条第(一)款', '因产权地界确认或变更等因素带来的地块边界微调'],
+    ['第九条第(二)款', '因铁路、水源保护等客观限制，或增加公共空间带来的地块边界微调'],
+    ['第九条第(三)款', '因各类边界确认等原因，对城市“四线”和历史文化保护线等控制线微调'],
+    ['第九条第(四)款', '对成果中出现的指标不一致、信息表达不准确或缺失等问题更正'],
+    ['第九条第(五)款', '因坐标系转换误差，对数据参数不一致进行更正'],
+    ['第九条第(六)款', '其他经研究确需修正的情形'],
+  ],
+  '控规优化调整': [
+    // 《郑州市优化城镇详细规划实施管理办法（试行）》第十二条（11种情形）
+    ['第十二条第(一)款', '遵从单元强制性内容，对地块性质兼容性、容积率、高度、密度、公服及支路红线等深化优化'],
+    ['第十二条第(二)款', '涉及对城市红线、绿线、蓝线、紫线、黄线、橙线、黑线控制界线的调整'],
+    ['第十二条第(三)款', '涉及对住宅、商业、工业等经营性用地或低效用地调整布局及用地性质、容积率等指标调整'],
+    ['第十二条第(四)款', '涉及对公服、交通、公用设施、绿地等公益性用地调整布局及用地性质、容积率等指标调整'],
+    ['第十二条第(五)款', '涉及对地块交通出入口方位和建筑后退红线距离的调整'],
+    ['第十二条第(六)款', '涉及对地下空间开发利用控制要求的调整'],
+    ['第十二条第(七)款', '涉及对详细规划城市设计强制性控制要求的调整'],
+    ['第十二条第(八)款', '道路详细规划涉及道路红线、道路等级等调整的'],
+    ['第十二条第(九)款', '管线详规因道路调整引起调整，或雨污水管径坡度高程及其他管线敷设调整的'],
+    ['第十二条第(十)款', '轨道交通详规涉及车站主体、段场、专用变电站位置及规划指标变化的'],
+    ['第十二条第(十一)款', '其他经研究确需优化调整的情形'],
+  ],
+  '控规修改': [
+    // 《郑州市城乡规划管理条例》第二十一条（4种情形）
+    ['第二十一条第(一)款', '因总体规划发生变化，对城镇布局和功能产生重大影响的'],
+    ['第二十一条第(二)款', '基础设施或者公共服务设施难以满足城镇发展需要，且不具备更新条件的'],
+    ['第二十一条第(三)款', '因实施涉及公共利益的国家、省、市重大建设工程或者重点工程建设需要修改的'],
+    ['第二十一条第(四)款', '经组织编制机关组织论证，认为确需修改的'],
+  ],
+};
+
+// ===== 普适性技术问题收集板（院总专属）=====
+function seedCommonIssues() {
+  return [
+    {
+      id: 'iss1',
+      pid: 'p1',
+      pname: '东湖地块',
+      category: '控规修改',
+      dept: '规划一所',
+      createdAt: '2026-10-14 11:30',
+      by: 'u2',
+      title: '地下指标计算范围与用地图红线不一致',
+      problem: '指标表地下商业及停车面积未扣除北侧道路红线退让范围。',
+      guide: '送审前须复核用地图红线退让与指标表地下计算口径一致。',
+      broadcasted: false,
+      broadcastScope: [],
+      broadcastAt: '',
+    },
+    {
+      id: 'iss2',
+      pid: 'p4',
+      pname: '生态科技城',
+      category: '控规',
+      dept: '规划三所',
+      createdAt: '2026-10-13 16:00',
+      by: 'u2',
+      title: '新型产业用地(M0)容积率上浮须附产业准入清单',
+      problem: '工业转M0容积率调至3.5，缺少产业准入负面清单附件。',
+      guide: '涉及M0容积率上浮，评审成果须同步附具产业准入清单。',
+      broadcasted: true,
+      broadcastScope: ['规划一所', '规划二所', '规划三所'],
+      broadcastAt: '2026-10-14 09:00',
+    },
+  ];
+}
+
+// ===== 审查新规（收纳在右上角「新规」按钮，默认 3 条未读红标）=====
+function seedBulletins() {
+  return [
+    {
+      id: 'b1',
+      title: '详规新政四类流程启用（优化调整合并一次公示）',
+      category: '全类型通用',
+      dept: '全院三个所',
+      tag: '规范更新',
+      priority: 'high',
+      publisher: '院总工办',
+      publishAt: '2026-10-24',
+      summary: '启用正向优化、技术修正、控规优化调整、控规修改四类流程；优化调整与新编控规合并走流程，只公示一次（≥10日）。',
+      content: '1. 正向优化：联审会 → 公示(≥10日，可不公示) → 上局长业务会 → 提交成果报局；\n2. 技术修正：联审会 → 规划公示(≥10日，仅涉相邻权益人，可不公示) → 提交成果（报局）；\n3. 控规优化调整：论证与新编控规合并一块走流程，联审会后只合并公示一次（≥10日），后报市政府联审联批会；\n4. 控规修改：联审会 → 批前公示(≥30日，可先公示后联审) → 成果报批审查（不上市长会与联审联批会，无批后公告）。',
+    },
+    {
+      id: 'b2',
+      title: '商业/办公兼容比例超15%须附交通承载力测算',
+      category: '控规修改',
+      dept: '全院三个所',
+      tag: '审查要求',
+      priority: 'high',
+      publisher: '院总工办',
+      publishAt: '2026-10-18',
+      summary: '兼容商业办公超15%的地块，送审时须核对出入口支路承载力。',
+      content: '商业/办公兼容比例在15%~30%区间的地块，请提前复核机动车出入口位置与周边支路高峰承载力。',
+    },
+    {
+      id: 'b3',
+      title: '技术修正原54坐标成果须转换2000坐标系入库',
+      category: '技术修正',
+      dept: '全院三个所',
+      tag: '送审提醒',
+      priority: 'normal',
+      publisher: '院总工办',
+      publishAt: '2026-10-15',
+      summary: '第九条第(一)~(三)款，统一按2000坐标系提交。',
+      content: '原控规为54坐标的技术修正项目，报局联审及盖章入“一张图”前须完成2000国家大地坐标系转换核对。',
+    },
+  ];
+}
+
+// ===== 示例用地图与指标表缩略图（矢量 SVG，清晰展示前后两张图分开上传与指标简表）=====
+function makeMapSvg(label, code, colorB, metricText, highlight) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180">
+    <rect width="240" height="180" fill="#f8fafc"/>
+    <path d="M0 36 H240 M0 108 H240 M76 0 V136 M168 0 V136" stroke="#cbd5e1" stroke-width="5"/>
+    <path d="M0 36 H240 M0 108 H240 M76 0 V136 M168 0 V136" stroke="#ffffff" stroke-width="2" stroke-dasharray="4 3"/>
+    <path d="M0 14 Q120 26 240 10" stroke="#93c5fd" stroke-width="8" fill="none"/>
+    <rect x="10" y="44" width="58" height="56" rx="4" fill="#fef08a" stroke="#eab308" stroke-width="1.2"/>
+    <text x="39" y="75" font-size="10" font-family="sans-serif" font-weight="bold" fill="#854d0e" text-anchor="middle">R2 居住</text>
+    <rect x="84" y="44" width="76" height="56" rx="4" fill="${colorB}" stroke="${highlight ? '#dc2626' : '#64748b'}" stroke-width="${highlight ? '2' : '1.2'}" ${highlight ? 'stroke-dasharray="4 2"' : ''}/>
+    <text x="122" y="68" font-size="10" font-family="sans-serif" font-weight="bold" fill="#1e293b" text-anchor="middle">${code}</text>
+    <text x="122" y="84" font-size="9" font-family="sans-serif" fill="#334155" text-anchor="middle">${label}</text>
+    <rect x="176" y="44" width="54" height="56" rx="4" fill="#bbf7d0" stroke="#22c55e" stroke-width="1.2"/>
+    <text x="203" y="75" font-size="10" font-family="sans-serif" font-weight="bold" fill="#166534" text-anchor="middle">G1 绿地</text>
+    <rect x="0" y="136" width="240" height="44" fill="#ffffff"/>
+    <line x1="0" y1="136" x2="240" y2="136" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="10" y="153" font-size="10" font-family="sans-serif" font-weight="bold" fill="#1e293b">${label}</text>
+    <text x="10" y="169" font-size="9" font-family="sans-serif" fill="#475569">${metricText}</text>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+function makeTableSvg(title, row1, row2) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180">
+    <rect width="240" height="180" fill="#ffffff"/>
+    <rect x="8" y="8" width="224" height="28" rx="4" fill="#eef2fc"/>
+    <text x="16" y="26" font-size="11" font-family="sans-serif" font-weight="bold" fill="#2f5bd3">${title}</text>
+    <line x1="8" y1="46" x2="232" y2="46" stroke="#e2e8f0"/>
+    <text x="14" y="64" font-size="9.5" font-family="sans-serif" fill="#64748b">地块编号 / 用地性质 / 容积率 / 限高</text>
+    <line x1="8" y1="74" x2="232" y2="74" stroke="#e2e8f0"/>
+    <text x="14" y="96" font-size="10" font-family="sans-serif" font-weight="bold" fill="#1e293b">${row1}</text>
+    <line x1="8" y1="110" x2="232" y2="110" stroke="#f1f5f9"/>
+    <text x="14" y="132" font-size="10" font-family="sans-serif" font-weight="bold" fill="#2f8a5b">${row2}</text>
+    <rect x="8" y="146" width="224" height="24" rx="4" fill="#f8fafc"/>
+    <text x="14" y="162" font-size="9" font-family="sans-serif" fill="#64748b">注：地上地下控制指标已复核一致</text>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+const DEMO_IMGS = {
+  before: makeMapSvg('调整前用地图', '04-03 (M1)', '#fed7aa', '原指标：M1工业 · 容积率 1.5 · 限高 24m', false),
+  after: makeMapSvg('调整后用地图', '04-03 (M0/B1)', '#fbcfe8', '新指标：新型产业 · 容积率 3.0 · 限高 60m', true),
+  table: makeTableSvg('控制指标一览表（地上+地下）', '04-03 | 容积率 ≤3.0 | 密度 ≤40%', '地下开发 2.1万㎡ | 配建车位 260个'),
+};
+
+// ===== 示例项目（精简字段：只传用地图+指标表，依据只存第几条第几款）=====
+function seedProjects() {
+  return [
+    {
+      id: 'p1',
+      category: '控规修改',
+      name: '某某片区控制性详细规划局部修改',
+      alias: '东湖地块',
+      dept: '规划一所',
+      publicity: 'after',
+      leader: 'u10',
+      members: ['u10', 'u15'],
+      visible: ['u7', 'u5', 'u3', 'u2', 'u1'],
+      nameImgs: [],
+      versions: [
+        {
+          no: 1, at: '2026-10-10 09:30', by: 'u10', note: '初始方案',
+          clause: '第二十一条第(一)款',
+          imgs: { a: [{ name: '修改前用地图.jpg', src: DEMO_IMGS.before }], b: [{ name: '修改后用地图(含指标).jpg', src: DEMO_IMGS.after }] },
+        },
+        {
+          no: 2, at: '2026-10-12 16:40', by: 'u10', note: '按审查意见修改指标表',
+          clause: '第二十一条第(一)款',
+          imgs: { a: [{ name: '修改前用地图.jpg', src: DEMO_IMGS.before }], b: [{ name: '修改后用地图_v2.jpg', src: DEMO_IMGS.after }] },
+        },
+      ],
+      stageIdx: 0,
+      stages: {},
+      reviews: [{
+        id: 'r1', stage: 's1', form: '汇报演示稿', paper: false, parallel: false, reason: '',
+        createdAt: '2026-10-10 10:00',
+        items: [
+          { uid: 'u7', status: 'accepted', appointment: '', feedback: null, at: '' },
+          { uid: 'u3', status: 'pending', appointment: '', feedback: null, at: '' },
+        ],
+      }],
+      deanNotes: [{
+        id: 'dn1',
+        by: 'u10',
+        at: '2026-10-16 09:15',
+        urgent: true,
+        topic: '跨部门协调',
+        text: '北侧相邻地块限高协调需请示王院长',
+        status: 'pending',
+        replyTime: '',
+        replyLoc: '',
+        replyMsg: '',
+      }],
+      log: [
+        { t: '2026-10-10 09:30', text: '孙工 创建项目' },
+        { t: '2026-10-10 10:00', text: '孙工 送审「汇报演示稿」' },
+        { t: '2026-10-12 16:40', text: '孙工 上传第 2 版方案', edit: true },
+      ],
+    },
+    {
+      id: 'p2',
+      category: '控规',
+      name: '西城产业园控制性详细规划',
+      alias: '西城产业园',
+      dept: '规划一所',
+      publicity: 'after',
+      leader: 'u10',
+      members: ['u10', 'u18'],
+      visible: ['u7', 'u5', 'u3', 'u2', 'u1'],
+      nameImgs: [],
+      versions: [{
+        no: 1, at: '2026-10-14 10:00', by: 'u10', note: '初始方案',
+        clause: '',
+        imgs: { a: [{ name: '用地图.jpg', src: DEMO_IMGS.after }], b: [{ name: '指标表.jpg', src: DEMO_IMGS.table }] },
+      }],
+      stageIdx: 1, // s2: 已一键报会，同时随时可直接进入下一阶段
+      stages: {
+        s1: { done: '2026-10-15 17:30' },
+        s2: { apply: { applicant: 'u10', submittedAt: '2026-10-16 10:00', targetLeader: 'u1', status: 'pending' } },
+      },
+      reviews: [{
+        id: 'r10', stage: 's1', form: '汇报演示稿', paper: false, parallel: false, reason: '',
+        createdAt: '2026-10-14 10:15',
+        items: [
+          { uid: 'u7', status: 'done', appointment: '', feedback: { quick: '已阅，无意见' }, at: '2026-10-15 09:30' },
+          { uid: 'u3', status: 'known', appointment: '', feedback: null, at: '2026-10-15 17:00' },
+        ],
+      }],
+      deanNotes: [],
+      log: [
+        { t: '2026-10-14 10:00', text: '孙工 创建项目' },
+        { t: '2026-10-15 17:30', text: '孙工 完成阶段「前期审理和初步方案」' },
+        { t: '2026-10-16 10:00', text: '孙工 报会登记「分院技术审查会」' },
+      ],
+    },
+    {
+      id: 'p3',
+      category: '控规优化调整',
+      name: '滨江商务区核心板块控制性详细规划优化调整',
+      alias: '滨江商务区',
+      dept: '规划二所',
+      publicity: 'after',
+      leader: 'u11',
+      members: ['u11', 'u10'],
+      visible: ['u8', 'u6', 'u4', 'u2', 'u1'],
+      nameImgs: [],
+      versions: [{
+        no: 1, at: '2026-10-12 09:00', by: 'u11', note: '初始方案',
+        clause: '第十二条第(二)款',
+        imgs: {
+          a: [{ name: '调整前用地图.jpg', src: DEMO_IMGS.before }],
+          b: [{ name: '调整后(新编控规)用地图.jpg', src: DEMO_IMGS.after }],
+          c: [{ name: '新编控规指标表.jpg', src: DEMO_IMGS.table }],
+        },
+      }],
+      stageIdx: 1,
+      stages: {
+        s1: { done: '2026-10-14 16:00' },
+        s2: { apply: { applicant: 'u11', submittedAt: '2026-10-15 09:30', targetLeader: 'u1', status: 'pending' } },
+      },
+      reviews: [{
+        id: 'r20', stage: 's1', form: '汇报演示稿', paper: false, parallel: false, reason: '',
+        createdAt: '2026-10-13 10:00',
+        items: [
+          { uid: 'u6', status: 'done', appointment: '', feedback: { quick: '已阅，无意见' }, at: '2026-10-14 15:30' },
+          { uid: 'u4', status: 'known', appointment: '', feedback: null, at: '2026-10-14 16:00' },
+        ],
+      }],
+      deanNotes: [],
+      log: [
+        { t: '2026-10-12 09:00', text: '钱工 创建项目（控规优化调整）' },
+        { t: '2026-10-14 16:00', text: '钱工 完成阶段「前期审理和初步方案」' },
+        { t: '2026-10-15 09:30', text: '钱工 报会登记「分院技术审查会」' },
+      ],
+    },
+    {
+      id: 'p4',
+      category: '控规',
+      name: '生态科技创新城核心区控制性详细规划',
+      alias: '生态科技城',
+      dept: '规划三所',
+      publicity: 'after',
+      leader: 'u12',
+      members: ['u12', 'u13'],
+      visible: ['u8', 'u6', 'u4', 'u2', 'u1'],
+      nameImgs: [],
+      versions: [{
+        no: 1, at: '2026-10-10 14:00', by: 'u12', note: '初始方案',
+        clause: '',
+        imgs: { a: [{ name: '用地图.jpg', src: '' }], b: [{ name: '指标表.jpg', src: '' }] },
+      }],
+      stageIdx: 2,
+      stages: {
+        s1: { done: '2026-10-12 18:00' },
+        s2: { done: '2026-10-14 16:30', meeting: { time: '2026-10-14 14:30', location: '三楼大会议室', attendees: ['u1', 'u2', 'u4', 'u6', 'u12'], opinion: '原则通过', implement: '', photos: [] } },
+      },
+      reviews: [{
+        id: 'r40', stage: 's3', form: '评审成果', paper: true, parallel: false, reason: '',
+        createdAt: '2026-10-15 11:00',
+        items: [
+          { uid: 'u2', status: 'pending', appointment: '2026-10-21 14:00', feedback: null, at: '' },
+        ],
+      }],
+      deanNotes: [],
+      log: [
+        { t: '2026-10-10 14:00', text: '冯工 创建项目' },
+        { t: '2026-10-15 11:00', text: '冯工 送审「评审成果」给 李院总' },
+      ],
+    },
+    {
+      id: 'p5',
+      category: '控规修改',
+      name: '历史文化街区保护控制性详细规划局部修改',
+      alias: '历史街区保护',
+      dept: '规划三所',
+      publicity: 'after',
+      leader: 'u13',
+      members: ['u13', 'u14'],
+      visible: ['u8', 'u6', 'u4', 'u2', 'u1'],
+      nameImgs: [],
+      versions: [{
+        no: 1, at: '2026-10-15 09:00', by: 'u13', note: '初始方案',
+        clause: '第二十一条第(三)款',
+        imgs: { a: [{ name: '修改前用地图.jpg', src: DEMO_IMGS.before }], b: [{ name: '修改后用地图(可+指标表).jpg', src: DEMO_IMGS.after }] },
+      }],
+      stageIdx: 2,
+      stages: {
+        s1: { done: '2026-10-14 17:00' },
+        s2: { parallel: '2026-10-15 15:00' }, // 着急上专家会，先推进评审方案审查，技术审查会并行照常上
+      },
+      reviews: [{
+        id: 'r50', stage: 's3', form: '汇报演示稿', paper: false, parallel: true, reason: '急赶上会',
+        createdAt: '2026-10-16 08:30',
+        items: [
+          { uid: 'u2', status: 'pending', appointment: '', feedback: null, at: '' },
+        ],
+      }],
+      deanNotes: [],
+      log: [
+        { t: '2026-10-15 09:00', text: '卫工 创建项目' },
+        { t: '2026-10-15 15:00', text: '卫工 跳过「分院技术审查会」直接进入评审审查' },
+        { t: '2026-10-16 08:30', text: '卫工 送审「汇报演示稿」给 李院总（同时审查：急赶上会）' },
+      ],
+    },
+    {
+      id: 'p6',
+      category: '正向优化',
+      name: '金水科创园区03-12地块正向优化',
+      alias: '金水科创地块',
+      dept: '规划一所',
+      publicity: 'after',
+      leader: 'u10',
+      members: ['u10', 'u15'],
+      visible: ['u7', 'u5', 'u3', 'u2', 'u1'],
+      nameImgs: [],
+      versions: [{
+        no: 1, at: '2026-10-21 10:00', by: 'u10', note: '初始方案',
+        clause: '第四条第(二)项',
+        imgs: {
+          a: [{ name: '优化前用地图.jpg', src: DEMO_IMGS.before }],
+          b: [{ name: '优化后用地图(可+指标表).jpg', src: DEMO_IMGS.after }],
+        },
+      }],
+      stageIdx: 2,
+      stages: {
+        s1: { done: '2026-10-22 11:00' },
+        s2: { parallel: '2026-10-22 11:05' },
+      },
+      reviews: [{
+        id: 'r61', stage: 's3', form: '正向优化申报成果', paper: true, parallel: false, reason: '',
+        createdAt: '2026-10-23 09:30',
+        items: [
+          { uid: 'u7', status: 'done', appointment: 'any', feedback: { quick: '已阅，无意见' }, at: '2026-10-23 10:30' },
+          { uid: 'u3', status: 'pending', appointment: '', feedback: null, at: '' },
+        ],
+      }],
+      deanNotes: [],
+      log: [
+        { t: '2026-10-21 10:00', text: '孙工 创建项目（正向优化）' },
+        { t: '2026-10-23 09:30', text: '孙工 送审「正向优化申报成果」给 周组长，同步知晓 张所长' },
+        { t: '2026-10-23 10:30', text: '周组长 审查校对通过（已阅，无意见）' },
+      ],
+    },
+    {
+      id: 'p7',
+      category: '技术修正',
+      name: '中原片区第04街坊技术修正',
+      alias: '中原04街坊',
+      dept: '规划二所',
+      publicity: 'after',
+      leader: 'u11',
+      members: ['u11', 'u16'],
+      visible: ['u6', 'u4', 'u2', 'u1'],
+      nameImgs: [],
+      versions: [{
+        no: 1, at: '2026-10-19 09:20', by: 'u11', note: '初始方案',
+        clause: '第九条第(一)款',
+        imgs: {
+          a: [{ name: '修正前用地图.jpg', src: DEMO_IMGS.before }],
+          b: [{ name: '修正后用地图(可+指标表).jpg', src: DEMO_IMGS.after }],
+        },
+      }],
+      stageIdx: 4, // s5: 规划公示（可一键免公示跳过）
+      stages: {
+        s1: { done: '2026-10-19 17:00' },
+        s2: { parallel: '2026-10-19 17:05' },
+        s3: { done: '2026-10-21 16:00' },
+        s4: { done: '2026-10-23 15:30', meeting: { time: '2026-10-23 09:30', location: '市资源规划局', attendees: ['u4', 'u6', 'u11'], opinion: '原则通过', implement: '', photos: [] } },
+      },
+      reviews: [{
+        id: 'r70', stage: 's3', form: '技术修正成果', paper: true, parallel: false, reason: '',
+        createdAt: '2026-10-20 10:00',
+        items: [
+          { uid: 'u6', status: 'done', appointment: 'any', feedback: { quick: '已阅，无意见' }, at: '2026-10-20 16:00' },
+          { uid: 'u2', status: 'done', appointment: 'any', feedback: { quick: '已阅，无意见' }, at: '2026-10-21 15:00' },
+        ],
+      }],
+      deanNotes: [],
+      log: [
+        { t: '2026-10-19 09:20', text: '钱工 创建项目（技术修正）' },
+        { t: '2026-10-21 16:00', text: '钱工 完成阶段「申报成果审查」' },
+        { t: '2026-10-23 15:30', text: '钱工 完成阶段「详细规划联审会」' },
+      ],
+    },
+  ];
+}

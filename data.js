@@ -202,7 +202,7 @@ function seedBulletins() {
       publisher: '院总工办',
       publishAt: '2026-10-24',
       summary: '启用正向优化、技术修正、控规优化调整、控规修改四类流程；优化调整与新编控规合并走流程，只公示一次（≥10日）。',
-      content: '1. 正向优化：联审会 → 公示(≥10日) → 局长办公会 → 市局审定入库；\n2. 技术修正：联审会 →（仅涉相邻权益公示≥10日）→ 盖章入库；\n3. 控规优化调整：论证与新编控规一块走流程，联审会后只合并公示一次（≥10日），后报市政府联审联批会；\n4. 控规修改：论证与新编分两轮进行，公示≥30日。',
+      content: '1. 正向优化：联审会 → 公示(≥10日，可不公示) → 上局长业务会 → 提交成果报局；\n2. 技术修正：联审会 → 规划公示(≥10日，仅涉相邻权益人，可不公示) → 提交成果（报局）；\n3. 控规优化调整：论证与新编控规合并一块走流程，联审会后只合并公示一次（≥10日），后报市政府联审联批会；\n4. 控规修改：联审会 → 批前公示(≥30日，可先公示后联审) → 成果报批审查（不上市长会与联审联批会，无批后公告）。',
     },
     {
       id: 'b2',
@@ -231,6 +231,51 @@ function seedBulletins() {
   ];
 }
 
+// ===== 示例用地图与指标表缩略图（矢量 SVG，清晰展示前后两张图分开上传与指标简表）=====
+function makeMapSvg(label, code, colorB, metricText, highlight) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180">
+    <rect width="240" height="180" fill="#f8fafc"/>
+    <path d="M0 36 H240 M0 108 H240 M76 0 V136 M168 0 V136" stroke="#cbd5e1" stroke-width="5"/>
+    <path d="M0 36 H240 M0 108 H240 M76 0 V136 M168 0 V136" stroke="#ffffff" stroke-width="2" stroke-dasharray="4 3"/>
+    <path d="M0 14 Q120 26 240 10" stroke="#93c5fd" stroke-width="8" fill="none"/>
+    <rect x="10" y="44" width="58" height="56" rx="4" fill="#fef08a" stroke="#eab308" stroke-width="1.2"/>
+    <text x="39" y="75" font-size="10" font-family="sans-serif" font-weight="bold" fill="#854d0e" text-anchor="middle">R2 居住</text>
+    <rect x="84" y="44" width="76" height="56" rx="4" fill="${colorB}" stroke="${highlight ? '#dc2626' : '#64748b'}" stroke-width="${highlight ? '2' : '1.2'}" ${highlight ? 'stroke-dasharray="4 2"' : ''}/>
+    <text x="122" y="68" font-size="10" font-family="sans-serif" font-weight="bold" fill="#1e293b" text-anchor="middle">${code}</text>
+    <text x="122" y="84" font-size="9" font-family="sans-serif" fill="#334155" text-anchor="middle">${label}</text>
+    <rect x="176" y="44" width="54" height="56" rx="4" fill="#bbf7d0" stroke="#22c55e" stroke-width="1.2"/>
+    <text x="203" y="75" font-size="10" font-family="sans-serif" font-weight="bold" fill="#166534" text-anchor="middle">G1 绿地</text>
+    <rect x="0" y="136" width="240" height="44" fill="#ffffff"/>
+    <line x1="0" y1="136" x2="240" y2="136" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="10" y="153" font-size="10" font-family="sans-serif" font-weight="bold" fill="#1e293b">${label}</text>
+    <text x="10" y="169" font-size="9" font-family="sans-serif" fill="#475569">${metricText}</text>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+function makeTableSvg(title, row1, row2) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180">
+    <rect width="240" height="180" fill="#ffffff"/>
+    <rect x="8" y="8" width="224" height="28" rx="4" fill="#eef2fc"/>
+    <text x="16" y="26" font-size="11" font-family="sans-serif" font-weight="bold" fill="#2f5bd3">${title}</text>
+    <line x1="8" y1="46" x2="232" y2="46" stroke="#e2e8f0"/>
+    <text x="14" y="64" font-size="9.5" font-family="sans-serif" fill="#64748b">地块编号 / 用地性质 / 容积率 / 限高</text>
+    <line x1="8" y1="74" x2="232" y2="74" stroke="#e2e8f0"/>
+    <text x="14" y="96" font-size="10" font-family="sans-serif" font-weight="bold" fill="#1e293b">${row1}</text>
+    <line x1="8" y1="110" x2="232" y2="110" stroke="#f1f5f9"/>
+    <text x="14" y="132" font-size="10" font-family="sans-serif" font-weight="bold" fill="#2f8a5b">${row2}</text>
+    <rect x="8" y="146" width="224" height="24" rx="4" fill="#f8fafc"/>
+    <text x="14" y="162" font-size="9" font-family="sans-serif" fill="#64748b">注：地上地下控制指标已复核一致</text>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+const DEMO_IMGS = {
+  before: makeMapSvg('调整前用地图', '04-03 (M1)', '#fed7aa', '原指标：M1工业 · 容积率 1.5 · 限高 24m', false),
+  after: makeMapSvg('调整后用地图', '04-03 (M0/B1)', '#fbcfe8', '新指标：新型产业 · 容积率 3.0 · 限高 60m', true),
+  table: makeTableSvg('控制指标一览表（地上+地下）', '04-03 | 容积率 ≤3.0 | 密度 ≤40%', '地下开发 2.1万㎡ | 配建车位 260个'),
+};
+
 // ===== 示例项目（精简字段：只传用地图+指标表，依据只存第几条第几款）=====
 function seedProjects() {
   return [
@@ -249,12 +294,12 @@ function seedProjects() {
         {
           no: 1, at: '2026-10-10 09:30', by: 'u10', note: '初始方案',
           clause: '第二十一条第(一)款',
-          imgs: { a: [{ name: '修改前用地图.jpg', src: '' }], b: [{ name: '修改后用地图(含指标).jpg', src: '' }] },
+          imgs: { a: [{ name: '修改前用地图.jpg', src: DEMO_IMGS.before }], b: [{ name: '修改后用地图(含指标).jpg', src: DEMO_IMGS.after }] },
         },
         {
           no: 2, at: '2026-10-12 16:40', by: 'u10', note: '按审查意见修改指标表',
           clause: '第二十一条第(一)款',
-          imgs: { a: [{ name: '修改前用地图.jpg', src: '' }], b: [{ name: '修改后用地图_v2.jpg', src: '' }] },
+          imgs: { a: [{ name: '修改前用地图.jpg', src: DEMO_IMGS.before }], b: [{ name: '修改后用地图_v2.jpg', src: DEMO_IMGS.after }] },
         },
       ],
       stageIdx: 0,
@@ -299,7 +344,7 @@ function seedProjects() {
       versions: [{
         no: 1, at: '2026-10-14 10:00', by: 'u10', note: '初始方案',
         clause: '',
-        imgs: { a: [{ name: '用地图.jpg', src: '' }], b: [{ name: '指标表.jpg', src: '' }] },
+        imgs: { a: [{ name: '用地图.jpg', src: DEMO_IMGS.after }], b: [{ name: '指标表.jpg', src: DEMO_IMGS.table }] },
       }],
       stageIdx: 1, // s2: 已一键报会，同时随时可直接进入下一阶段
       stages: {
@@ -336,9 +381,9 @@ function seedProjects() {
         no: 1, at: '2026-10-12 09:00', by: 'u11', note: '初始方案',
         clause: '第十二条第(二)款',
         imgs: {
-          a: [{ name: '调整前用地图.jpg', src: '' }],
-          b: [{ name: '调整后(新编控规)用地图.jpg', src: '' }],
-          c: [{ name: '新编控规指标表.jpg', src: '' }],
+          a: [{ name: '调整前用地图.jpg', src: DEMO_IMGS.before }],
+          b: [{ name: '调整后(新编控规)用地图.jpg', src: DEMO_IMGS.after }],
+          c: [{ name: '新编控规指标表.jpg', src: DEMO_IMGS.table }],
         },
       }],
       stageIdx: 1,
@@ -409,7 +454,7 @@ function seedProjects() {
       versions: [{
         no: 1, at: '2026-10-15 09:00', by: 'u13', note: '初始方案',
         clause: '第二十一条第(三)款',
-        imgs: { a: [{ name: '修改前用地图.jpg', src: '' }], b: [{ name: '修改后用地图(可+指标表).jpg', src: '' }] },
+        imgs: { a: [{ name: '修改前用地图.jpg', src: DEMO_IMGS.before }], b: [{ name: '修改后用地图(可+指标表).jpg', src: DEMO_IMGS.after }] },
       }],
       stageIdx: 2,
       stages: {
@@ -445,8 +490,8 @@ function seedProjects() {
         no: 1, at: '2026-10-21 10:00', by: 'u10', note: '初始方案',
         clause: '第四条第(二)项',
         imgs: {
-          a: [{ name: '优化前用地图.jpg', src: '' }],
-          b: [{ name: '优化后用地图(可+指标表).jpg', src: '' }],
+          a: [{ name: '优化前用地图.jpg', src: DEMO_IMGS.before }],
+          b: [{ name: '优化后用地图(可+指标表).jpg', src: DEMO_IMGS.after }],
         },
       }],
       stageIdx: 2,
@@ -484,8 +529,8 @@ function seedProjects() {
         no: 1, at: '2026-10-19 09:20', by: 'u11', note: '初始方案',
         clause: '第九条第(一)款',
         imgs: {
-          a: [{ name: '修正前用地图.jpg', src: '' }],
-          b: [{ name: '修正后用地图(可+指标表).jpg', src: '' }],
+          a: [{ name: '修正前用地图.jpg', src: DEMO_IMGS.before }],
+          b: [{ name: '修正后用地图(可+指标表).jpg', src: DEMO_IMGS.after }],
         },
       }],
       stageIdx: 4, // s5: 规划公示（可一键免公示跳过）

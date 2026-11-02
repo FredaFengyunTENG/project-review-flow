@@ -1,5 +1,5 @@
 // ===== 状态与通用工具 =====
-const KEY = 'review-proto-v14';
+const KEY = 'review-proto-v15';
 let DB = JSON.parse(localStorage.getItem(KEY) || 'null') || {
   projects: seedProjects(),
   commonIssues: seedCommonIssues(),

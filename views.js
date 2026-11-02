@@ -333,11 +333,11 @@ function viewNew() {
 function bindNew() {
   renderMemberBadges();
   const tips = {
-    '正向优化': '快速通道 · 联审后由局长办公会审核审定入库',
-    '技术修正': '常态化微调 · 联审后直接盖章入库',
-    '控规优化调整': '优化调整与新编控规合并走流程，只公示一次',
-    '控规修改': '重大变更 · 论证与新编两轮进行',
-    '控规': '详细规划新编标准流程',
+    '正向优化': '快速通道 · 联审后由上局长业务会审核，提交成果报局',
+    '技术修正': '常态化微调 · 联审后（仅涉相邻权益人公示）提交成果报局',
+    '控规优化调整': '优化调整与新编控规合并走流程，只合并公示一次',
+    '控规修改': '条例第二十一条情形 · 公示≥30日，成果报批审查结项',
+    '控规': '详细规划新编标准九阶段流程',
   };
 
   const upd = () => {
@@ -581,6 +581,7 @@ function viewProject(p) {
             ${directorQuickActions}
             <div class="stage-actions">
               <button class="btn block" onclick="completeStage(P('${p.id}'))">进入下一阶段${icon('arrow-right')}</button>
+              ${def.pub ? `<button class="btn text block" onclick="noPubModal('${p.id}')">不公示${icon('arrow-right')}</button>` : ''}
               <button class="btn text block" onclick="reviewModal('${p.id}')">${icon('plus')}追加送审其他人</button>
             </div>`;
         } else {
@@ -595,6 +596,7 @@ function viewProject(p) {
             ${directorQuickActions}
             <div class="btn-row">
               <button class="btn sm text" onclick="reviewModal('${p.id}')">${icon('plus')}追加送审</button>
+              ${def.pub ? `<button class="btn sm text" onclick="noPubModal('${p.id}')">不公示</button>` : ''}
               <button class="btn sm ghost" onclick="completeStage(P('${p.id}'))">直接进入下一阶段${icon('arrow-right')}</button>
             </div>`;
         }
