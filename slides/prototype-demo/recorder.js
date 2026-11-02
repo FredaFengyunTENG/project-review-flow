@@ -171,49 +171,49 @@
     cursor.style.left = r.left + Math.min(r.width / 2, 44) + 'px';
     cursor.style.top = r.top + r.height / 2 + 'px';
     cursor.classList.add('show');
-    await sleep(460 / speed);
+    await sleep(640 / speed);
   }
 
   async function apply(ev, animate) {
     if (ev.type === 'mark') return;
     if (ev.type === 'wait') {
-      if (animate) await sleep((ev.ms || 400) / speed);
+      if (animate) await sleep((ev.ms || 650) / speed);
       return;
     }
     if (ev.type === 'upload') {
       UPL[ev.id] = (UPL[ev.id] || []).concat(ev.items);
       const box = document.getElementById(ev.id + '_t');
       if (box) box.innerHTML = thumbsHtml(ev.id);
-      if (animate) await sleep(280 / speed);
+      if (animate) await sleep(460 / speed);
       return;
     }
     const el = find(ev);
     if (!el) { console.warn('[demo] 找不到元素', ev); return; }
     if (animate) await moveTo(el);
     if (ev.type === 'focus') {
-      if (animate) await sleep((ev.ms || 320) / speed);
+      if (animate) await sleep((ev.ms || 560) / speed);
       return;
     }
     if (ev.type === 'click') {
-      if (animate) { cursor.classList.add('tap'); await sleep(140 / speed); cursor.classList.remove('tap'); }
+      if (animate) { cursor.classList.add('tap'); await sleep(220 / speed); cursor.classList.remove('tap'); }
       el.click();
     } else if (ev.type === 'input') {
       if (animate && ev.value && ev.value.length <= 40 && el.type !== 'datetime-local') {
-        for (let i = 1; i <= ev.value.length; i++) { el.value = ev.value.slice(0, i); await sleep(40 / speed); }
+        for (let i = 1; i <= ev.value.length; i++) { el.value = ev.value.slice(0, i); await sleep(52 / speed); }
       }
       el.value = ev.value;
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
     } else if (ev.type === 'select') {
-      if (animate) { cursor.classList.add('tap'); await sleep(140 / speed); cursor.classList.remove('tap'); }
+      if (animate) { cursor.classList.add('tap'); await sleep(220 / speed); cursor.classList.remove('tap'); }
       el.value = ev.value;
       el.dispatchEvent(new Event('change', { bubbles: true }));
       if (animate && el.id === 'userSwitch') {
         const label = el.options[el.selectedIndex]?.text || '';
-        if (label) toast(`切换身份视角：${label}`, 1800);
+        if (label) toast(`切换身份视角：${label}`, 2000);
       }
     }
-    if (animate) await sleep(340 / speed);
+    if (animate) await sleep(560 / speed);
   }
 
   // 快进（无动画、不弹提示）
@@ -244,8 +244,9 @@
       if (my !== token) return; // 被新的跳转打断
       await apply(rec.events[pos++], true);
     }
+    if (my !== token) return;
     cursor.classList.remove('show');
-    parent.postMessage({ type: 'demo-at', step }, '*');
+    parent.postMessage({ type: 'demo-at', step, total: marks.length }, '*');
   }
 
   window.addEventListener('message', (e) => {
