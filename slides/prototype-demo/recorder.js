@@ -231,12 +231,13 @@
 
   async function doGoto(step, my, forceReplay = false) {
     step = Math.max(0, Math.min(step, marks.length - 1));
+    const start = step > 0 ? marks[step - 1] + 1 : 0;
     const end = marks[step] + 1;
-    if (end < pos || curStep < 0 || dirty || forceReplay) {
+    if (pos !== start || curStep < 0 || dirty || forceReplay) {
       dirty = false;
-      // 往回跳、重播或首次进入：从头快进到上一个亮点，再动画播放这一段
+      // 往回跳、当前步循环重播或跨步切换：重置并瞬间快进到本步起点，再动画播放本步
       reset();
-      fastTo(step > 0 ? marks[step - 1] + 1 : 0);
+      fastTo(start);
     }
     curStep = step;
     cursor.classList.remove('show');
